@@ -26,6 +26,7 @@ $routes->get('/service/view/(:num)', 'Service_Controller::view/$1');
 $routes->match(['get', 'post'], '/service/edit/(:num)', 'Service_Controller::update/$1'); 
 $routes->get('/service/search', 'Service_Controller::search');
 
+
 // Cart Routes
 $routes->match(['get', 'post'], '/cart/add/(:num)', 'CartController::add/$1'); // Handles both GET and POST
 $routes->get('/cart', 'CartController::index');
@@ -36,5 +37,8 @@ $routes->post('/cart/submit', 'CartController::submit');
 
 // Events
 $routes->match(['get', 'post'],'/event/create', 'EventController::create');
+
+// Service Routes (Use the Service controller for service-related actions)
+$routes->post('/profile/update-booking-status/(:num)', 'Profile::updateBookingStatus/$1');
 
 

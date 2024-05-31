@@ -7,6 +7,6 @@ class BookingItemModel extends Model
 {
     protected $table            = 'booking_items';
     protected $primaryKey       = 'id';
-    protected $allowedFields    = ['booking_id', 'service_id', 'quantity'];
+    protected $allowedFields    = ['booking_id', 'service_id', 'quantity', 'status'];
 }
 

@@ -30,6 +30,12 @@ class CartController extends BaseController
         $this->updateCartCount();
         $data['total'] = $this->calculateTotal($userId);
 
+        $eventModel = new EventModel();
+    $data['events'] = $eventModel->where('user_id', $userId)->findAll();
+    
+    // Set a default selected event (optional, but recommended for better UX)
+    $data['event_id'] = session()->getFlashdata('selected_event_id');
+
         // Load the cart view
         return view('cart_view', $data);
     }
@@ -91,6 +97,7 @@ class CartController extends BaseController
     
     public function submit()
     {
+        // Ensure user is logged in
         if (!session()->has('user_id')) {
             return redirect()->to('/login');
         }
@@ -104,7 +111,12 @@ class CartController extends BaseController
 
         // Check if the cart has items for the selected event
         $cartModel = new CartModel();
-        $cartItems = $cartModel->where('user_id', $userId)->where('event_id', $eventId)->findAll();
+        $cartItems = $cartModel
+            ->select('carts.id, carts.service_id')
+            ->where('user_id', $userId)
+            ->where('event_id', $eventId)
+            ->findAll();
+
         if (empty($cartItems)) {
             return redirect()->to('/cart')->with('error', 'Your cart is empty for this event.');
         }
@@ -114,7 +126,7 @@ class CartController extends BaseController
         $bookingId = $bookingModel->insert([
             'user_id' => $userId,
             'event_id' => $eventId,
-            'status' => 'pending', // You can set the default status here
+            'status' => 'pending', 
         ]);
 
         if ($bookingId) {
@@ -123,6 +135,7 @@ class CartController extends BaseController
                 $bookingItemModel->insert([
                     'booking_id' => $bookingId,
                     'service_id' => $item['service_id'],
+                    'status' => 'pending' // Set default status
                 ]);
             }
 
