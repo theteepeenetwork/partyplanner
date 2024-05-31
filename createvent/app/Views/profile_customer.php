@@ -20,6 +20,7 @@
 
 
     <?php if (!empty($events)): ?>
+        
         <div id="accordion">
             <?php foreach ($events as $event): ?>
                 <div class="card">

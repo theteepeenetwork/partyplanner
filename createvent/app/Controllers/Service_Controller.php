@@ -4,6 +4,7 @@ namespace App\Controllers;
 use App\Models\ServiceModel;
 use App\Models\UserModel;
 use App\Models\CategoryModel;
+use App\Models\CartModel;
 use App\Models\SubCategoryModel;
 use App\Models\EventModel;
 use App\Models\BookingItemModel;
@@ -204,87 +205,82 @@ class Service_Controller extends BaseController
         if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
             return redirect()->to('/')->with('error', 'You are not authorized to edit services.');
         }
-
+    
         $serviceModel = new ServiceModel();
         $data['service'] = $serviceModel->find($id);
         $userId = session()->get('user_id');
-
+    
         if (!$data['service'] || $data['service']['vendor_id'] != $userId) {
             return redirect()->to('/profile')->with('error', 'Service not found or you are not authorized to edit it.');
         }
-
-        if ($this->request->getMethod() === 'post') {
+    
+        if ($this->request->getMethod() === 'POST') {
             $rules = [
-                'title' => 'required|min_length[3]|max_length[255]',
-                'description' => 'required',
-                'price' => 'required|decimal',
-                'category_id' => 'required|is_natural_no_zero',
+                'title'             => 'required|min_length[3]|max_length[255]',
+                'description'       => 'required',
+                'price'             => 'required|decimal',
+                'category_id'       => 'required|is_natural_no_zero',
                 'short_description' => 'required',
-                'subcategory_id' => 'required|is_natural_no_zero'
+                'subcategory_id'    => 'required|is_natural_no_zero'
             ];
-
-            // Validate form data
+    
             if (!$this->validate($rules)) {
+                // Validation failed, return to form with errors
                 return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-            }
-
-            $imageData = $this->request->getFile('image');
-            // Image Upload and Processing
-            if ($imageData && $imageData->isValid() && !$imageData->hasMoved()) {
-                $newName = $imageData->getRandomName();
-                $imageData->move(ROOTPATH . 'public/uploads', $newName); // Move uploaded image
-                // Remove old image if it exists
-                if ($data['service']['image']) {
-                    unlink(ROOTPATH . 'public/uploads/' . $data['service']['image']);
-                }
             } else {
-                $newName = $data['service']['image'];  // Keep the existing image filename if no new image is uploaded
-            }
-
-            $serviceData = [
-                'vendor_id' => session()->get('user_id'),
-                'title' => $this->request->getPost('title'),
-                'description' => $this->request->getPost('description'),
-                'price' => $this->request->getPost('price'),
-                'category_id' => $this->request->getPost('category_id'),
-                'subcategory_id' => $this->request->getPost('subcategory_id'),
-                'short_description' => $this->request->getPost('short_description'),
-                'image' => $newName, // Use the updated or existing image filename
-            ];
-
-            if (!$serviceModel->update($id, $serviceData)) { // Check for update errors
-                // Handle errors here (e.g., log, flash message)
-                log_message('error', 'Database Error: Failed to update service: ' . json_encode($serviceModel->errors()));
-                return redirect()->back()->withInput()->with('error', 'Failed to update service.');
-            }
-
-            $unavailableDateModel = new UnavailableDateModel();
-            $unavailableDates = $this->request->getPost('unavailable_dates');
-            if (!empty($unavailableDates)) {
-                $unavailableDateModel->where('service_id', $id)->delete(); // Clear old dates
-
-                foreach ($unavailableDates as $date) {
-                    $unavailableDateModel->save([
-                        'vendor_id' => $userId,
-                        'service_id' => $id,
-                        'date' => $date
-                    ]);
+                $imageData = $this->request->getFile('image');
+                // Image Upload and Processing
+                if ($imageData && $imageData->isValid() && !$imageData->hasMoved()) {
+                    $newName = $imageData->getRandomName();
+                    $imageData->move(ROOTPATH . 'public/uploads', $newName); // Move uploaded image
+                    // Remove old image if it exists
+                    if ($data['service']['image']) {
+                        unlink(ROOTPATH . 'public/uploads/' . $data['service']['image']);
+                    }
+                } else {
+                    $newName = $data['service']['image'];  // Keep the existing image filename if no new image is uploaded
                 }
+    
+                $serviceData = [
+                    'vendor_id'         => session()->get('user_id'),
+                    'title'             => $this->request->getPost('title'),
+                    'description'       => $this->request->getPost('description'),
+                    'price'             => $this->request->getPost('price'),
+                    'category_id'       => $this->request->getPost('category_id'), 
+                    'subcategory_id'    => $this->request->getPost('subcategory_id'),
+                    'short_description' => $this->request->getPost('short_description'),
+                    'image'             => $newName, // Use the updated or existing image filename
+                ];
+    
+               /* if ($serviceModel->update($id, $serviceData)) { // Check for update errors
+                    // Service updated successfully
+                    return redirect()->to('/service/edit/'.$id)->with('success', 'Service updated successfully.');
+                } else {
+                    // Handle errors here (e.g., log, flash message)
+                    log_message('error', 'Database Error: Failed to update service: ' . json_encode($serviceModel->errors())); 
+                    return redirect()->back()->withInput()->with('errors', $serviceModel->errors());
+                }*/
             }
-            // Service updated successfully
-            return redirect()->to('/service')->with('success', 'Service updated successfully.');
+    
         }
-
-
-        // Pass the user data to the view
-        $data['user'] = $user;
+    
+        // Fetch categories and subcategories for populating the edit form
         $categoryModel = new CategoryModel();
         $subcategoryModel = new SubcategoryModel();
         $data['categories'] = $categoryModel->findAll();
-        $data['subcategories'] = $subcategoryModel->findAll();
+        $data['subcategories'] = $subcategoryModel->findAll(); 
         $data['subcategoriesJson'] = json_encode($data['subcategories']);
+        $data['userId'] = $userId;
+    
+        // Get unavailable dates for this service
+        //$unavailableDateModel = new UnavailableDateModel();
+        //$unavailableDates = $unavailableDateModel->where('service_id', $id)->findAll();
+    
+       // $data['unavailableDates'] = array_column($unavailableDates, 'date');
         return view('service_edit', $data);
     }
+    
+    
 
     public function search()
     {
@@ -360,6 +356,45 @@ class Service_Controller extends BaseController
             ->findAll();
 
         return view('profile_vendor', $data); // Use separate vendor profile view
+    }
+
+    public function delete($id = null)
+    {
+        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
+            return redirect()->to('/')->with('error', 'You are not authorized to delete services.');
+        }
+
+        $serviceModel = new ServiceModel();
+        $service = $serviceModel->find($id);
+        $userId = session()->get('user_id');
+
+        if (!$service || $service['vendor_id'] != $userId) {
+            return redirect()->to('/profile')->with('error', 'Service not found or you are not authorized to delete it.');
+        }
+
+        // Remove the service from the database
+        $serviceModel->delete($id);
+
+        // Find carts that contain this service
+        $cartModel = new CartModel();
+        $affectedCarts = $cartModel->where('service_id', $id)->findAll();
+
+        // Update the affected carts and remove the service
+        foreach ($affectedCarts as $cart) {
+            // Remove the service from the cart
+            $cartModel->delete($cart['id']);
+
+            // Get the user ID associated with the cart
+            $userId = $cart['user_id'];
+
+            // Update the cart count for the user
+            $this->updateCartCount($userId); 
+
+            // Add a flash message to the user's session
+            session()->setFlashdata('cart_message_' . $userId, 'Some services you were interested in are no longer available and have been removed from your cart.');
+        }
+
+        return redirect()->to('/profile')->with('success', 'Service deleted successfully.');
     }
 
 

@@ -61,19 +61,41 @@ class Profile extends BaseController
             $data['services'] = $services;
             $data['bookingItems'] = $bookingItems;
             return view('profile_vendor', $data);
-        } else {
+        } else { // Customer profile logic
             $eventModel = new EventModel();
-            $data['events'] = $eventModel->where('user_id', $userId)->findAll();
+            $bookingModel = new BookingModel();
             $bookingItemModel = new BookingItemModel();
-            $data['bookingItems'] = $bookingItemModel
-                ->select('booking_items.*, bookings.user_id') // Get the user_id from the bookings table
-                ->join('bookings', 'bookings.id = booking_items.booking_id')
-                ->where('bookings.user_id', $userId) // Filter on bookings.user_id
-                ->findAll();
+            $serviceModel = new ServiceModel();
 
-            return view('profile_customer', $data);
+            // Get the customer's events
+            $events = $eventModel->where('user_id', $userId)->findAll();
+
+            // Initialize an array to store event details with booking items
+            $data['events'] = [];
+
+            foreach ($events as $event) {
+                // Get bookings for the specific event
+                $bookings = $bookingModel->where('event_id', $event['id'])->findAll();
+
+                // For each booking, get its items
+                $eventBookingItems = [];
+                foreach ($bookings as $booking) {
+                    $bookingItems = $bookingItemModel
+                        ->select('booking_items.*, services.title, services.price, booking_items.status')
+                        ->join('services', 'services.id = booking_items.service_id')
+                        ->where('booking_id', $booking['id'])
+                        ->findAll();
+
+                    $eventBookingItems = array_merge($eventBookingItems, $bookingItems); // Combine booking items
+                }
+                $event['bookingItems'] = $eventBookingItems;
+                $data['events'][] = $event; // Add event with its booking items to data
+            }
+
+            return view('profile_customer', $data); // Use separate customer profile view
         }
     }
+
 
 
 
@@ -218,4 +240,3 @@ class Profile extends BaseController
         return view('profile_vendor', $data); // Use separate vendor profile view
     }
 }
-

@@ -25,6 +25,9 @@ $routes->match(['get', 'post'],'/service/create', 'Service_Controller::create');
 $routes->get('/service/view/(:num)', 'Service_Controller::view/$1'); 
 $routes->match(['get', 'post'], '/service/edit/(:num)', 'Service_Controller::update/$1'); 
 $routes->get('/service/search', 'Service_Controller::search');
+// Service Routes
+$routes->delete('/service/edit/(:num)', 'Service_Controller::delete/$1');
+
 
 
 // Cart Routes
