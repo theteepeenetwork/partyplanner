@@ -58,6 +58,7 @@ class Profile extends BaseController
                 ->where('booking_id', $userId)
                 ->findAll();
 
+            $this->vendorProfile($userId, $data);
             $data['services'] = $services;
             $data['bookingItems'] = $bookingItems;
             return view('profile_vendor', $data);
@@ -96,15 +97,24 @@ class Profile extends BaseController
         }
     }
 
-
-
-
-
-    private function vendorProfile($userId, $data)
-    {
+    private function vendorProfile($userId, $data) {
         $serviceModel = new ServiceModel();
-        $data['services'] = $serviceModel->where('vendor_id', $userId)->findAll();
-        return view('profile_vendor', $data); // Use separate vendor profile view
+        $data['activeServices'] = $serviceModel->where('vendor_id', $userId)->where('deleted_at', null)->findAll();
+        $data['inactiveServices'] = $serviceModel->where('vendor_id', $userId)->where('deleted_at IS NOT NULL')->findAll();
+
+        // Fetch booking items for the vendor's services
+        $bookingItemModel = new BookingItemModel();
+        $data['bookingItems'] = $bookingItemModel
+            ->select('booking_items.id as booking_item_id, booking_items.status as booking_item_status, bookings.*, events.title as event_title, events.date as event_date, events.ceremony_type, events.location, services.title as service_title, services.price')
+            ->join('bookings', 'bookings.id = booking_items.booking_id')
+            ->join('events', 'events.id = bookings.event_id')
+            ->join('services', 'services.id = booking_items.service_id')
+            ->where('services.vendor_id', $userId)
+            ->findAll();
+
+            $bookingModel = new BookingModel();
+        $data['bookingModel'] = $bookingModel; // Pass the BookingModel instance
+        return view('profile_vendor', $data);
     }
 
     public function event($eventId)
@@ -189,54 +199,76 @@ class Profile extends BaseController
     }
 
     public function updateBookingStatus($bookingItemId)
-    {
-        // Ensure the user is logged in as a vendor
-        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
-            return redirect()->to('/')->with('error', 'You are not authorized to update this booking.');
+{
+    // Ensure the user is logged in as a vendor
+    if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
+        return redirect()->to('/')->with('error', 'You are not authorized to update this booking.');
+    }
+
+    $userId = session()->get('user_id'); // Define userId from session
+
+    // Check if the booking item exists
+    $bookingItemModel = new BookingItemModel();
+    $bookingItem = $bookingItemModel->find($bookingItemId); // Find by booking_item_id
+
+    if (!$bookingItem) {
+        return redirect()->to('/profile')->with('error', 'Booking item not found.');
+    }
+
+    // Check if the vendor is authorized to update this booking (i.e., if they own the service)
+    $serviceModel = new ServiceModel();
+    $service = $serviceModel->find($bookingItem['service_id']);
+
+    if (!$service || $service['vendor_id'] != $userId) {
+        return redirect()->to('/profile')->with('error', 'You are not authorized to update this booking.');
+    }
+
+    $newStatus = $this->request->getPost('status'); // Get status from form submission
+    if (!in_array($newStatus, ['pending', 'accepted', 'rejected'])) {
+        return redirect()->to('/profile')->with('error', 'Invalid status update.');
+    }
+
+    // Update the status of the booking item
+    if (!$bookingItemModel->update($bookingItemId, ['status' => $newStatus])) { // Update by booking_item_id
+        return redirect()->to('/profile')->with('error', 'Failed to update booking item status.');
+    }
+
+    // Check if all booking items for the same booking have the same status
+    $bookingId = $bookingItem['booking_id'];
+    $allItems = $bookingItemModel->where('booking_id', $bookingId)->findAll();
+
+    $allSameStatus = true;
+    foreach ($allItems as $item) {
+        if ($item['status'] != $newStatus) {
+            $allSameStatus = false;
+            break;
         }
+    }
 
-        // Check if the booking item exists
-        $bookingItemModel = new BookingItemModel();
-        $bookingItem = $bookingItemModel->find($bookingItemId); // Find by booking_item_id
-
-        if (!$bookingItem) {
-            return redirect()->to('/profile')->with('error', 'Booking item not found.');
-        }
-
-        // Check if the vendor is authorized to update this booking (i.e., if they own the service)
-        $serviceModel = new ServiceModel();
-        $service = $serviceModel->find($bookingItem['service_id']);
-
-        if (!$service || $service['vendor_id'] != session()->get('user_id')) {
-            return redirect()->to('/profile')->with('error', 'You are not authorized to update this booking.');
-        }
-
-        $newStatus = $this->request->getPost('status'); // Get status from form submission
-        if (!in_array($newStatus, ['pending', 'accepted', 'rejected'])) {
-            return redirect()->to('/profile')->with('error', 'Invalid status update.');
-        }
-
-        // Update the status
-        if (!$bookingItemModel->update($bookingItemId, ['status' => $newStatus])) { // Update by booking_item_id
+    // If all booking items have the same status, update the status of the booking
+    if ($allSameStatus) {
+        $bookingModel = new BookingModel();
+        if (!$bookingModel->update($bookingId, ['status' => $newStatus])) {
             return redirect()->to('/profile')->with('error', 'Failed to update booking status.');
         }
-
-        // Fetch user data
-        $userModel = new UserModel();
-        $user = $userModel->find(session()->get('user_id'));
-
-        // Pass user data to the view
-        $data['user'] = $user;
-        $data['services'] = $serviceModel->where('vendor_id', $user['id'])->findAll();
-        $bookingItemModel = new BookingItemModel();
-        $data['bookingItems'] = $bookingItemModel
-            ->select('booking_items.*, bookings.event_id, events.title as event_title, events.date as event_date, events.ceremony_type, events.location')
-            ->join('bookings', 'bookings.id = booking_items.booking_id')
-            ->join('events', 'events.id = bookings.event_id')
-            ->join('services', 'services.id = booking_items.service_id')
-            ->where('services.vendor_id', session()->get('user_id'))
-            ->findAll();
-
-        return view('profile_vendor', $data); // Use separate vendor profile view
     }
+
+    // Fetch user data
+    $userModel = new UserModel();
+    $user = $userModel->find($userId);
+
+    // Pass user data to the view
+    $data['user'] = $user;
+    $data['services'] = $serviceModel->where('vendor_id', $userId)->findAll();
+    $data['bookingItems'] = $bookingItemModel
+        ->select('booking_items.id as booking_item_id, booking_items.status as booking_item_status, bookings.*, events.title as event_title, events.date as event_date, events.ceremony_type, events.location, services.title as service_title, services.price')
+        ->join('bookings', 'bookings.id = booking_items.booking_id')
+        ->join('events', 'events.id = bookings.event_id')
+        ->join('services', 'services.id = booking_items.service_id')
+        ->where('services.vendor_id', $userId)
+        ->findAll();
+
+    return view('profile_vendor', $data); // Use separate vendor profile view
+}
+
 }

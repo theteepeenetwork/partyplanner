@@ -283,30 +283,32 @@ class Service_Controller extends BaseController
     
 
     public function search()
-    {
-        $searchQuery = $this->request->getGet('q');
-        $categoryId = $this->request->getGet('cuisine');
+{
+    $searchQuery = $this->request->getGet('q');
+    $categoryId = $this->request->getGet('cuisine');
 
-        $serviceModel = new ServiceModel();
-        $categoryModel = new CategoryModel();
+    $serviceModel = new ServiceModel();
+    $categoryModel = new CategoryModel();
 
-        $builder = $serviceModel->like('title', $searchQuery);
+    $builder = $serviceModel
+        ->like('title', $searchQuery)
+        ->where('deleted_at', null); // Add this line
 
-        // Filter by category if selected
-        if (!empty($categoryId)) {
-            $builder->where('category_id', $categoryId);
-        }
-
-        $services = $builder->findAll();
-
-        // Updated section to set both $categories and $categoryId
-        $data['services'] = $services;
-        $data['categories'] = $categoryModel->findAll(); // Fetch all categories
-        $data['searchQuery'] = $searchQuery;
-        $data['cuisine'] = $categoryId; // Pass the categoryId as $cuisine 
-
-        return view('service_search_results', $data);
+    // Filter by category if selected
+    if (!empty($categoryId)) {
+        $builder->where('category_id', $categoryId);
     }
+
+    $services = $builder->findAll();
+
+    // Updated section to set both $categories and $categoryId
+    $data['services'] = $services;
+    $data['categories'] = $categoryModel->findAll(); // Fetch all categories
+    $data['searchQuery'] = $searchQuery;
+    $data['cuisine'] = $categoryId; // Pass the categoryId as $cuisine 
+
+    return view('service_search_results', $data);
+}
 
     public function updateBookingStatus($bookingItemId)
     {
@@ -366,14 +368,13 @@ class Service_Controller extends BaseController
 
         $serviceModel = new ServiceModel();
         $service = $serviceModel->find($id);
-        $userId = session()->get('user_id');
 
-        if (!$service || $service['vendor_id'] != $userId) {
+        if (!$service || $service['vendor_id'] != session()->get('user_id')) {
             return redirect()->to('/profile')->with('error', 'Service not found or you are not authorized to delete it.');
         }
 
-        // Remove the service from the database
-        $serviceModel->delete($id);
+        // Soft delete the service by setting deleted_at
+        $serviceModel->update($id, ['deleted_at' => date('Y-m-d H:i:s')]);
 
         // Find carts that contain this service
         $cartModel = new CartModel();
@@ -387,7 +388,7 @@ class Service_Controller extends BaseController
             // Get the user ID associated with the cart
             $userId = $cart['user_id'];
 
-            // Update the cart count for the user
+            // Update the cart count for the user (in base controller)
             $this->updateCartCount($userId); 
 
             // Add a flash message to the user's session
@@ -395,6 +396,25 @@ class Service_Controller extends BaseController
         }
 
         return redirect()->to('/profile')->with('success', 'Service deleted successfully.');
+    }
+
+    protected function updateCartCount()
+    {
+        $userId = session()->get('user_id');
+        if (!$userId) {
+            return; // User not logged in
+        }
+    
+        $cartModel = new CartModel();
+        $cartCount = $cartModel->where('user_id', $userId)->countAllResults();
+        session()->set('cart_count', $cartCount);
+    
+        // Get the updated cart count
+        $updatedCartCount = session()->get('cart_count');
+    
+        // Send JSON response for AJAX update (if needed)
+        $this->response->setContentType('application/json');
+        return $this->response->setJSON(['cart_count' => $updatedCartCount]);
     }
 
 
