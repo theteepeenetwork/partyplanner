@@ -19,7 +19,7 @@ class CartController extends BaseController
             return redirect()->to('/login');
         }
 
-        $userId = session()->get('user_id');
+        $userId = session()->get('user_id'); // hello I'm adding some code
 
         $cartModel = new CartModel();
         $data['cartItems'] = $cartModel->where('user_id', $userId)->findAll();
