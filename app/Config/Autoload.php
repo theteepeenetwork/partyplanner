@@ -20,7 +20,7 @@ use CodeIgniter\Config\AutoloadConfig;
  *
  * @immutable
  */
-class Autoload extends AutoloadConfig
+class Autoload extends AutoloadConfig 
 {
     /**
      * -------------------------------------------------------------------
