@@ -41,7 +41,9 @@ class Autoload extends AutoloadConfig
      * @var array<string, list<string>|string>
      */
     public $psr4 = [
-        APP_NAMESPACE => APPPATH,
+        APP_NAMESPACE => APPPATH, // This is the main App namespace
+        'Config' => APPPATH . 'Config',
+        'Stripe' => APPPATH . 'ThirdParty/stripe-php/init.php' // Optional if using third-party libraries
     ];
     
 
@@ -80,6 +82,7 @@ class Autoload extends AutoloadConfig
      * @var list<string>
      */
     public $files = [];
+    
 
     /**
      * -------------------------------------------------------------------
