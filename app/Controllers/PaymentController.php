@@ -4,51 +4,28 @@ namespace App\Controllers;
 
 use CodeIgniter\Controller;
 use Stripe\Stripe;
-use Stripe\Checkout\Session;
+use Stripe\Charge;
 
 class PaymentController extends Controller
 {
-    public function checkout()
+    public function charge()
     {
-        // Load Stripe configuration
-        $config = config('Stripe');
-        $publishableKey = $config->publishableKey;
-        $secretKey = $config->secretKey;
+        $stripeSecretKey = getenv('STRIPE_SECRET_KEY');
+        Stripe::setApiKey($stripeSecretKey);
 
-        // Set up Stripe API key
-        Stripe::setApiKey($secretKey);
+        $token = $this->request->getPost('stripeToken');
 
         try {
-            $session = Session::create([
-                'payment_method_types' => ['card'],
-                'line_items' => [[
-                    'price_data' => [
-                        'currency' => 'usd',
-                        'product_data' => [
-                            'name' => 'Example Product',
-                        ],
-                        'unit_amount' => 2000, // Amount in cents
-                    ],
-                    'quantity' => 1,
-                ]],
-                'mode' => 'payment',
-                'success_url' => base_url('payment/success'),
-                'cancel_url' => base_url('payment/cancel'),
+            $charge = Charge::create([
+                'amount' => 1000, // amount in cents
+                'currency' => 'usd',
+                'description' => 'Example charge',
+                'source' => $token,
             ]);
 
-            return redirect()->to($session->url);
+            return redirect()->to('/success')->with('success', 'Payment successful!');
         } catch (\Exception $e) {
-            return redirect()->back()->with('error', 'Failed to create Stripe session: ' . $e->getMessage());
+            return redirect()->to('/error')->with('error', $e->getMessage());
         }
-    }
-
-    public function success()
-    {
-        return view('payment/success');
-    }
-
-    public function cancel()
-    {
-        return view('payment/cancel');
     }
 }
