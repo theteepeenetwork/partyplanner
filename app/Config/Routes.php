@@ -66,8 +66,4 @@ $routes->get('calendarView/(:num)/(:num)', 'BookingController::calendarView/$1/$
 $routes->get('calendarView', 'BookingController::calendarView');
 $routes->get('calendarData/(:num)/(:num)', 'BookingController::calendarData/$1/$2');
 
-//Payment routes
-$routes->get('/payment', 'PaymentController::index'); // Show the payment form
-$routes->post('/payment/charge', 'PaymentController::charge'); // Handle the payment form submission
-
 
