@@ -4,7 +4,7 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
-$routes->get('/', 'Home::index'); 
+$routes->get('/', 'Home::index');
 
 // User Routes
 $routes->get('/register', 'Register::index');
@@ -17,17 +17,17 @@ $routes->get('/logout', 'Login::logout');
 
 // Profile Routes
 $routes->get('/profile', 'Profile::index');
-$routes->get('/profile/edit', 'Profile::edit'); 
+$routes->get('/profile/edit', 'Profile::edit');
 $routes->post('/profile/edit', 'Profile::edit');
 $routes->post('/profile/update-booking-status/(:num)', 'Profile::updateBookingStatus/$1');
 
 // Service Routes
 $routes->post('service/test', 'Service_Controller::test');
 $routes->get('service/view/(:num)', 'Service_Controller::view/$1');
-$routes->get('/service', 'Service_Controller::index'); 
+$routes->get('/service', 'Service_Controller::index');
 $routes->match(['GET', 'POST'], '/service/create', 'Service_Controller::create');
-$routes->get('/service/view/(:num)', 'Service_Controller::view/$1'); 
-$routes->match(['GET', 'POST'], '/service/edit/(:num)', 'Service_Controller::update/$1'); 
+$routes->get('/service/view/(:num)', 'Service_Controller::view/$1');
+$routes->match(['GET', 'POST'], '/service/edit/(:num)', 'Service_Controller::update/$1');
 $routes->get('/service/search', 'Service_Controller::search');
 $routes->post('/service/update/(:num)', 'Service_Controller::update/$1');
 $routes->post('/service/delete-image/(:num)', 'Service_Controller::deleteImage/$1');
@@ -49,6 +49,13 @@ $routes->get('/cart', 'CartController::index');
 $routes->post('/cart/update/(:num)', 'CartController::update/$1');
 $routes->get('/cart/remove/(:num)', 'CartController::remove/$1');
 $routes->post('/cart/submit', 'CartController::submit');
+$routes->post('cart/submitToVendors', 'CartController::submitToVendors');
+$routes->post('cart/processPayment', 'CartController::processPayment');
+$routes->post('webhook/stripe', 'WebhookController::stripe');
+$routes->post('webhooks/stripe', 'WebhookController::stripe');
+
+
+
 
 // Events
 $routes->match(['GET', 'POST'], '/event/create', 'EventController::create');
