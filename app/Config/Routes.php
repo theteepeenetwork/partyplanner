@@ -51,6 +51,10 @@ $routes->get('/cart/remove/(:num)', 'CartController::remove/$1');
 $routes->post('/cart/submit', 'CartController::submit');
 $routes->post('cart/submitToVendors', 'CartController::submitToVendors');
 $routes->post('cart/processPayment', 'CartController::processPayment');
+$routes->post('webhook/stripe', 'WebhookController::stripe');
+$routes->post('webhooks/stripe', 'WebhookController::stripe');
+
+
 
 
 // Events

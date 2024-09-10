@@ -9,6 +9,7 @@ use App\Models\BookingModel;
 use App\Models\BookingItemModel;
 use App\Models\EventModel;
 use App\Models\ChatMessageModel;
+use App\Models\PaymentsModel;
 use DateTime;
 class Profile extends BaseController
 {
@@ -147,7 +148,7 @@ class Profile extends BaseController
             $serviceModel = new ServiceModel();
             $userModel = new UserModel();
             $chatMessageModel = new ChatMessageModel();
-
+            $paymentsModel = new PaymentsModel(); // Add the PaymentsModel to fetch payment statuses
             $events = $eventModel->where('user_id', $userId)->findAll();
 
             $data['events'] = [];
@@ -174,6 +175,12 @@ class Profile extends BaseController
                     foreach ($bookingItems as &$item) {
                         $vendor = $userModel->find($item['vendor_id']);
                         $item['vendor_name'] = $vendor['name'];
+
+                        // Retrieve payment status for each booking
+                        $payment = $paymentsModel->where('booking_id', $item['booking_id'])->first();
+                        $item['payment_status'] = $payment ? $payment['payment_status'] : 'not paid';
+
+                        // Check for unread messages
 
                         if (isset($item['booking_id'])) {
                             $unreadMessages = $chatMessageModel

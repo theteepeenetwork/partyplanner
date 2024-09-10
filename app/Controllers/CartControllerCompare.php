@@ -24,116 +24,26 @@ class CartController extends BaseController
         }
 
         $userId = session()->get('user_id');
+        $depositAmount = 15.00;
 
-        // Fetch cart items for the user
+        // Fetch cart items for the current user
         $cartModel = new CartModel();
         $cartItems = $cartModel->where('user_id', $userId)->findAll();
 
-        if (empty($cartItems)) {
-            return redirect()->to('/cart')->with('error', 'Your cart is empty.');
-        }
-
-        // Fetch service details for each cart item and organize them by event
+        // Fetch service details and group them by event
         $serviceModel = new ServiceModel();
         $eventModel = new EventModel();
-        $data['events'] = [];
-
-        foreach ($cartItems as $item) {
-            $service = $serviceModel->find($item['service_id']);
-            $event = $eventModel->find($item['event_id']);
-
-            // Ensure the event and service exist
-            if (!$event || !$service) {
-                continue; // Skip if no valid event or service found
-            }
-
-            // Organize the services under their respective events
-            if (!isset($data['events'][$event['id']])) {
-                $data['events'][$event['id']] = [
-                    'title' => $event['title'],
-                    'date' => $event['date'],
-                    'services' => []
-                ];
-            }
-
-            $data['events'][$event['id']]['services'][] = [
-                'id' => $item['id'],
-                'title' => $service['title'],
-                'price' => $service['price'],
-                'start_time' => $item['start_time'],
-                'end_time' => $item['end_time']
-            ];
-        }
-
-
-
-        // Load the cart view with the organized events and their respective services
-        return view('cart_view', $data);
-    }
-
-
-
-    public function submitToVendors()
-    {
-        if (!session()->has('user_id')) {
-            return redirect()->to('/login');
-        }
-
-        $userId = session()->get('user_id');
-        $cartModel = new CartModel();
-
-        // Get all cart items grouped by event
-        $events = $this->getCartItemsGroupedByEvent($userId);
-
-        if (empty($events)) {
-            return redirect()->to('/cart')->with('error', 'Your cart is empty.');
-        }
-
-        $totalDeposit = 0;
-        foreach ($events as $event_id => $event) {
-            $eventTotal = 0;
-            foreach ($event['services'] as $service) {
-                $eventTotal += $service['price'];
-            }
-            $eventDeposit = $eventTotal * 0.10; // 10% deposit per event
-            $totalDeposit += $eventDeposit;
-        }
-
-        // Create Stripe PaymentIntent for the total deposit
-        $paymentResult = $this->createStripePaymentIntent($totalDeposit * 100); // Amount in pence
-        if (!$paymentResult['success']) {
-            return redirect()->to('/cart')->with('error', 'Error creating payment intent: ' . $paymentResult['error']);
-        }
-
-        // Pass data to the cart_submit view
-        return view('cart_submit', [
-            'events' => $events,
-            'totalDeposit' => $totalDeposit,
-            'client_secret' => $paymentResult['client_secret'],
-        ]);
-    }
-
-    private function getCartItemsGroupedByEvent($userId)
-    {
-        $cartModel = new CartModel();
-        $serviceModel = new ServiceModel();
-        $eventModel = new EventModel();
-
-        $cartItems = $cartModel->where('user_id', $userId)->findAll();
         $events = [];
+        $data['deposit'] = $depositAmount;
 
         foreach ($cartItems as $item) {
+            // Fetch service and event details
             $service = $serviceModel->find($item['service_id']);
             $event = $eventModel->find($item['event_id']);
 
-            if (!isset($events[$item['event_id']])) {
-                $events[$item['event_id']] = [
-                    'title' => $event['title'],
-                    'date' => $event['date'],
-                    'services' => []
-                ];
-            }
-
+            // Group services under their respective events
+            $events[$item['event_id']]['title'] = $event['title'];
+            $events[$item['event_id']]['date'] = $event['date'];
             $events[$item['event_id']]['services'][] = [
                 'id' => $service['id'],
                 'title' => $service['title'],
@@ -143,8 +53,106 @@ class CartController extends BaseController
             ];
         }
 
-        return $events;
+        // Set the default selected event (optional)
+        $selectedEventId = session()->getFlashdata('selected_event_id');
+
+        // Pass events and cart data to the view
+        return view('cart_view', [
+            'events' => $events,
+            'selectedEventId' => $selectedEventId,
+            'depositAmount' => $depositAmount
+        ]);
     }
+
+
+    public function submitToVendors()
+    {
+        if (!session()->has('user_id')) {
+            return redirect()->to('/login');
+        }
+
+        $userId = session()->get('user_id');
+
+        // Fetch all cart items for the current user
+        $cartModel = new CartModel();
+        $cartItems = $cartModel->where('user_id', $userId)->findAll();
+
+        if (empty($cartItems)) {
+            return redirect()->to('/cart')->with('error', 'Your cart is empty.');
+        }
+
+        // Fetch service and event details
+        $serviceModel = new ServiceModel();
+        $eventModel = new EventModel();
+
+        $events = [];
+        foreach ($cartItems as $item) {
+            $service = $serviceModel->find($item['service_id']);
+            $event = $eventModel->find($item['event_id']);
+
+            // Group services under their respective events
+            $events[$item['event_id']]['title'] = $event['title'];
+            $events[$item['event_id']]['date'] = $event['date'];
+            $events[$item['event_id']]['services'][] = [
+                'id' => $service['id'],
+                'title' => $service['title'],
+                'price' => $service['price'],
+                'start_time' => $item['start_time'],
+                'end_time' => $item['end_time']
+            ];
+        }
+
+        // Process each event and its services
+        foreach ($events as $eventId => $eventData) {
+            // Your logic to create a booking and handle payments for each event
+            $bookingModel = new BookingModel();
+            $bookingId = $bookingModel->insert([
+                'user_id' => $userId,
+                'event_id' => $eventId,
+                'status' => 'pending',
+            ]);
+
+            if ($bookingId) {
+                $bookingItemModel = new BookingItemModel();
+                foreach ($eventData['services'] as $service) {
+                    $bookingItemModel->insert([
+                        'booking_id' => $bookingId,
+                        'service_id' => $service['id'],
+                        'start_time' => $service['start_time'],
+                        'end_time' => $service['end_time'],
+                        'status' => 'pending',
+                    ]);
+                }
+
+                // You can handle payments here for each event or as a total sum
+                $totalAmount = array_sum(array_column($eventData['services'], 'price')) * 100; // Assuming Stripe amount in cents/pence
+                $paymentResult = $this->createStripePaymentIntent($totalAmount);
+
+                if (!$paymentResult['success']) {
+                    return redirect()->to('/cart')->with('error', 'Error creating payment intent: ' . $paymentResult['error']);
+                }
+
+                // Insert payment details into the payments table
+                $paymentsModel = new PaymentsModel();
+                $paymentsModel->insert([
+                    'booking_id' => $bookingId,
+                    'payment_intent_id' => $paymentResult['paymentIntent']->id,
+                    'payment_status' => 'pending',  // Initial status is pending
+                    'amount_paid' => $totalAmount / 100,  // Amount in major currency unit
+                    'currency' => 'GBP',
+                    'payment_method' => 'card',
+                ]);
+
+                // Clear cart for this event
+                $cartModel->where('user_id', $userId)->where('event_id', $eventId)->delete();
+            }
+        }
+
+        // Redirect after processing all events
+        return redirect()->to('/profile')->with('success', 'Your booking requests have been submitted!');
+    }
+
+
 
     public function add($serviceId)
     {
@@ -199,6 +207,7 @@ class CartController extends BaseController
 
         return redirect()->back()->with('success', 'Service added to cart!');
     }
+
 
     public function submit()
     {
@@ -345,104 +354,80 @@ class CartController extends BaseController
         }
 
         $userId = session()->get('user_id');
-        $eventIds = $this->request->getPost('event_ids'); // Retrieve multiple event IDs
+        $eventId = $this->request->getPost('event_id');
         $paymentIntentId = $this->request->getPost('payment_intent_id');
 
-        if (empty($eventIds) || empty($paymentIntentId)) {
-            return redirect()->to('/cart')->with('error', 'Invalid payment or events.');
+        if (empty($eventId) || empty($paymentIntentId)) {
+            return redirect()->to('/cart')->with('error', 'Invalid payment or event.');
         }
 
-        // Set Stripe API key
+        // Here you can check the status of the payment intent via Stripe API
         \Stripe\Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));
 
         try {
-            // Retrieve the PaymentIntent from Stripe
             $paymentIntent = \Stripe\PaymentIntent::retrieve($paymentIntentId);
 
             if ($paymentIntent->status == 'succeeded') {
-                // Payment succeeded, process each event separately
+                // Payment was successful, proceed with booking logic
                 $cartModel = new CartModel();
-                $serviceModel = new ServiceModel();
+                $cartItems = $cartModel
+                    ->where('user_id', $userId)
+                    ->where('event_id', $eventId)
+                    ->findAll();
+
+                $serviceIds = array_column($cartItems, 'service_id');
                 $bookingModel = new BookingModel();
-                $bookingItemModel = new BookingItemModel();
-                $paymentsModel = new PaymentsModel();
+                $bookingId = $bookingModel->insert([
+                    'user_id' => $userId,
+                    'event_id' => $eventId,
+                    'status' => 'pending',
+                    'payment_intent_id' => $paymentIntentId,  // Save payment intent ID
+                ]);
 
-                $totalDeposit = 0;
-
-                foreach ($eventIds as $eventId) {
-                    // Fetch the cart items for each event
-                    $cartItems = $cartModel
-                        ->where('user_id', $userId)
-                        ->where('event_id', $eventId)
-                        ->findAll();
-
-                    if (empty($cartItems)) {
-                        continue; // Skip if no items are found for the event
-                    }
-
-                    $eventTotal = 0;
-
-                    // Calculate the total amount for this event
+                if ($bookingId) {
+                    $bookingItemModel = new BookingItemModel();
                     foreach ($cartItems as $item) {
-                        $service = $serviceModel->find($item['service_id']);
-                        $eventTotal += $service['price'];
+                        $bookingItemModel->insert([
+                            'booking_id' => $bookingId,
+                            'service_id' => $item['service_id'],
+                            'start_time' => $item['start_time'],
+                            'end_time' => $item['end_time'],
+                            'status' => 'pending',
+                        ]);
                     }
 
-                    // Calculate the 10% deposit for this event
-                    $eventDeposit = $eventTotal * 0.10;
-                    $totalDeposit += $eventDeposit;
-
-                    // Insert booking for the event
-                    $bookingId = $bookingModel->insert([
-                        'user_id' => $userId,
-                        'event_id' => $eventId,
-                        'status' => 'pending',
-                        'payment_intent_id' => $paymentIntentId, // Save payment intent ID
+                    // Notify vendors and create chat room
+                    $vendorId = $this->getVendorIdFromServices($serviceIds);
+                    $chatRoomModel = new ChatRoomModel();
+                    $chatRoomModel->insert([
+                        'vendor_id' => $vendorId,
+                        'customer_id' => $userId,
+                        'created_at' => date('Y-m-d H:i:s'),
                     ]);
 
-                    if ($bookingId) {
-                        // Insert booking items for each service in the event
-                        foreach ($cartItems as $item) {
-                            $bookingItemModel->insert([
-                                'booking_id' => $bookingId,
-                                'service_id' => $item['service_id'],
-                                'start_time' => $item['start_time'],
-                                'end_time' => $item['end_time'],
-                                'status' => 'pending',
-                            ]);
-                        }
+                    $paymentIntentId = $paymentIntent->id;
+                    $paymentStatus = $paymentIntent->status;
+                    $depositAmount = 15.00;
 
-                        // Notify vendors and create chat room
-                        $serviceIds = array_column($cartItems, 'service_id');
-                        $vendorId = $this->getVendorIdFromServices($serviceIds);
-                        $chatRoomModel = new ChatRoomModel();
-                        $chatRoomModel->insert([
-                            'vendor_id' => $vendorId,
-                            'customer_id' => $userId,
-                            'created_at' => date('Y-m-d H:i:s'),
-                        ]);
+                    // Insert payment data into the payments table with the initial status
+                    $paymentsModel = new PaymentsModel();
+                    $paymentData = [
+                        'booking_id' => $bookingId,
+                        'payment_intent_id' => $paymentIntentId,
+                        'payment_status' => $paymentStatus, // Store the initial status from Stripe
+                        'amount_paid' => $depositAmount,
+                        'currency' => 'GBP',
+                        'payment_method' => 'card',
+                        'created_at' => date('Y-m-d H:i:s'),
+                    ];
+                    $paymentsModel->insert($paymentData);
 
-                        // Insert payment data into the payments table
-                        $paymentData = [
-                            'booking_id' => $bookingId,
-                            'payment_intent_id' => $paymentIntentId,
-                            'payment_status' => $paymentIntent->status,
-                            'amount_paid' => $eventDeposit,
-                            'currency' => 'GBP',
-                            'payment_method' => 'card',
-                            'created_at' => date('Y-m-d H:i:s'),
-                        ];
-                        $paymentsModel->insert($paymentData);
+                    // Clear the cart
+                    $cartModel->where('user_id', $userId)->where('event_id', $eventId)->delete();
+                    $this->updateCartCount();
 
-                        // Clear the cart for this event
-                        $cartModel->where('user_id', $userId)->where('event_id', $eventId)->delete();
-                    }
+                    return redirect()->to('/profile')->with('success', 'Your booking request has been submitted and payment was successful!');
                 }
-
-                // Update the cart count
-                $this->updateCartCount();
-
-                return redirect()->to('/profile')->with('success', 'Your booking request has been submitted and payment was successful for all events!');
             } else {
                 return redirect()->to('/cart')->with('error', 'Payment was not successful.');
             }
