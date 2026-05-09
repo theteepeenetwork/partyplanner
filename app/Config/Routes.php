@@ -49,10 +49,6 @@ $routes->get('/cart', 'CartController::index');
 $routes->post('/cart/update/(:num)', 'CartController::update/$1');
 $routes->get('/cart/remove/(:num)', 'CartController::remove/$1');
 $routes->post('/cart/submit', 'CartController::submit');
-$routes->post('payment/createPaymentIntent', 'PaymentController::createPaymentIntent');
-$routes->get('booking/success/(:num)', 'BookingController::paymentSuccess/$1');
-
-
 
 // Events
 $routes->match(['GET', 'POST'], '/event/create', 'EventController::create');
