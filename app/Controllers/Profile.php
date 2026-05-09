@@ -105,68 +105,7 @@ class Profile extends BaseController
             $data['bookingItems'] = $this->fetchBookingItems($bookingItemModel, $chatMessageModel, $userId);
 
         } else {
-<<<<<<< HEAD
             $data['events'] = $this->fetchEvents($userId);
-=======
-            $eventModel = new EventModel();
-            $bookingModel = new BookingModel();
-            $bookingItemModel = new BookingItemModel();
-            $serviceModel = new ServiceModel();
-            $userModel = new UserModel();
-            $chatMessageModel = new ChatMessageModel();
-            $paymentsModel = new PaymentsModel(); // Add the PaymentsModel to fetch payment statuses
-            $events = $eventModel->where('user_id', $userId)->findAll();
-
-            $data['events'] = [];
-
-            foreach ($events as $event) {
-                $bookings = $bookingModel->where('event_id', $event['id'])->findAll();
-                $eventBookingItems = [];
-
-                foreach ($bookings as $booking) {
-                    $bookingItems = $bookingItemModel
-                        ->select('
-                            booking_items.*, 
-                            services.title, 
-                            services.price, 
-                            services.id as service_id,
-                            booking_items.status,
-                            services.vendor_id,
-                            booking_items.booking_id
-                        ')
-                        ->join('services', 'services.id = booking_items.service_id')
-                        ->where('booking_id', $booking['id'])
-                        ->findAll();
-
-                    foreach ($bookingItems as &$item) {
-                        $vendor = $userModel->find($item['vendor_id']);
-                        $item['vendor_name'] = $vendor['name'];
-
-                        // Retrieve payment status for each booking
-                        $payment = $paymentsModel->where('booking_id', $item['booking_id'])->first();
-                        $item['payment_status'] = $payment ? $payment['payment_status'] : 'not paid';
-
-                        // Check for unread messages
-
-                        if (isset($item['booking_id'])) {
-                            $unreadMessages = $chatMessageModel
-                                ->where('chat_room_id', $item['booking_id'])
-                                ->where('receiver_id', $userId)
-                                ->where('is_read', false)
-                                ->countAllResults();
-                            $item['has_new_messages'] = $unreadMessages > 0;
-                        } else {
-                            $item['has_new_messages'] = false;
-                        }
-                    }
-
-                    $eventBookingItems = array_merge($eventBookingItems, $bookingItems);
-                }
-
-                $event['bookingItems'] = $eventBookingItems;
-                $data['events'][] = $event;
-            }
->>>>>>> 648c0f070acc4c3ee38e07810be1a97650ad6ff6
         }
 
         return $data;

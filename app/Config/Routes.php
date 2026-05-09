@@ -16,11 +16,6 @@ $routes->post('/login/attempt', 'Login::attempt');
 $routes->get('/logout', 'Login::logout');
 
 // Profile Routes
-<<<<<<< HEAD
-//$routes->get('/profile', 'Profile::index');
-=======
-$routes->get('/profile', 'Profile::index');
->>>>>>> 648c0f070acc4c3ee38e07810be1a97650ad6ff6
 $routes->get('/profile/edit', 'Profile::edit');
 $routes->post('/profile/edit', 'Profile::edit');
 $routes->post('/profile/update-booking-status/(:num)', 'Profile::updateBookingStatus/$1');
@@ -35,7 +30,6 @@ $routes->get('/profile', 'Profile::index'); // Default route
 
 
 // Service Routes
-<<<<<<< HEAD
 $routes->get('test', 'Service_Controller::test');
 $routes->get('service/view/(:num)', 'Service_Controller::view/$1');
 $routes->get('/service', 'Service_Controller::index');
@@ -43,9 +37,6 @@ $routes->get('service/destroy/(:num)', 'Service_Controller::destroy/$1');
 $routes->post('/service/remove-optional-extra', 'Service_Controller::removeOptionalExtra');
 
 $routes->post('/service/delete-image/(:any)', 'Service_Controller::deleteImage/$1');
-
-
-
 
 
 $routes->match(['GET', 'POST'], '/service/create', 'Service_Controller::step1');
@@ -63,12 +54,6 @@ $routes->match(['GET', 'POST'], '/service/saveService', 'Service_Controller::sav
 
 $routes->get('/service/success', 'Service_Controller::success');
 
-
-=======
-$routes->post('service/test', 'Service_Controller::test');
-$routes->get('/service', 'Service_Controller::index');
-$routes->match(['GET', 'POST'], '/service/create', 'Service_Controller::create');
->>>>>>> 648c0f070acc4c3ee38e07810be1a97650ad6ff6
 $routes->get('/service/view/(:num)', 'Service_Controller::view/$1');
 $routes->match(['GET', 'POST'], '/service/edit/(:num)', 'Service_Controller::update/$1');
 $routes->get('/service/search', 'Service_Controller::search');
@@ -92,16 +77,12 @@ $routes->get('/cart', 'CartController::index');
 $routes->post('/cart/update/(:num)', 'CartController::update/$1');
 $routes->get('/cart/remove/(:num)', 'CartController::remove/$1');
 $routes->post('/cart/submit', 'CartController::submit');
-<<<<<<< HEAD
 $routes->post('payment/createPaymentIntent', 'PaymentController::createPaymentIntent');
 $routes->get('booking/success/(:num)', 'BookingController::paymentSuccess/$1');
-=======
 $routes->post('cart/submitToVendors', 'CartController::submitToVendors');
 $routes->post('cart/processPayment', 'CartController::processPayment');
 $routes->post('webhook/stripe', 'WebhookController::stripe');
 $routes->post('webhooks/stripe', 'WebhookController::stripe');
-
->>>>>>> 648c0f070acc4c3ee38e07810be1a97650ad6ff6
 
 
 
