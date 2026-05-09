@@ -16,20 +16,64 @@ $routes->post('/login/attempt', 'Login::attempt');
 $routes->get('/logout', 'Login::logout');
 
 // Profile Routes
+<<<<<<< HEAD
+//$routes->get('/profile', 'Profile::index');
+=======
 $routes->get('/profile', 'Profile::index');
+>>>>>>> 648c0f070acc4c3ee38e07810be1a97650ad6ff6
 $routes->get('/profile/edit', 'Profile::edit');
 $routes->post('/profile/edit', 'Profile::edit');
 $routes->post('/profile/update-booking-status/(:num)', 'Profile::updateBookingStatus/$1');
 
+
+$routes->get('/profile/main', 'Profile::main');
+$routes->get('/profile/services', 'Profile::services');
+$routes->get('/dashboard', 'Profile::main');
+$routes->get('/profile/bookings', 'Profile::bookings');
+$routes->get('/profile/calendar', 'Profile::calendar');
+$routes->get('/profile', 'Profile::index'); // Default route
+
+
 // Service Routes
+<<<<<<< HEAD
+$routes->get('test', 'Service_Controller::test');
+$routes->get('service/view/(:num)', 'Service_Controller::view/$1');
+$routes->get('/service', 'Service_Controller::index');
+$routes->get('service/destroy/(:num)', 'Service_Controller::destroy/$1');
+$routes->post('/service/remove-optional-extra', 'Service_Controller::removeOptionalExtra');
+
+$routes->post('/service/delete-image/(:any)', 'Service_Controller::deleteImage/$1');
+
+
+
+
+
+$routes->match(['GET', 'POST'], '/service/create', 'Service_Controller::step1');
+$routes->match(['GET', 'POST'], '/service/step1', 'Service_Controller::step1');
+$routes->match(['GET', 'POST'], '/service/service_create_step2', 'Service_Controller::step2');
+$routes->match(['GET', 'POST'], '/service/step2', 'Service_Controller::step2');
+$routes->match(['GET', 'POST'], '/service/step3', 'Service_Controller::step3');
+$routes->match(['GET', 'POST'], '/service/step4', 'Service_Controller::step4');
+$routes->match(['GET', 'POST'], '/service/step5', 'Service_Controller::step5');
+$routes->match(['GET', 'POST'], '/service/step6', 'Service_Controller::step6');
+$routes->match(['GET', 'POST'], '/service/review', 'Service_Controller::review');
+$routes->match(['GET', 'POST'], '/service/saveService', 'Service_Controller::saveService');
+
+
+
+$routes->get('/service/success', 'Service_Controller::success');
+
+
+=======
 $routes->post('service/test', 'Service_Controller::test');
 $routes->get('/service', 'Service_Controller::index');
 $routes->match(['GET', 'POST'], '/service/create', 'Service_Controller::create');
+>>>>>>> 648c0f070acc4c3ee38e07810be1a97650ad6ff6
 $routes->get('/service/view/(:num)', 'Service_Controller::view/$1');
 $routes->match(['GET', 'POST'], '/service/edit/(:num)', 'Service_Controller::update/$1');
 $routes->get('/service/search', 'Service_Controller::search');
 $routes->post('/service/update/(:num)', 'Service_Controller::update/$1');
-$routes->post('/service/delete-image/(:num)', 'Service_Controller::deleteImage/$1');
+//$routes->post('/service/delete-image/(:num)', 'Service_Controller::deleteImage/$1');
 $routes->post('/service/set-primary-image/(:num)', 'Service_Controller::setPrimaryImage/$1');
 
 $routes->post('service/book', 'Service_Controller::bookService');
@@ -48,11 +92,16 @@ $routes->get('/cart', 'CartController::index');
 $routes->post('/cart/update/(:num)', 'CartController::update/$1');
 $routes->get('/cart/remove/(:num)', 'CartController::remove/$1');
 $routes->post('/cart/submit', 'CartController::submit');
+<<<<<<< HEAD
+$routes->post('payment/createPaymentIntent', 'PaymentController::createPaymentIntent');
+$routes->get('booking/success/(:num)', 'BookingController::paymentSuccess/$1');
+=======
 $routes->post('cart/submitToVendors', 'CartController::submitToVendors');
 $routes->post('cart/processPayment', 'CartController::processPayment');
 $routes->post('webhook/stripe', 'WebhookController::stripe');
 $routes->post('webhooks/stripe', 'WebhookController::stripe');
 
+>>>>>>> 648c0f070acc4c3ee38e07810be1a97650ad6ff6
 
 
 
@@ -71,5 +120,4 @@ $routes->get('/chat/checkNewMessages', 'ChatController::checkNewMessages');
 $routes->get('calendarView/(:num)/(:num)', 'BookingController::calendarView/$1/$2');
 $routes->get('calendarView', 'BookingController::calendarView');
 $routes->get('calendarData/(:num)/(:num)', 'BookingController::calendarData/$1/$2');
-
 

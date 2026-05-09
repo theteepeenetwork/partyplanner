@@ -1,4 +1,36 @@
-<?= $this->include('header') ?> 
+<?= $this->include('header') ?>
+
+<style>
+    .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 9999;
+        justify-content: center;
+        align-items: center;
+    }
+
+    .modal-content {
+        background: white;
+        padding: 20px;
+        border-radius: 5px;
+        max-width: 400px;
+        text-align: center;
+        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    }
+
+    .modal-actions {
+        margin-top: 20px;
+    }
+
+    .modal-actions button {
+        margin: 0 10px;
+    }
+</style>
 
 <main class="container mt-4">
     <h2>Edit Service</h2>
@@ -43,7 +75,7 @@
         <div class="form-group">
             <label for="price">Price:</label>
             <input type="text" class="form-control <?= session('errors.price') ? 'is-invalid' : '' ?>" id="price"
-                name="price" value="<?= old('price', esc($service['price'])) ?>">
+                name="price" value="">
             <div class="invalid-feedback"><?= session('errors.price') ?></div>
         </div>
 
@@ -55,8 +87,10 @@
                 <div class="mt-3">
                     <?php foreach ($service['images'] as $image): ?>
                         <div class="image-thumbnail">
-                            <img src="<?= base_url($image['thumbnail_path']) ?>" alt="Service Image" class="img-thumbnail" style="max-width: 100px;">
-                            <button type="button" class="btn btn-danger btn-sm" onclick="deleteImage(<?= $image['id'] ?>)">Delete</button>
+                            <img src="<?= base_url($image['thumbnail_path']) ?>" alt="Service Image" class="img-thumbnail"
+                                style="max-width: 100px;">
+                            <button type="button" class="btn btn-danger btn-sm"
+                                onclick="deleteImage(<?= $image['id'] ?>)">Delete</button>
                             <label>
                                 <input type="radio" name="primary_image" value="<?= $image['id'] ?>" <?= $image['is_primary'] ? 'checked' : '' ?>>
                                 Set as Primary
@@ -101,144 +135,162 @@
             <div class="invalid-feedback">Please select a further subcategory.</div>
         </div>
 
-        <!-- Time Blocks for Service -->
-        <div class="form-group">
-            <label for="time_blocks">Time Blocks:</label>
-            <div id="timeBlocksContainer">
-                <!-- Existing Time Blocks -->
-                <?php if (!empty($timeBlocks)): ?>
-                    <?php foreach ($timeBlocks as $timeBlock): ?>
-                        <div class="input-group mb-2">
-                            <select name="time_blocks[]" class="form-control">
-                                <?php for ($i = 1; $i <= 24; $i++): ?>
-                                    <option value="<?= $i ?>" <?= $timeBlock['time_length'] == $i ? 'selected' : '' ?>>
-                                        <?= $i ?> <?= $i == 24 ? 'All Day' : 'Hour(s)' ?>
-                                    </option>
-                                <?php endfor; ?>
-                            </select>
-                            <div class="input-group-append">
-                                <button type="button" class="btn btn-danger remove-time-block">Remove</button>
-                            </div>
-                        </div>
-                    <?php endforeach; ?>
-                <?php endif; ?>
-            </div>
-            <button type="button" class="btn btn-secondary" id="addTimeBlock">Add Time Block</button>
-        </div>
 
 
         <button type="submit" class="btn btn-primary">Update Service</button>
 
         <!-- Deactivate/Reactivate Button -->
         <?php if ($service['status'] === 'active'): ?>
-            <button type="button" class="btn btn-warning btn-sm" onclick="toggleServiceStatus(<?= esc($service['id']) ?>, 'deactivate')">Delist Service</button>
+            <button type="button" class="btn btn-warning btn-sm"
+                onclick="toggleServiceStatus(<?= esc($service['id']) ?>, 'deactivate')">Delist Service</button>
         <?php else: ?>
-            <button type="button" class="btn btn-success btn-sm" onclick="toggleServiceStatus(<?= esc($service['id']) ?>, 'reactivate')">Relist Service</button>
+            <button type="button" class="btn btn-success btn-sm"
+                onclick="toggleServiceStatus(<?= esc($service['id']) ?>, 'reactivate')">Relist Service</button>
         <?php endif; ?>
 
 
         <!-- Delete Button -->
-        <button type="button" class="btn btn-danger btn-sm" onclick="toggleServiceStatus(<?= esc($service['id']) ?>, 'delete')">Delete Service</button>
+
+
     </form>
+    <form id="delete-service-form-<?= esc($service['id']) ?>" action="/service/delete/<?= esc($service['id']) ?>"
+        method="POST">
+        <?= csrf_field() ?>
+        <button type="button" class="btn btn-danger btn-sm" onclick="showDeleteModal(<?= esc($service['id']) ?>)">
+            Delete Service
+        </button>
+    </form>
+
+    <!-- Modal Structure -->
+    <div id="delete-modal-<?= esc($service['id']) ?>" class="modal">
+        <div class="modal-content">
+            <h3>Confirm Deletion</h3>
+            <p>Are you sure you want to delete this service? This action cannot be undone.</p>
+            <div class="modal-actions">
+                <button class="btn btn-danger" onclick="confirmDeletion(<?= esc($service['id']) ?>)">Yes,
+                    Delete</button>
+                <button class="btn btn-secondary" onclick="closeDeleteModal(<?= esc($service['id']) ?>)">Cancel</button>
+            </div>
+        </div>
+    </div>
+    <script>
+        function showDeleteModal(serviceId) {
+            const modal = document.getElementById(`delete-modal-${serviceId}`);
+            if (modal) {
+                modal.style.display = 'flex';
+            }
+        }
+
+        function closeDeleteModal(serviceId) {
+            const modal = document.getElementById(`delete-modal-${serviceId}`);
+            if (modal) {
+                modal.style.display = 'none';
+            }
+        }
+
+        function confirmDeletion(serviceId) {
+            const form = document.getElementById(`delete-service-form-${serviceId}`);
+            if (form) {
+                form.submit();
+            }
+        }
+    </script>
+
+
+
+
+
 </main>
 
-<footer class="footer mt-5 py-3 bg-light">
-</footer>
 
 <?= $this->include('footer') ?>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
-    $(document).ready(function() {
-    var categories = <?= json_encode($categories) ?>;
-    console.log("Categories data:", categories);
+    $(document).ready(function () {
+        var categories = <?= json_encode($categories) ?>;
+        console.log("Categories data:", categories);
 
-    function populateSubcategories(categoryId, selectedSubcategoryId = null) {
-        console.log("Selected category ID:", categoryId);
+        function populateSubcategories(categoryId, selectedSubcategoryId = null) {
+            console.log("Selected category ID:", categoryId);
 
-        $('#subcategory_id').empty().append('<option value="">Select Subcategory</option>').prop('disabled', true);
-        $('#third_category_id').empty().append('<option value="">Select Further Subcategory</option>').prop('disabled', true);
+            $('#subcategory_id').empty().append('<option value="">Select Subcategory</option>').prop('disabled', true);
+            $('#third_category_id').empty().append('<option value="">Select Further Subcategory</option>').prop('disabled', true);
 
-        if (categoryId) {
-            var subcategories = categories.filter(function(category) {
-                return category.parent_id == categoryId;
-            });
-
-            console.log("Filtered subcategories:", subcategories);
-
-            if (subcategories.length > 0) {
-                subcategories.forEach(function(subcategory) {
-                    $('#subcategory_id').append('<option value="' + subcategory.id + '"' + (subcategory.id == selectedSubcategoryId ? ' selected' : '') + '>' + subcategory.name + '</option>');
+            if (categoryId) {
+                var subcategories = categories.filter(function (category) {
+                    return category.parent_id == categoryId;
                 });
-                $('#subcategory_id').prop('disabled', false);
+
+                console.log("Filtered subcategories:", subcategories);
+
+                if (subcategories.length > 0) {
+                    subcategories.forEach(function (subcategory) {
+                        $('#subcategory_id').append('<option value="' + subcategory.id + '"' + (subcategory.id == selectedSubcategoryId ? ' selected' : '') + '>' + subcategory.name + '</option>');
+                    });
+                    $('#subcategory_id').prop('disabled', false);
+                }
             }
         }
-    }
 
-    function populateThirdCategories(subcategoryId, selectedThirdCategoryId = null) {
-        console.log("Selected subcategory ID:", subcategoryId);
+        function populateThirdCategories(subcategoryId, selectedThirdCategoryId = null) {
+            console.log("Selected subcategory ID:", subcategoryId);
 
-        $('#third_category_id').empty().append('<option value="">Select Further Subcategory</option>').prop('disabled', true);
+            $('#third_category_id').empty().append('<option value="">Select Further Subcategory</option>').prop('disabled', true);
 
-        if (subcategoryId) {
-            var thirdCategories = categories.filter(function(category) {
-                return category.parent_id == subcategoryId;
-            });
-
-            console.log("Filtered third-level categories:", thirdCategories);
-
-            if (thirdCategories.length > 0) {
-                thirdCategories.forEach(function(thirdCategory) {
-                    $('#third_category_id').append('<option value="' + thirdCategory.id + '"' + (thirdCategory.id == selectedThirdCategoryId ? ' selected' : '') + '>' + thirdCategory.name + '</option>');
+            if (subcategoryId) {
+                var thirdCategories = categories.filter(function (category) {
+                    return category.parent_id == subcategoryId;
                 });
-                $('#third_category_id').prop('disabled', false);
+
+                console.log("Filtered third-level categories:", thirdCategories);
+
+                if (thirdCategories.length > 0) {
+                    thirdCategories.forEach(function (thirdCategory) {
+                        $('#third_category_id').append('<option value="' + thirdCategory.id + '"' + (thirdCategory.id == selectedThirdCategoryId ? ' selected' : '') + '>' + thirdCategory.name + '</option>');
+                    });
+                    $('#third_category_id').prop('disabled', false);
+                }
             }
         }
-    }
 
-    // Initial population on page load
-    var initialCategoryId = $('#category_id').val();
-    var initialSubcategoryId = <?= json_encode($service['subcategory_id'] ?? null) ?>;
-    var initialThirdCategoryId = <?= json_encode($service['third_category_id'] ?? null) ?>;
+        // Initial population on page load
+        var initialCategoryId = $('#category_id').val();
+        var initialSubcategoryId = <?= json_encode($service['subcategory_id'] ?? null) ?>;
+        var initialThirdCategoryId = <?= json_encode($service['third_category_id'] ?? null) ?>;
 
-    if (initialCategoryId) {
-        populateSubcategories(initialCategoryId, initialSubcategoryId);
-    }
+        if (initialCategoryId) {
+            populateSubcategories(initialCategoryId, initialSubcategoryId);
+        }
 
-    if (initialSubcategoryId) {
-        populateThirdCategories(initialSubcategoryId, initialThirdCategoryId);
-    }
+        if (initialSubcategoryId) {
+            populateThirdCategories(initialSubcategoryId, initialThirdCategoryId);
+        }
 
-    // Handle category change
-    $('#category_id').change(function() {
-        var categoryId = $(this).val();
-        populateSubcategories(categoryId);
+        // Handle category change
+        $('#category_id').change(function () {
+            var categoryId = $(this).val();
+            populateSubcategories(categoryId);
+        });
+
+        // Handle subcategory change
+        $('#subcategory_id').change(function () {
+            var subcategoryId = $(this).val();
+            populateThirdCategories(subcategoryId);
+        });
     });
 
-    // Handle subcategory change
-    $('#subcategory_id').change(function() {
-        var subcategoryId = $(this).val();
-        populateThirdCategories(subcategoryId);
-    });
-});
 
 
 
 
 
 
-    // Remove Time Block functionality
-    $(document).on('click', '.remove-time-block', function() {
-        $(this).closest('.input-group').remove();
-    });
 
-    // Remove Time Block functionality
-    $(document).on('click', '.remove-time-block', function() {
-        $(this).closest('.input-group').remove();
-    });
+
 
     // Delete image function
-    window.deleteImage = function(imageId) {
+    window.deleteImage = function (imageId) {
         if (confirm('Are you sure you want to delete this image?')) {
             $.ajax({
                 url: '/service/delete-image/' + imageId,
@@ -246,14 +298,14 @@
                 data: {
                     _token: '<?= csrf_hash() ?>'
                 },
-                success: function(response) {
+                success: function (response) {
                     if (response.status === 'success') {
                         location.reload();
                     } else {
                         alert(response.message);
                     }
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     alert('An error occurred: ' + xhr.responseText);
                 }
             });
@@ -261,28 +313,28 @@
     };
 
     // Set primary image function
-    $('input[name="primary_image"]').change(function() {
-    var imageId = $(this).val();
+    $('input[name="primary_image"]').change(function () {
+        var imageId = $(this).val();
 
-    $.ajax({
-        url: '/service/set-primary-image/' + imageId,
-        type: 'POST',
-        data: {
-            _token: '<?= csrf_hash() ?>'
-        },
-        success: function(response) {
-            if (response.status === 'success') {
-                alert('Primary image set successfully');
-            } else {
-                alert('Failed to set primary image');
+        $.ajax({
+            url: '/service/set-primary-image/' + imageId,
+            type: 'POST',
+            data: {
+                _token: '<?= csrf_hash() ?>'
+            },
+            success: function (response) {
+                if (response.status === 'success') {
+                    alert('Primary image set successfully');
+                } else {
+                    alert('Failed to set primary image');
+                }
+            },
+            error: function (xhr, status, error) {
+                alert('An error occurred: ' + xhr.responseText);
             }
-        },
-        error: function(xhr, status, error) {
-            alert('An error occurred: ' + xhr.responseText);
-        }
+        });
     });
-    });
-    
+
 </script>
 <script type="text/javascript">
     var baseUrl = "<?= base_url() ?>"; // Define the base URL of your application
@@ -294,13 +346,13 @@
         let url = baseUrl + 'service/' + action + '/' + serviceId;
 
         fetch(url, {
-                method: 'POST',
-                headers: {
-                    'X-Requested-With': 'XMLHttpRequest',
-                    'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': csrfToken, // If CSRF protection is enabled
-                }
-            })
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': csrfToken, // If CSRF protection is enabled
+            }
+        })
             .then(response => {
                 if (!response.ok) {
                     throw new Error('Network response was not ok');
