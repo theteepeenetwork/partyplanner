@@ -8,6 +8,7 @@
     <?php endif; ?>
     <h2>Your Cart</h2>
 
+<<<<<<< HEAD
     <?php if (!empty($cartItems)): 
         $total = 0; // Initialize total before the loop
         ?>
@@ -59,12 +60,55 @@
             <?php else: ?>
                 <p>You need to <a href="<?= site_url('event/create') ?>">create an event</a> before submitting your cart.</p>
             <?php endif; ?>
+=======
+    <?php if (!empty($events)): ?>
+        <?php foreach ($events as $eventId => $event): ?>
+            <div class="event-section">
+                <h3>Event: <?= esc($event['title']) ?> (Date: <?= esc($event['date']) ?>)</h3>
+
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>Service</th>
+                            <th>Price</th>
+                            <th>Start Time</th>
+                            <th>End Time</th>
+                            <th>Remove</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($event['services'] as $service): ?>
+                            <tr>
+                                <td><?= esc($service['title']) ?></td>
+                                <td>£<?= esc($service['price']) ?></td>
+                                <td><?= esc($service['start_time']) ?></td>
+                                <td><?= esc($service['end_time']) ?></td>
+                                <td>
+                                    <a href="<?= base_url('cart/remove/' . esc($service['id'])) ?>" class="btn btn-danger btn-sm">
+                                        Remove
+                                    </a>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+        <?php endforeach; ?>
+
+        <div class="text-right">
+
+            <form method="post" action="<?= site_url('cart/submitToVendors') ?>">
+                <?= csrf_field() ?>
+                <button type="submit" class="btn btn-success">Submit All Events to Vendors</button>
+            </form>
+>>>>>>> 648c0f070acc4c3ee38e07810be1a97650ad6ff6
         </div>
     <?php else: ?>
         <p>Your cart is empty.</p>
     <?php endif; ?>
 </main>
 
+<<<<<<< HEAD
 <script src="https://js.stripe.com/v3/"></script>
 <script>
     // Get the client secret from your server
@@ -103,3 +147,6 @@
         }
     });
 </script>
+=======
+<?= $this->include('footer') ?>
+>>>>>>> 648c0f070acc4c3ee38e07810be1a97650ad6ff6
