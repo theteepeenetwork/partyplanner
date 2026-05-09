@@ -23,7 +23,6 @@ $routes->post('/profile/update-booking-status/(:num)', 'Profile::updateBookingSt
 
 // Service Routes
 $routes->post('service/test', 'Service_Controller::test');
-$routes->get('service/view/(:num)', 'Service_Controller::view/$1');
 $routes->get('/service', 'Service_Controller::index');
 $routes->match(['GET', 'POST'], '/service/create', 'Service_Controller::create');
 $routes->get('/service/view/(:num)', 'Service_Controller::view/$1');
