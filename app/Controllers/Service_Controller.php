@@ -1068,7 +1068,7 @@ class Service_Controller extends BaseController
                     }
                 }
 
-                /* ---------- CORPORATE EVENT PRICING (JSON) ---------- */
+                /* ---------- CORPORATE EVENT TEST PRICING (JSON) ---------- */
                 if (in_array('corporate', $eventTypes, true)) {
                     $enabled = !empty($step3Data['corporate_enabled']);
 
