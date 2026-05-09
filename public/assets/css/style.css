@@ -1,0 +1,646 @@
+/* ==================== Variables (Color Palette) ==================== */
+:root {
+    --primary-blue-dark: #2c3e50;
+    /* Midnight Blue */
+    --primary-blue-medium: #34495e;
+    /* Steel Blue */
+    --primary-blue-light: #ecf0f1;
+    /* Soft Silver */
+    --accent-orange: #72383D;
+    /* Burnt Orange */
+    --dark-blue: #1c2833;
+    /* Charcoal Blue */
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+html,
+body {
+    height: 100%;
+    display: flex;
+    margin: 0;
+    flex-direction: column;
+    font-family: 'Arial', sans-serif;
+    background-color: var(--primary-blue-light);
+    color: var(--dark-blue);
+    line-height: 1.6;
+
+}
+
+/* ==================== Navbar ==================== */
+header {
+    position: fixed;
+    top: 0;
+    width: 100%;
+    height: 64px;
+    background-color: var(--primary-blue-medium);
+    z-index: 1000;
+}
+
+
+main.container {
+    padding-top: 25px;
+    /* Or match your navbar's height */
+}
+
+.navbar {
+
+    z-index: 1030;
+    /* Bootstrap default for fixed/sticky navbar */
+    position: fixed;
+    /* or position: sticky; */
+    background-color: var(--primary-blue-medium);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.navbar-brand {
+    font-size: 1.5rem;
+    /* Adjust overall size */
+    font-weight: bold;
+    color: white;
+    text-align: center;
+    line-height: 1.2;
+    /* Adjust spacing between lines */
+    transition: color 0.3s ease;
+    display: block;
+    /* Ensure it can handle multiple lines */
+}
+
+.logo-line {
+    display: block;
+    /* Stack the lines */
+    width: 100%;
+    /* Ensure both lines align */
+    text-transform: uppercase;
+    letter-spacing: 0.05rem;
+}
+
+.logo-line:first-child {
+    font-size: 1.6rem;
+    /* Slightly larger for emphasis */
+}
+
+.logo-line:nth-child(2) {
+    font-size: 1.5rem;
+}
+
+.navbar-brand:hover {
+    color: var(--accent-orange);
+}
+
+/* Navbar Left Links */
+.navbar-nav .nav-link {
+    color: white;
+    font-size: 1rem;
+    margin-right: 1rem;
+    transition: color 0.3s ease;
+    text-align: right;
+}
+
+.navbar-nav .nav-link:hover {
+    color: var(--accent-orange);
+}
+
+/* Align dropdown menu to the right */
+.navbar-nav .dropdown-menu {
+    text-align: right;
+    /* Aligns text inside dropdown to the right */
+}
+
+/* Gradient Button (Plan Event) */
+.btn-gradient {
+    background: linear-gradient(135deg, var(--accent-orange), var(--dark-blue));
+    color: white;
+    padding: 0.5rem 1.5rem;
+    border: none;
+    transition: all 0.3s ease;
+    font-weight: bold;
+}
+
+.btn-gradient:hover {
+    background: linear-gradient(135deg, var(--dark-blue), var(--accent-orange));
+    transform: scale(1.05);
+}
+
+.navbar-toggler {
+    border: none;
+    color: var(--primary-blue-light);
+}
+
+.btn-outline-success {
+    color: white;
+    border-color: var(--accent-orange);
+    transition: all 0.3s ease;
+}
+
+.btn-outline-success:hover {
+    background-color: var(--accent-orange);
+    border-color: var(--accent-orange);
+    color: var(--primary-blue-dark);
+}
+
+/* Cart badge */
+.badge-pill {
+    position: absolute;
+    top: -8px;
+    right: -12px;
+    font-size: 0.8rem;
+    background-color: var(--accent-orange);
+    color: white;
+}
+
+
+
+/* ==================== Cards ==================== */
+/* Container for the grid of cards */
+/* Container for the Category Card Grid */
+.category-card-container {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    /* 5 columns for a 10-card layout */
+    gap: 1rem;
+    /* Spacing between cards */
+    padding: 1rem;
+    /* Add padding around the grid */
+    max-width: 1200px;
+    /* Optional max-width for the container */
+    margin: 0 auto;
+    /* Center the container */
+}
+
+/* Individual Category Card Styling */
+.category-card {
+    position: relative;
+    width: 100%;
+    /* Full width for responsiveness */
+    padding-top: 100%;
+    /* Maintain square aspect ratio */
+    overflow: hidden;
+    border-radius: 8px;
+    /* Rounded corners */
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    /* Optional shadow for depth */
+}
+
+/* Category Card Image Styling */
+.category-card-image {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    /* Ensure the image covers the card area */
+    border-radius: 8px;
+    /* Match card border radius */
+}
+
+/* Category Card Overlay Styling */
+.category-card-category {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.6);
+    color: var(--primary-blue-light);
+    /* Semi-transparent background */
+    font-size: 1rem;
+    text-align: left;
+    font-weight: bold;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+}
+
+
+/* Service Card Container */
+/* Service Card Container */
+/* Service Card Container */
+/* Service Card Container */
+/* Service Card Container */
+/* Service Card Grid Container */
+.service-card-container {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    /* Three cards per row */
+    gap: 1.5rem;
+    /* Space between cards */
+    padding: 2rem;
+    max-width: 1200px;
+    /* Optional max-width for the grid */
+    margin: 0 auto;
+    /* Center the container */
+}
+
+/* Service Card */
+.service-card {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+/* Hover Effects */
+.service-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Service Card Image */
+.service-card-image {
+    width: 100%;
+    height: 180px;
+    object-fit: cover;
+}
+
+/* Service Card Content */
+.service-card-content {
+    padding: 1rem;
+    background-color: #ffffff;
+    text-align: center;
+}
+
+/* Title */
+.service-card-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--primary-blue-medium);
+    margin-bottom: 0.5rem;
+}
+
+/* Description */
+.service-card-description {
+    font-size: 0.9rem;
+    color: var(--primary-blue-dark);
+    margin-bottom: 1rem;
+    line-height: 1.4;
+}
+
+/* CTA Button */
+.service-card-button {
+    display: inline-block;
+    padding: 0.5rem 1rem;
+    background-color: var(--accent-orange);
+    color: #ffffff;
+    font-size: 0.9rem;
+    font-weight: bold;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: background-color 0.3s ease, transform 0.3s ease;
+}
+
+.service-card-button:hover {
+    background-color: var(--dark-blue);
+    transform: scale(1.05);
+}
+
+/* Responsive Adjustments */
+@media (max-width: 992px) {
+    .service-card-container {
+        grid-template-columns: repeat(2, 1fr);
+        /* Two cards per row for medium screens */
+    }
+}
+
+@media (max-width: 768px) {
+    .service-card-container
+}
+
+.how-it-works {
+    background-color: #f8f9fa;
+    /* Light background */
+}
+
+.how-it-works h1 {
+    font-size: 2.5rem;
+    color: #333;
+}
+
+.how-it-works-card {
+    background: #fff;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    padding: 20px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.how-it-works-card:hover {
+    transform: translateY(-10px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.15);
+}
+
+.icon-wrapper {
+    display: inline-block;
+    width: 70px;
+    height: 70px;
+    border-radius: 50%;
+    background: #e3f2fd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto;
+}
+
+.icon-wrapper i {
+    color: #007bff;
+    /* Primary theme color */
+}
+
+.card-title {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: #333;
+}
+
+.card-description {
+    font-size: 1rem;
+    color: #666;
+    margin-top: 10px;
+}
+
+
+/* Hero Section Styling */
+.hero-section {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+.hero-image {
+    height: 50vh;
+    /* Image takes up half the visible height */
+    width: 100%;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.hero-image .overlay {
+    background-color: rgba(0, 0, 0, 0.5);
+    /* Dark overlay for better contrast */
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+.hero-image .text-center {
+    position: relative;
+    z-index: 2;
+    /* Ensures text is above the overlay */
+    color: white;
+    padding: 2rem;
+}
+
+.search-form-container {
+    padding: 1rem 0;
+    background-color: var(--primary-blue-light);
+    /* Background color for search bar container */
+}
+
+.search-form .input-group {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+/* Search Form on Large Screens */
+@media (min-width: 992px) {
+    .search-form-container {
+        display: none;
+        /* Hide search form below image on large screens */
+    }
+}
+
+/* Search Form on Smaller Screens */
+@media (max-width: 991.98px) {
+    .hero-image .search-form {
+        display: none;
+        /* Hide search form on the image for small screens */
+    }
+}
+
+
+/* ==================== Footer ==================== */
+footer {
+    background-color: var(--dark-blue);
+    color: white;
+    padding: 20px 0;
+    text-align: center;
+    width: 100%;
+}
+
+footer a {
+    color: var(--primary-blue-light);
+    transition: color 0.3s ease;
+}
+
+footer a:hover {
+    color: var(--accent-orange);
+}
+
+/* ==================== Custom Hover Effects ==================== */
+img:hover {
+    filter: brightness(90%);
+    transition: filter 0.3s ease;
+}
+
+/* ==================== Custom Button ==================== */
+.custom-btn {
+    background-color: var(--accent-orange);
+    color: white;
+    border-color: var(--accent-orange);
+    transition: all 0.3s ease;
+}
+
+.custom-btn:hover {
+    background-color: var(--dark-blue);
+    border-color: var(--dark-blue);
+}
+
+/* ==================== Containers ==================== */
+.full-width-container {
+    width: 100vw;
+    padding: 0;
+    margin: 0 auto;
+}
+
+.content-wrapper {
+    margin: 0 auto;
+    padding: 64px 0 70px;
+    background-color: #fff;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    border-radius: 8px;
+}
+
+/* ==================== Service View ==================== */
+.service-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--dark-blue);
+}
+
+.service-price {
+    font-size: 1.25rem;
+    font-weight: bold;
+    color: var(--accent-orange);
+}
+
+.customization-section {
+    border: 1px solid var(--primary-blue-medium);
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    padding: 20px;
+}
+
+.customization-section h5 {
+    color: var(--dark-blue);
+}
+
+.service-short-description,
+.service-description {
+    font-size: 1rem;
+    color: var(--dark-blue);
+}
+
+.reviews-section h4 {
+    color: var(--dark-blue);
+}
+
+.btn-block {
+    width: 100%;
+}
+
+
+
+.sectionb {
+    py: -5px;
+}
+
+
+
+
+
+/* Display Container Styling */
+.display-4-container {
+    position: relative;
+    width: 100%;
+    text-align: center;
+}
+
+/* Flexbox Wrapper */
+.flex-wrapper {
+    display: inline-flex;
+    /* Use flexbox to align children */
+    justify-content: center;
+    /* Center the content horizontally */
+    align-items: center;
+    /* Align the content vertically */
+    gap: 0.5rem;
+    /* Add space between static and rotating text */
+}
+
+/* Static Text */
+.static-text {
+    font-family: 'Times New Roman', serif;
+    white-space: nowrap;
+    /* Prevent wrapping */
+    flex-shrink: 0;
+    min-width: 5em;
+    /* Ensure static text doesn't shrink */
+}
+
+/* Rotating Words */
+.rotating-words {
+    font-style: italic;
+    white-space: nowrap;
+    /* Prevent wrapping */
+    overflow: hidden;
+    flex-grow: 1;
+    /* Allow rotating words to grow dynamically */
+    transition: width 0.3s ease;
+    /* Smooth transition when content changes */
+    min-width: 5.5em;
+    margin-left: -10px;
+    /* Prevent collapsing when rotating words are shorter */
+    text-align: left;
+    /* Align rotating words to the left */
+    animation: fadeInOut 3s infinite;
+}
+
+/* Main Display Heading */
+.display-4 {
+    color: var(--primary-blue-light);
+    font-size: 7vw;
+    font-weight: bold;
+    font-family: 'Times New Roman', serif;
+    line-height: 1.2;
+    text-align: center;
+    white-space: nowrap;
+}
+
+
+@keyframes fadeInOut {
+    0% {
+
+        opacity: 0;
+        transform: translateY(20px);
+    }
+
+    40% {
+        opacity: 1;
+        transform: translateY(0px);
+    }
+
+    50% {
+        opacity: 1;
+        transform: translateY(0);
+        /* Invisible and transitioning */
+    }
+
+    80% {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+
+    100% {
+        opacity: 0;
+        transform: translateY(20px);
+    }
+}
+
+.responsive {
+    max-width: 100%;
+    margin: 0 auto;
+}
+
+.slick-slide {
+    padding: 0 10px;
+    /* Optional for spacing */
+}
+
+.slick-slide img {
+    display: block;
+    max-width: 100%;
+    height: auto;
+}
+
+.slider-nav .slick-slide {
+    cursor: pointer;
+}
+
+.slider-for,
+.slider-nav {
+    max-width: 10%;
+    margin: 0 auto;
+}

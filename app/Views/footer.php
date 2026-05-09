@@ -1,10 +1,12 @@
+</main>
 <footer class="bg-light text-center text-lg-start mt-4 border-top">
     <div class="container p-4">
         <div class="row">
             <div class="col-lg-4 col-md-6 mb-4 mb-md-0">
                 <h5 class="text-dark">About Us</h5>
                 <p class="text-muted">
-                    We are committed to providing the best services to make your event unforgettable. Our platform connects you with top vendors and ensures a seamless experience from planning to execution.
+                    We are committed to providing the best services to make your event unforgettable. Our platform
+                    connects you with top vendors and ensures a seamless experience from planning to execution.
                 </p>
                 <a href="/about" class="text-primary">Learn more about us</a>
             </div>

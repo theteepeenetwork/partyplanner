@@ -12,6 +12,7 @@
  */
 error_reporting(E_ALL);
 ini_set('display_errors', '1');
+defined('CI_ENVIRONMENT') || define('CI_ENVIRONMENT', 'development');
 
 /*
  |--------------------------------------------------------------------------
