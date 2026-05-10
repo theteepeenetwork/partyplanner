@@ -18,18 +18,29 @@ $routes->get('/login', 'Login::index');
 $routes->post('/login/attempt', 'Login::attempt');
 $routes->get('/logout', 'Login::logout');
 
-// Profile Routes
+// Profile / Account Routes
+$routes->get('/profile', 'Profile::index');
+$routes->get('/profile/main', 'Profile::index');
+$routes->get('/dashboard', 'Profile::index');
 $routes->get('/profile/edit', 'Profile::edit');
 $routes->post('/profile/edit', 'Profile::edit');
 $routes->post('/profile/update-booking-status/(:num)', 'Profile::updateBookingStatus/$1');
 
-
-$routes->get('/profile/main', 'Profile::main');
+// Vendor tabs
 $routes->get('/profile/services', 'Profile::services');
-$routes->get('/dashboard', 'Profile::main');
-$routes->get('/profile/bookings', 'Profile::bookings');
-$routes->get('/profile/calendar', 'Profile::calendar');
-$routes->get('/profile', 'Profile::index'); // Default route
+$routes->get('/profile/bookings', 'Profile::vendorBookings');
+$routes->get('/profile/calendar', 'Profile::vendorCalendar');
+$routes->get('/profile/calendar-data', 'Profile::calendarData');
+
+// Customer tabs
+$routes->get('/profile/events', 'Profile::customerEvents');
+$routes->get('/profile/my-bookings', 'Profile::customerBookings');
+$routes->get('/profile/messages', 'Profile::customerMessages');
+$routes->get('/profile/messages/(:num)', 'Profile::customerMessageThread/$1');
+$routes->post('/profile/messages/send', 'Profile::sendMessage');
+$routes->get('/profile/payments', 'Profile::customerPayments');
+$routes->get('/profile/favourites', 'Profile::customerFavourites');
+$routes->get('/profile/favourites/remove/(:num)', 'Profile::removeFavourite/$1');
 
 
 // Browse Services (public)

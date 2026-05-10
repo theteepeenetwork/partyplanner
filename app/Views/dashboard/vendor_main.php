@@ -3,21 +3,7 @@
 <div class="dashboard-wrapper">
     <div class="container">
 
-        <!-- Dashboard Tabs -->
-        <ul class="nav dashboard-tabs border-bottom mb-4" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active" href="/profile">Main</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/profile/services">Services</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/profile/bookings">Bookings</a>
-            </li>
-            <li class="nav-item">
-                <a class="nav-link" href="/profile/calendar">Calendar</a>
-            </li>
-        </ul>
+        <?= $this->include('dashboard/_vendor_tabs') ?>
 
         <!-- 1. Greeting / Header -->
         <div class="mb-4">
