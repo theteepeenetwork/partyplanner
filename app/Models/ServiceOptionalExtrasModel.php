@@ -18,12 +18,7 @@ class ServiceOptionalExtrasModel extends Model
         'quantity', // Add this field
     ];
 
-    // Enable timestamps (automatically handle `created_at` and `updated_at` fields)
-    protected $useTimestamps = true;
-
-    // Specify the format of timestamps
-    protected $createdField = 'created_at';
-    protected $updatedField = 'updated_at';
+    protected $useTimestamps = false;
 
     // Validation rules for the model
     protected $validationRules = [

@@ -37,6 +37,17 @@
 
 
 <main class="container mt-4">
+
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="alert alert-danger alert-dismissible fade show">
+            <strong>Error:</strong> <?= session()->getFlashdata('error') ?>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    <?php endif; ?>
+    <?php if (session()->getFlashdata('success')): ?>
+        <div class="alert alert-success"><?= session()->getFlashdata('success') ?></div>
+    <?php endif; ?>
+
     <form action="/service/saveService" method="POST">
         <h2>Review Your Service</h2>
         <div class="review-section form-section">
@@ -500,8 +511,11 @@
                 <a href="/service/step6" class="btn btn-secondary">Edit</a>
             </section>
 
-            <button type="submit" class="btn btn-success">Confirm and Submit</button>
+        </div><!-- /.review-section -->
 
+        <div class="text-center my-4">
+            <button type="submit" class="btn btn-success btn-lg"><i class="fas fa-check-circle me-2"></i>Confirm and Submit</button>
+        </div>
     </form>
 </main>
 

@@ -10,6 +10,7 @@ class ServiceGuestBasedPricingModel extends Model
     protected $primaryKey = 'id'; // Assuming the primary key is 'id'
 
     protected $allowedFields = [
+        'service_id',
         'private_event_pricing_id',
         'min_guest',
         'max_guest',
