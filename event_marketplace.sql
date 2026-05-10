@@ -43,6 +43,7 @@ ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 
 CREATE TABLE IF NOT EXISTS `categories` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
+  `parent_id` int(11) DEFAULT NULL,
   `name` varchar(255) NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -355,9 +356,15 @@ CREATE TABLE IF NOT EXISTS `service_public_event_data` (
 CREATE TABLE IF NOT EXISTS `services_locations` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `service_id` int(11) NOT NULL,
+  `service_location` varchar(255) DEFAULT NULL,
   `location` varchar(255) DEFAULT NULL,
   `latitude` decimal(10,8) DEFAULT NULL,
   `longitude` decimal(11,8) DEFAULT NULL,
+  `all_travel_included` tinyint(1) DEFAULT 0,
+  `no_travel_limit` tinyint(1) DEFAULT 0,
+  `free_coverage_radius` int(11) DEFAULT NULL,
+  `paid_coverage_radius` int(11) DEFAULT NULL,
+  `travel_fee_per_km` decimal(10,2) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -400,9 +407,10 @@ CREATE TABLE IF NOT EXISTS `services_event_types` (
 CREATE TABLE IF NOT EXISTS `services_guest_based_pricing` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `service_id` int(11) NOT NULL,
-  `min_guests` int(11) DEFAULT NULL,
-  `max_guests` int(11) DEFAULT NULL,
-  `price` decimal(10,2) DEFAULT NULL,
+  `private_event_pricing_id` int(11) DEFAULT NULL,
+  `min_guest` int(11) DEFAULT NULL,
+  `max_guest` int(11) DEFAULT NULL,
+  `guest_price` decimal(10,2) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -413,7 +421,9 @@ CREATE TABLE IF NOT EXISTS `services_guest_based_pricing` (
 CREATE TABLE IF NOT EXISTS `services_custom_duration_pricing` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `service_id` int(11) NOT NULL,
-  `duration_hours` int(11) DEFAULT NULL,
+  `private_event_pricing_id` int(11) DEFAULT NULL,
+  `duration_type` varchar(20) DEFAULT NULL,
+  `duration` int(11) DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
@@ -425,9 +435,10 @@ CREATE TABLE IF NOT EXISTS `services_custom_duration_pricing` (
 CREATE TABLE IF NOT EXISTS `services_tiered_packages_pricing` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `service_id` int(11) NOT NULL,
+  `private_event_pricing_id` int(11) DEFAULT NULL,
   `package_name` varchar(255) DEFAULT NULL,
-  `price` decimal(10,2) DEFAULT NULL,
-  `description` text DEFAULT NULL,
+  `package_description` text DEFAULT NULL,
+  `package_price` decimal(10,2) DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
@@ -438,6 +449,7 @@ CREATE TABLE IF NOT EXISTS `services_tiered_packages_pricing` (
 CREATE TABLE IF NOT EXISTS `services_private_event_pricing` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `service_id` int(11) NOT NULL,
+  `pricing_type` varchar(50) DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL,
   `description` text DEFAULT NULL,
   PRIMARY KEY (`id`)
@@ -451,6 +463,32 @@ CREATE TABLE IF NOT EXISTS `services_cancellation_policies` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `service_id` int(11) NOT NULL,
   `policy` text DEFAULT NULL,
+  `cancellation_policy` text DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+-- Table: services_public_event_pricing
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `services_public_event_pricing` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `service_id` int(11) NOT NULL,
+  `commission_percentage` decimal(5,2) DEFAULT NULL,
+  `min_attendance` int(11) DEFAULT NULL,
+  `max_attendance` int(11) DEFAULT NULL,
+  `max_pitch_fee` decimal(10,2) DEFAULT NULL,
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+-- Table: services_corporate_event_pricing
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `services_corporate_event_pricing` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `service_id` int(11) NOT NULL,
+  `pricing_details` text DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
