@@ -104,8 +104,26 @@ $routes->post('webhooks/stripe', 'WebhookController::stripe');
 
 
 
-// Events
-$routes->match(['GET', 'POST'], '/event/create', 'EventController::create');
+// Event Creation Flow
+$routes->get('/event/create', 'EventController::create');
+$routes->match(['GET', 'POST'], '/event/create/step1', 'EventController::createStep1');
+$routes->match(['GET', 'POST'], '/event/create/step2', 'EventController::createStep2');
+$routes->match(['GET', 'POST'], '/event/create/step3', 'EventController::createStep3');
+$routes->get('/event/create/review', 'EventController::createReview');
+$routes->post('/event/store', 'EventController::store');
+
+// Add to Event Flow
+$routes->match(['GET', 'POST'], '/event/add-to-event/(:num)', 'EventController::addToEvent/$1');
+$routes->match(['GET', 'POST'], '/event/add-to-basket/(:num)', 'EventController::addToBasket/$1');
+
+// Event Basket
+$routes->get('/event/basket/(:num)', 'EventController::basket/$1');
+$routes->get('/event/basket/remove/(:num)', 'EventController::removeFromBasket/$1');
+
+// Checkout
+$routes->get('/event/checkout/(:num)', 'EventController::checkout/$1');
+$routes->post('/event/checkout/process/(:num)', 'EventController::processCheckout/$1');
+$routes->get('/event/checkout/success/(:num)', 'EventController::checkoutSuccess/$1');
 
 // Chat Routes
 $routes->get('/chat/start/(:num)/(:num)', 'ChatController::startChat/$1/$2');

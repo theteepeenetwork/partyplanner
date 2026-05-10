@@ -145,6 +145,15 @@ CREATE TABLE IF NOT EXISTS `events` (
   `description` text DEFAULT NULL,
   `date` date DEFAULT NULL,
   `location` varchar(255) DEFAULT NULL,
+  `venue_name` varchar(255) DEFAULT NULL,
+  `postcode` varchar(20) DEFAULT NULL,
+  `town_city` varchar(255) DEFAULT NULL,
+  `indoor_outdoor` varchar(20) DEFAULT NULL,
+  `budget_min` decimal(10,2) DEFAULT NULL,
+  `budget_max` decimal(10,2) DEFAULT NULL,
+  `style_theme` varchar(255) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `status` varchar(20) DEFAULT 'active',
   `category` varchar(255) DEFAULT NULL,
   `event_type` varchar(100) DEFAULT NULL,
   `guest_count` int(11) DEFAULT NULL,
@@ -210,7 +219,32 @@ CREATE TABLE IF NOT EXISTS `payments` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- --------------------------------------------------------
--- Table: carts
+-- Table: event_basket_items
+-- --------------------------------------------------------
+
+CREATE TABLE IF NOT EXISTS `event_basket_items` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `event_id` int(11) NOT NULL,
+  `user_id` int(11) NOT NULL,
+  `service_id` int(11) NOT NULL,
+  `vendor_id` int(11) NOT NULL,
+  `package_name` varchar(255) DEFAULT NULL,
+  `extras` text DEFAULT NULL,
+  `quantity` int(11) DEFAULT 1,
+  `unit_price` decimal(10,2) DEFAULT NULL,
+  `deposit_amount` decimal(10,2) DEFAULT NULL,
+  `estimated_total` decimal(10,2) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  KEY `event_id` (`event_id`),
+  KEY `user_id` (`user_id`),
+  KEY `service_id` (`service_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+-- Table: carts (legacy)
 -- --------------------------------------------------------
 
 CREATE TABLE IF NOT EXISTS `carts` (
