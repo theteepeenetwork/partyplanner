@@ -10,6 +10,9 @@ $routes->get('/', 'Home::index');
 $routes->get('/register', 'Register::index');
 $routes->post('/register/create', 'Register::create');
 $routes->get('/register/success', 'Register::success');
+$routes->get('/register/vendor', 'Register::vendor');
+$routes->post('/register/vendor/create', 'Register::createVendor');
+$routes->get('/register/vendor/success', 'Register::vendorSuccess');
 
 $routes->get('/login', 'Login::index');
 $routes->post('/login/attempt', 'Login::attempt');
@@ -28,6 +31,10 @@ $routes->get('/profile/bookings', 'Profile::bookings');
 $routes->get('/profile/calendar', 'Profile::calendar');
 $routes->get('/profile', 'Profile::index'); // Default route
 
+
+// Browse Services (public)
+$routes->get('/browse-services', 'Service_Controller::browse');
+$routes->get('/services', 'Service_Controller::browse');
 
 // Service Routes
 $routes->get('test', 'Service_Controller::test');

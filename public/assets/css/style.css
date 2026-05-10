@@ -310,7 +310,9 @@ main.container {
 }
 
 @media (max-width: 768px) {
-    .service-card-container
+    .service-card-container {
+        grid-template-columns: 1fr;
+    }
 }
 
 .how-it-works {

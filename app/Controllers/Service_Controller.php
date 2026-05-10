@@ -60,6 +60,55 @@ class Service_Controller extends BaseController
         }
     }
 
+    public function browse()
+    {
+        $serviceModel = new ServiceModel();
+        $serviceImageModel = new ServiceImageModel();
+        $categoryModel = new CategoryModel();
+
+        $categoryFilter = $this->request->getGet('category');
+        $searchQuery = $this->request->getGet('q');
+
+        $builder = $serviceModel->where('status', 'active')->where('deleted_at', null);
+
+        if ($categoryFilter) {
+            $builder = $builder->where('category_id', $categoryFilter);
+        }
+
+        if ($searchQuery) {
+            $builder = $builder->groupStart()
+                ->like('title', $searchQuery)
+                ->orLike('short_description', $searchQuery)
+                ->orLike('description', $searchQuery)
+                ->groupEnd();
+        }
+
+        $services = $builder->orderBy('created_at', 'DESC')->findAll();
+
+        foreach ($services as &$service) {
+            $service['images'] = $serviceImageModel
+                ->where(['service_id' => $service['id'], 'is_primary' => 1])
+                ->findAll();
+            if (!empty($service['category_id'])) {
+                $category = $categoryModel->find($service['category_id']);
+                $service['category_name'] = $category ? $category['name'] : '';
+            } else {
+                $service['category_name'] = '';
+            }
+        }
+
+        $categories = $categoryModel->findAll();
+
+        $data = [
+            'services' => $services,
+            'categories' => $categories,
+            'selectedCategory' => $categoryFilter,
+            'searchQuery' => $searchQuery ?? '',
+        ];
+
+        return view('browse_services', $data);
+    }
+
     public function destroy($step)
     {
         session()->remove('step' . $step . "_data");
@@ -1646,13 +1695,10 @@ class Service_Controller extends BaseController
         $optionalExtrasModel = new ServiceOptionalExtrasModel();
 
         // Fetch the service details
-        $service = $serviceModel
-            ->select('services.*, categories.name as category_name')
-            ->join('categories', 'categories.id = services.category_id', 'left')
-            ->find($id);
+        $service = $serviceModel->find($id);
 
         if (!$service) {
-            return redirect()->to('/service')->with('error', 'Service not found.');
+            return redirect()->to('/browse-services')->with('error', 'Service not found.');
         }
 
         // Fetch associated images
@@ -1689,6 +1735,19 @@ class Service_Controller extends BaseController
         // Fetch optional extras
         $optionalExtras = $optionalExtrasModel->where('service_id', $id)->findAll();
 
+        // Fetch cancellation policy
+        $cancellationModel = new ServiceCancellationPolicyModel();
+        $cancellationRecord = $cancellationModel->where('service_id', $id)->first();
+        $cancellationPolicy = $cancellationRecord['policy'] ?? '';
+
+        // Build category names
+        $mainCategory = $categoryModel->find($service['category_id']);
+        $category_names = [
+            'main' => $mainCategory['name'] ?? 'Not Selected',
+            'sub' => '',
+            'third' => '',
+        ];
+
         // Compile data for the view
         $data = [
             'service' => $service,
@@ -1699,7 +1758,9 @@ class Service_Controller extends BaseController
             'durationPricing' => $durationPricing,
             'tieredPackages' => $tieredPackages,
             'location' => $location,
-            'optionalExtras' => $optionalExtras,
+            'optional_extras' => $optionalExtras,
+            'cancellation_policy' => $cancellationPolicy,
+            'category_names' => $category_names,
         ];
 
         // Render the view

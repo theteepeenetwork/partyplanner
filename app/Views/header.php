@@ -4,7 +4,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>For Your...</title>
+    <title>For Your Events</title>
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
@@ -12,7 +12,6 @@
 
     <!-- Custom CSS -->
     <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
-    <link rel="stylesheet" href="<?= base_url('assets/css/cards.css') ?>">
 
     <!-- Slick Carousel CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slick-carousel/slick/slick.css">
@@ -55,7 +54,7 @@
                 <!-- Toggle Button for Mobile View -->
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
-                    <i class="fas fa-bars"></i> <!-- Example using Font Awesome -->
+                    <i class="fas fa-bars"></i>
                 </button>
 
                 <!-- Collapsible Navbar Content -->
@@ -70,38 +69,36 @@
                         <li class="nav-item">
                             <a class="nav-link text-end" href="/how-it-works">How It Works</a>
                         </li>
-                        <!-- My Account Dropdown -->
-                        <li class="nav-item dropdown">
-                            <?php if (session()->has('user_id')): ?>
-                                <!-- My Account Dropdown Toggle -->
+
+                        <?php if (session()->has('user_id')): ?>
+                            <!-- Logged-in: My Account Dropdown -->
+                            <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-end" href="#" id="accountDropdown" role="button"
                                     data-bs-toggle="dropdown" aria-expanded="false">
                                     My Account
                                 </a>
-                            <?php else: ?>
-                                <!-- Login Link -->
-                                <a class="nav-link text-end" href="/login">
-                                    Login
-                                </a>
-                            <?php endif; ?>
-
-                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
-                                <?php if (session()->has('user_id')): ?>
-                                    <li><a class="dropdown-item" href="/profile">My Account</a></li>
+                                <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
+                                    <li><a class="dropdown-item" href="/profile">My Profile</a></li>
+                                    <?php if (session()->get('role') === 'customer'): ?>
+                                        <li><a class="dropdown-item" href="/cart">My Cart</a></li>
+                                        <li><a class="dropdown-item" href="/event/create">Create Event</a></li>
+                                    <?php elseif (session()->get('role') === 'vendor'): ?>
+                                        <li><a class="dropdown-item" href="/profile/services">My Services</a></li>
+                                        <li><a class="dropdown-item" href="/profile/bookings">Bookings</a></li>
+                                    <?php endif; ?>
+                                    <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="/logout">Logout</a></li>
-                                <?php else: ?>
-                                    <li><a class="dropdown-item" href="/login">Login</a></li>
-                                <?php endif; ?>
-                                <li>
-                                    <hr class="dropdown-divider">
-                                </li>
-                                <li><a class="dropdown-item" href="/supplier">Become a Supplier</a></li>
-                            </ul>
-                        </li>
-                        <!-- Plan Event Button -->
-                        <li class="nav-item">
-                            <a class="btn btn-gradient ms-3" href="/plan-event">Plan Event</a>
-                        </li>
+                                </ul>
+                            </li>
+                        <?php else: ?>
+                            <!-- Not logged-in: Login + Register -->
+                            <li class="nav-item">
+                                <a class="nav-link text-end" href="/login">Login</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="btn btn-gradient ms-2" href="/register">Register</a>
+                            </li>
+                        <?php endif; ?>
                     </ul>
                 </div>
 
@@ -111,10 +108,7 @@
 
 
     <script>
-        //loads info pop overs for service onboarding
         document.addEventListener('DOMContentLoaded', function () {
-
-            // Initialise all Bootstrap tooltips
             const tooltipTriggerList = [].slice.call(
                 document.querySelectorAll('[data-bs-toggle="tooltip"]')
             );
@@ -122,13 +116,11 @@
                 new bootstrap.Tooltip(tooltipTriggerEl);
             });
 
-            // Initialise all Bootstrap popovers
             const popoverTriggerList = [].slice.call(
                 document.querySelectorAll('[data-bs-toggle="popover"]')
             );
             popoverTriggerList.forEach(function (popoverTriggerEl) {
                 new bootstrap.Popover(popoverTriggerEl);
             });
-
         });
     </script>
