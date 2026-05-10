@@ -3,32 +3,7 @@
 <div class="dashboard-wrapper">
     <div class="container">
 
-        <!-- Dashboard Tabs -->
-        <ul class="nav dashboard-tabs border-bottom mb-4" role="tablist">
-            <li class="nav-item">
-                <a class="nav-link active" href="/profile">Main</a>
-            </li>
-            <li class="nav-item">
-                <!-- TODO: Build My Events page -->
-                <a class="nav-link" href="/profile">My Events</a>
-            </li>
-            <li class="nav-item">
-                <!-- TODO: Build Bookings page -->
-                <a class="nav-link" href="/profile">Bookings</a>
-            </li>
-            <li class="nav-item">
-                <!-- TODO: Build Messages page -->
-                <a class="nav-link" href="/profile">Messages</a>
-            </li>
-            <li class="nav-item">
-                <!-- TODO: Build Payments page -->
-                <a class="nav-link" href="/profile">Payments</a>
-            </li>
-            <li class="nav-item">
-                <!-- TODO: Build Favourites page -->
-                <a class="nav-link" href="/profile">Favourites</a>
-            </li>
-        </ul>
+        <?= $this->include('dashboard/_customer_tabs') ?>
 
         <!-- 1. Welcome Section -->
         <div class="mb-4">
