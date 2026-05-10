@@ -367,8 +367,11 @@ CREATE TABLE IF NOT EXISTS `services_optional_extras` (
   `name` varchar(255) DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL,
   `description` text DEFAULT NULL,
+  `quantity` int(11) DEFAULT 1,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE services_optional_extras ADD COLUMN IF NOT EXISTS `quantity` int(11) DEFAULT 1 AFTER `description`;
 
 -- ============================================================
 -- SEED: default categories (if empty)
