@@ -21,11 +21,16 @@ class Login extends BaseController
                           ->first();
 
         if ($user && password_verify($password, $user['password'])) {
-            // Authentication successful
             session()->set('user_id', $user['id']);
-            session()->set('username', $user['username']); 
-            session()->set('role', $user['role']); 
-            // Stop execution to see the output
+            session()->set('username', $user['username']);
+            session()->set('role', $user['role']);
+
+            $redirectUrl = session()->get('redirect_after_login');
+            if ($redirectUrl) {
+                session()->remove('redirect_after_login');
+                return redirect()->to($redirectUrl)->with('success', 'Welcome back, ' . $user['username']);
+            }
+
             return redirect()->to('/')->with('success', 'Welcome back, ' . $user['username']);
         } else {
             // Authentication failed

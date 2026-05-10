@@ -1611,55 +1611,150 @@ class Service_Controller extends BaseController
         $service = $serviceModel->getServiceWithImages($id);
 
         if (!$service || $service['vendor_id'] != session()->get('user_id')) {
-            return redirect()->to('/profile')->with('error', 'Service not found or you are not authorized to edit it.');
+            return redirect()->to('/profile/services')->with('error', 'Service not found.');
         }
 
-        // Retrieve the time blocks associated with the service
-
-
-
-        $data['categories'] = $this->buildCategoryTree();
-        $data['service'] = $service;
-
+        $categoryModel = new CategoryModel();
+        $serviceImageModel = new ServiceImageModel();
+        $servicePrivatePricingModel = new ServicePrivatePricingModel();
+        $guestPricingModel = new ServiceGuestBasedPricingModel();
+        $durationPricingModel = new ServiceCustomDurationPricingModel();
+        $tieredPricingModel = new ServiceTieredPackagesPricingModel();
+        $serviceLocationModel = new ServiceLocationModel();
+        $optionalExtrasModel = new ServiceOptionalExtrasModel();
+        $cancellationModel = new ServiceCancellationPolicyModel();
+        $eventTypeModel = new ServiceEventTypeModel();
 
         if ($this->request->getMethod() === 'POST') {
             $rules = [
                 'title' => 'required|min_length[3]|max_length[255]',
-                'short_description' => 'required',
+                'short_description' => 'required|max_length[200]',
                 'description' => 'required',
-                'price' => 'required|decimal',
-                'category_id' => 'required|is_natural_no_zero',
-                'subcategory_id' => 'required|is_natural_no_zero',
-                'images.*' => 'max_size[images,10240]|is_image[images]',
             ];
 
             if (!$this->validate($rules)) {
                 return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
-            } else {
-                $serviceModel->transStart();
+            }
 
-                $serviceData = [
-                    'title' => $this->request->getPost('title'),
-                    'description' => $this->request->getPost('description'),
-                    'short_description' => $this->request->getPost('short_description'),
-                    'price' => $this->request->getPost('price'),
-                    'category_id' => $this->request->getPost('category_id'),
-                    'subcategory_id' => $this->request->getPost('subcategory_id'),
-                ];
+            $db = \Config\Database::connect();
+            $db->transStart();
 
-                if ($serviceModel->update($id, $serviceData)) {
-                    $this->handleImages($id);
+            $serviceData = [
+                'title' => $this->request->getPost('title'),
+                'short_description' => $this->request->getPost('short_description'),
+                'description' => $this->request->getPost('description'),
+                'price' => $this->request->getPost('price') ?: 0,
+                'category_id' => $this->request->getPost('category_id') ?: null,
+                'subcategory_id' => $this->request->getPost('subcategory_id') ?: null,
+                'service_tags' => $this->request->getPost('service_tags'),
+            ];
+            $serviceModel->update($id, $serviceData);
 
-                    // Update time blocks
+            // Handle image uploads
+            $imageFiles = $this->request->getFiles();
+            if (!empty($imageFiles['images'])) {
+                foreach ($imageFiles['images'] as $file) {
+                    if ($file->isValid() && !$file->hasMoved()) {
+                        $newName = $file->getRandomName();
+                        $file->move(FCPATH . 'uploads/services', $newName);
 
-                    $serviceModel->transComplete();
-                    return redirect()->to('/service/edit/' . $id)->with('success', 'Service updated successfully.');
-                } else {
-                    $serviceModel->transRollback();
-                    return redirect()->back()->withInput()->with('error', 'Failed to update service in the database.');
+                        $thumbPath = 'uploads/services/thumbnails/thumb_' . $newName;
+                        $imgService = \Config\Services::image();
+                        $imgService->withFile(FCPATH . 'uploads/services/' . $newName)
+                            ->resize(300, 200, true, 'width')
+                            ->save(FCPATH . $thumbPath);
+
+                        $serviceImageModel->insert([
+                            'service_id' => $id,
+                            'image_path' => 'uploads/services/' . $newName,
+                            'thumbnail_path' => $thumbPath,
+                            'is_primary' => 0,
+                        ]);
+                    }
                 }
             }
+
+            // Update location
+            $location = $serviceLocationModel->where('service_id', $id)->first();
+            $locationData = [
+                'service_location' => $this->request->getPost('service_location'),
+                'latitude' => $this->request->getPost('latitude') ?: null,
+                'longitude' => $this->request->getPost('longitude') ?: null,
+                'free_coverage_radius' => $this->request->getPost('free_coverage_radius') ?: null,
+                'paid_coverage_radius' => $this->request->getPost('paid_coverage_radius') ?: null,
+                'travel_fee_per_km' => $this->request->getPost('travel_fee_per_km') ?: null,
+                'all_travel_included' => !empty($this->request->getPost('all_travel_included')) ? 1 : 0,
+                'no_travel_limit' => !empty($this->request->getPost('no_travel_limit')) ? 1 : 0,
+            ];
+            if ($location) {
+                $serviceLocationModel->update($location['id'], $locationData);
+            } else {
+                $locationData['service_id'] = $id;
+                $serviceLocationModel->insert($locationData);
+            }
+
+            // Update cancellation policy
+            $cancellation = $cancellationModel->where('service_id', $id)->first();
+            $policyText = $this->request->getPost('cancellation_policy');
+            if ($cancellation) {
+                $cancellationModel->update($cancellation['id'], ['cancellation_policy' => $policyText]);
+            } elseif (!empty($policyText)) {
+                $cancellationModel->insert(['service_id' => $id, 'cancellation_policy' => $policyText]);
+            }
+
+            // Update optional extras — delete all and re-insert
+            $optionalExtrasModel->where('service_id', $id)->delete();
+            $extraNames = $this->request->getPost('extra_name') ?? [];
+            $extraPrices = $this->request->getPost('extra_price') ?? [];
+            $extraDescs = $this->request->getPost('extra_description') ?? [];
+            foreach ($extraNames as $i => $name) {
+                if (!empty(trim($name))) {
+                    $optionalExtrasModel->insert([
+                        'service_id' => $id,
+                        'name' => trim($name),
+                        'price' => (float)($extraPrices[$i] ?? 0),
+                        'description' => trim($extraDescs[$i] ?? ''),
+                    ]);
+                }
+            }
+
+            $db->transComplete();
+
+            return redirect()->to('/service/edit/' . $id)->with('success', 'Service updated successfully.');
         }
+
+        // Load all service data for the edit form
+        $images = $serviceImageModel->where('service_id', $id)->findAll();
+        $location = $serviceLocationModel->where('service_id', $id)->first();
+        $optionalExtras = $optionalExtrasModel->where('service_id', $id)->findAll();
+        $cancellation = $cancellationModel->where('service_id', $id)->first();
+        $eventTypes = $eventTypeModel->where('service_id', $id)->findAll();
+        $privatePricing = $servicePrivatePricingModel->where('service_id', $id)->first();
+
+        $guestPricing = [];
+        $durationPricing = [];
+        $tieredPackages = [];
+        if ($privatePricing) {
+            $guestPricing = $guestPricingModel->where('private_event_pricing_id', $privatePricing['id'])->findAll();
+            $durationPricing = $durationPricingModel->where('private_event_pricing_id', $privatePricing['id'])->findAll();
+            $tieredPackages = $tieredPricingModel->where('private_event_pricing_id', $privatePricing['id'])->findAll();
+        }
+
+        $categories = $categoryModel->findAll();
+
+        $data = [
+            'service' => $service,
+            'categories' => $categories,
+            'images' => $images,
+            'location' => $location,
+            'optionalExtras' => $optionalExtras,
+            'cancellation' => $cancellation,
+            'eventTypes' => $eventTypes,
+            'privatePricing' => $privatePricing,
+            'guestPricing' => $guestPricing,
+            'durationPricing' => $durationPricing,
+            'tieredPackages' => $tieredPackages,
+        ];
 
         return view('service_edit', $data);
     }
@@ -1854,6 +1949,26 @@ class Service_Controller extends BaseController
         }
     }
 
+
+    public function toggleStatus($id = null)
+    {
+        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
+            return redirect()->to('/profile/services')->with('error', 'Unauthorized.');
+        }
+
+        $serviceModel = new ServiceModel();
+        $service = $serviceModel->find($id);
+
+        if (!$service || $service['vendor_id'] != session()->get('user_id')) {
+            return redirect()->to('/profile/services')->with('error', 'Service not found.');
+        }
+
+        $newStatus = ($service['status'] === 'active') ? 'inactive' : 'active';
+        $serviceModel->update($id, ['status' => $newStatus]);
+
+        $label = $newStatus === 'active' ? 'activated' : 'deactivated';
+        return redirect()->to('/profile/services')->with('success', '"' . $service['title'] . '" has been ' . $label . '.');
+    }
 
     public function delete($id = null)
     {

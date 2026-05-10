@@ -18,18 +18,29 @@ $routes->get('/login', 'Login::index');
 $routes->post('/login/attempt', 'Login::attempt');
 $routes->get('/logout', 'Login::logout');
 
-// Profile Routes
+// Profile / Account Routes
+$routes->get('/profile', 'Profile::index');
+$routes->get('/profile/main', 'Profile::index');
+$routes->get('/dashboard', 'Profile::index');
 $routes->get('/profile/edit', 'Profile::edit');
 $routes->post('/profile/edit', 'Profile::edit');
 $routes->post('/profile/update-booking-status/(:num)', 'Profile::updateBookingStatus/$1');
 
-
-$routes->get('/profile/main', 'Profile::main');
+// Vendor tabs
 $routes->get('/profile/services', 'Profile::services');
-$routes->get('/dashboard', 'Profile::main');
-$routes->get('/profile/bookings', 'Profile::bookings');
-$routes->get('/profile/calendar', 'Profile::calendar');
-$routes->get('/profile', 'Profile::index'); // Default route
+$routes->get('/profile/bookings', 'Profile::vendorBookings');
+$routes->get('/profile/calendar', 'Profile::vendorCalendar');
+$routes->get('/profile/calendar-data', 'Profile::calendarData');
+
+// Customer tabs
+$routes->get('/profile/events', 'Profile::customerEvents');
+$routes->get('/profile/my-bookings', 'Profile::customerBookings');
+$routes->get('/profile/messages', 'Profile::customerMessages');
+$routes->get('/profile/messages/(:num)', 'Profile::customerMessageThread/$1');
+$routes->post('/profile/messages/send', 'Profile::sendMessage');
+$routes->get('/profile/payments', 'Profile::customerPayments');
+$routes->get('/profile/favourites', 'Profile::customerFavourites');
+$routes->get('/profile/favourites/remove/(:num)', 'Profile::removeFavourite/$1');
 
 
 // Browse Services (public)
@@ -72,10 +83,11 @@ $routes->post('service/book', 'Service_Controller::bookService');
 
 
 
-// Use distinct URL patterns for deactivate, reactivate, and delete
+// Service status management
 $routes->match(['GET', 'POST'], 'service/deactivate/(:num)', 'Service_Controller::deactivate/$1');
 $routes->match(['GET', 'POST'], 'service/reactivate/(:num)', 'Service_Controller::reactivate/$1');
 $routes->match(['GET', 'POST'], 'service/delete/(:num)', 'Service_Controller::delete/$1');
+$routes->post('service/toggle-status/(:num)', 'Service_Controller::toggleStatus/$1');
 
 
 // Cart Routes
@@ -93,8 +105,26 @@ $routes->post('webhooks/stripe', 'WebhookController::stripe');
 
 
 
-// Events
-$routes->match(['GET', 'POST'], '/event/create', 'EventController::create');
+// Event Creation Flow
+$routes->get('/event/create', 'EventController::create');
+$routes->match(['GET', 'POST'], '/event/create/step1', 'EventController::createStep1');
+$routes->match(['GET', 'POST'], '/event/create/step2', 'EventController::createStep2');
+$routes->match(['GET', 'POST'], '/event/create/step3', 'EventController::createStep3');
+$routes->get('/event/create/review', 'EventController::createReview');
+$routes->post('/event/store', 'EventController::store');
+
+// Add to Event Flow
+$routes->match(['GET', 'POST'], '/event/add-to-event/(:num)', 'EventController::addToEvent/$1');
+$routes->match(['GET', 'POST'], '/event/add-to-basket/(:num)', 'EventController::addToBasket/$1');
+
+// Event Basket
+$routes->get('/event/basket/(:num)', 'EventController::basket/$1');
+$routes->get('/event/basket/remove/(:num)', 'EventController::removeFromBasket/$1');
+
+// Checkout
+$routes->get('/event/checkout/(:num)', 'EventController::checkout/$1');
+$routes->post('/event/checkout/process/(:num)', 'EventController::processCheckout/$1');
+$routes->get('/event/checkout/success/(:num)', 'EventController::checkoutSuccess/$1');
 
 // Chat Routes
 $routes->get('/chat/start/(:num)/(:num)', 'ChatController::startChat/$1/$2');

@@ -9,69 +9,20 @@ use App\Models\BookingModel;
 use App\Models\BookingItemModel;
 use App\Models\EventModel;
 use App\Models\ChatMessageModel;
+use App\Models\ChatRoomModel;
 use App\Models\PaymentsModel;
+use App\Models\CategoryModel;
+use App\Models\FavouriteModel;
 use DateTime;
 
 class Profile extends BaseController
 {
-
-
-
-    public function index()
+    private function requireLogin()
     {
         if (!session()->has('user_id')) {
-            return redirect()->to('/login')->with('error', 'You must be logged in to view your profile.');
+            return redirect()->to('/login')->with('error', 'You must be logged in.');
         }
-
-        $userId = session()->get('user_id');
-        $userModel = new UserModel();
-        $user = $userModel->find($userId);
-
-        if (!$user) {
-            return redirect()->to('/')->with('error', 'User not found.');
-        }
-
-        return view('profile_vendor', ['user' => $user]);
-    }
-
-    public function main()
-    {
-        return view('profile/main'); // Replace with the actual view for the Main tab
-    }
-
-
-    public function services()
-    {
-        if (!session()->has('user_id')) {
-            return redirect()->to('/login')->with('error', 'Unauthorized access.');
-        }
-
-        $userId = session()->get('user_id');
-        $serviceModel = new ServiceModel();
-        $serviceImageModel = new ServiceImageModel();
-
-        // Use the fetchServices method to retrieve services and their images
-        $activeServices = $this->fetchServices($serviceModel, $serviceImageModel, $userId, 'active');
-        $inactiveServices = $this->fetchServices($serviceModel, $serviceImageModel, $userId, 'inactive');
-
-        // Pass the retrieved data to the view
-        return view('profile/services', [
-            'activeServices' => $activeServices,
-            'inactiveServices' => $inactiveServices,
-        ]);
-    }
-
-
-    public function bookings()
-    {
-        $data = $this->loadProfileData($this->getUser());
-        return view('profile/bookings', $data);
-    }
-
-    public function calendar()
-    {
-        $data = $this->loadProfileData($this->getUser());
-        //return view('profile/calendar', $data);
+        return null;
     }
 
     private function getUser()
@@ -81,196 +32,583 @@ class Profile extends BaseController
         return $userModel->find($userId);
     }
 
+    // =========================================================
+    // MAIN DASHBOARD
+    // =========================================================
 
-
-
-
-
-    private function loadProfileData($user)
+    public function index()
     {
-        $userId = $user['id'];
-        $data['user'] = $user;
+        if ($r = $this->requireLogin()) return $r;
+        $user = $this->getUser();
+        if (!$user) return redirect()->to('/')->with('error', 'User not found.');
 
         if ($user['role'] === 'vendor') {
-            $serviceModel = new ServiceModel();
-            $serviceImageModel = new ServiceImageModel();
-            $bookingItemModel = new BookingItemModel();
-            $chatMessageModel = new ChatMessageModel();
-
-            // Fetch active and inactive services
-            $data['activeServices'] = $this->fetchServices($serviceModel, $serviceImageModel, $userId, 'active');
-            $data['inactiveServices'] = $this->fetchServices($serviceModel, $serviceImageModel, $userId, 'inactive');
-
-            // Fetch bookings for vendor
-            $data['bookingItems'] = $this->fetchBookingItems($bookingItemModel, $chatMessageModel, $userId);
-
-        } else {
-            $data['events'] = $this->fetchEvents($userId);
+            return $this->vendorMain($user);
         }
-
-        return $data;
+        return $this->customerMain($user);
     }
 
-    private function fetchServices($serviceModel, $serviceImageModel, $userId, $status)
+    private function vendorMain($user)
     {
-        // Fetch services based on status
-        $services = $serviceModel
-            ->where('vendor_id', $userId)
-            ->where('status', $status)
-            ->where('deleted_at', null) // Ensure `deleted_at` is NULL
-            ->findAll();
+        $userId = $user['id'];
+        $serviceModel = new ServiceModel();
+        $serviceImageModel = new ServiceImageModel();
+        $bookingItemModel = new BookingItemModel();
+        $chatMessageModel = new ChatMessageModel();
 
-        // Load images for each service
-        foreach ($services as &$service) {
-            //Die('1');
-            $images = $serviceImageModel->where('service_id', $service['id'])->findAll();
+        $activeServices = $serviceModel->where('vendor_id', $userId)->where('status', 'active')->where('deleted_at', null)->findAll();
+        $vendorServiceIds = array_column($activeServices, 'id');
 
+        $pendingBookings = 0;
+        $upcomingBookings = 0;
+        $upcomingBookingsList = [];
+        $pendingBookingsList = [];
 
-            // Ensure paths are constructed correctly
-            foreach ($images as &$image) {
-                //Die('2');
-                $image['thumbnail_path'] = base_url($image['thumbnail_path']);
-                $image['image_path'] = base_url($image['image_path']);
+        if (!empty($vendorServiceIds)) {
+            $pendingBookings = $bookingItemModel->whereIn('service_id', $vendorServiceIds)->where('status', 'pending')->countAllResults();
+            $upcomingBookings = $bookingItemModel->whereIn('service_id', $vendorServiceIds)->where('status', 'accepted')->countAllResults();
+
+            $upcomingBookingsList = $bookingItemModel
+                ->select('booking_items.*, bookings.event_id, bookings.user_id, events.title as event_title, events.date as event_date, events.location, events.event_type, services.title as service_title, users.name as customer_name')
+                ->join('bookings', 'bookings.id = booking_items.booking_id')
+                ->join('events', 'events.id = bookings.event_id')
+                ->join('services', 'services.id = booking_items.service_id')
+                ->join('users', 'users.id = bookings.user_id')
+                ->whereIn('booking_items.service_id', $vendorServiceIds)
+                ->where('booking_items.status', 'accepted')
+                ->orderBy('events.date', 'ASC')->limit(5)->findAll();
+
+            $pendingBookingsList = $bookingItemModel
+                ->select('booking_items.*, bookings.event_id, bookings.user_id, events.title as event_title, events.date as event_date, events.location, events.event_type, services.title as service_title, users.name as customer_name')
+                ->join('bookings', 'bookings.id = booking_items.booking_id')
+                ->join('events', 'events.id = bookings.event_id')
+                ->join('services', 'services.id = booking_items.service_id')
+                ->join('users', 'users.id = bookings.user_id')
+                ->whereIn('booking_items.service_id', $vendorServiceIds)
+                ->where('booking_items.status', 'pending')
+                ->orderBy('events.date', 'ASC')->limit(5)->findAll();
+        }
+
+        $unreadMessages = $chatMessageModel->where('receiver_id', $userId)->where('is_read', 0)->countAllResults();
+
+        $servicesMissingImages = 0;
+        $serviceHealthItems = [];
+        foreach ($activeServices as $svc) {
+            $hasImages = $serviceImageModel->where('service_id', $svc['id'])->countAllResults() > 0;
+            if (!$hasImages) $servicesMissingImages++;
+            $serviceHealthItems[] = [
+                'title' => $svc['title'],
+                'has_images' => $hasImages,
+                'has_price' => !empty($svc['price']),
+                'has_description' => !empty($svc['description']),
+                'has_cancellation' => !empty($svc['cancellation_policy']),
+            ];
+        }
+
+        return view('dashboard/vendor_main', [
+            'user' => $user,
+            'activeServicesCount' => count($activeServices),
+            'pendingBookings' => $pendingBookings,
+            'upcomingBookings' => $upcomingBookings,
+            'upcomingBookingsList' => $upcomingBookingsList,
+            'pendingBookingsList' => $pendingBookingsList,
+            'unreadMessages' => $unreadMessages,
+            'servicesMissingImages' => $servicesMissingImages,
+            'serviceHealthItems' => $serviceHealthItems,
+            'currentTab' => 'main',
+        ]);
+    }
+
+    private function customerMain($user)
+    {
+        $userId = $user['id'];
+        $eventModel = new EventModel();
+        $bookingModel = new BookingModel();
+        $bookingItemModel = new BookingItemModel();
+        $serviceModel = new ServiceModel();
+        $userModel = new UserModel();
+        $chatMessageModel = new ChatMessageModel();
+        $paymentsModel = new PaymentsModel();
+        $categoryModel = new CategoryModel();
+
+        $events = $eventModel->where('user_id', $userId)->findAll();
+        $enrichedEvents = [];
+        $totalPendingRequests = 0; $totalAccepted = 0; $totalDeclined = 0;
+        $totalConfirmed = 0; $totalAwaitingPayment = 0; $totalSpend = 0; $depositsPaid = 0;
+
+        foreach ($events as $event) {
+            $bookings = $bookingModel->where('event_id', $event['id'])->findAll();
+            $eventBookingItems = []; $eventCost = 0;
+
+            foreach ($bookings as $booking) {
+                $items = $bookingItemModel
+                    ->select('booking_items.*, services.title as service_title, services.price as service_price, services.vendor_id, services.category_id')
+                    ->join('services', 'services.id = booking_items.service_id')
+                    ->where('booking_id', $booking['id'])->findAll();
+
+                foreach ($items as &$item) {
+                    $vendor = $userModel->find($item['vendor_id']);
+                    $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
+                    $payment = $paymentsModel->where('booking_id', $booking['id'])->first();
+                    $item['payment_status'] = $payment ? $payment['payment_status'] : 'not paid';
+                    if ($payment && $payment['payment_status'] === 'succeeded') {
+                        $depositsPaid += (float)($payment['amount_paid'] ?? 0);
+                    }
+                    $itemPrice = (float)($item['price'] ?? $item['service_price'] ?? 0);
+                    $eventCost += $itemPrice;
+                    switch ($item['status']) {
+                        case 'pending': $totalPendingRequests++; break;
+                        case 'accepted': $totalAccepted++; break;
+                        case 'rejected': $totalDeclined++; break;
+                        case 'confirmed': $totalConfirmed++; break;
+                    }
+                }
+                $eventBookingItems = array_merge($eventBookingItems, $items);
             }
 
-            $service['images'] = $images;
+            $event['bookingItems'] = $eventBookingItems;
+            $event['totalCost'] = $eventCost;
+            $event['servicesBooked'] = count($eventBookingItems);
+            $totalSpend += $eventCost;
+            $enrichedEvents[] = $event;
         }
 
-        return $services;
+        $unreadMessages = $chatMessageModel->where('receiver_id', $userId)->where('is_read', 0)->countAllResults();
+        $recentMessages = $chatMessageModel
+            ->select('chat_messages.*, users.name as sender_name')
+            ->join('users', 'users.id = chat_messages.sender_id')
+            ->where('chat_messages.receiver_id', $userId)
+            ->orderBy('chat_messages.created_at', 'DESC')->limit(5)->findAll();
+
+        return view('dashboard/customer_main', [
+            'user' => $user, 'events' => $enrichedEvents,
+            'totalPendingRequests' => $totalPendingRequests, 'totalAccepted' => $totalAccepted,
+            'totalDeclined' => $totalDeclined, 'totalConfirmed' => $totalConfirmed,
+            'totalAwaitingPayment' => $totalAwaitingPayment, 'unreadMessages' => $unreadMessages,
+            'recentMessages' => $recentMessages, 'totalSpend' => $totalSpend,
+            'depositsPaid' => $depositsPaid, 'categories' => $categoryModel->findAll(),
+            'currentTab' => 'main',
+        ]);
     }
 
-    private function fetchBookingItems($bookingItemModel, $chatMessageModel, $userId)
+    // =========================================================
+    // VENDOR TABS
+    // =========================================================
+
+    public function services()
     {
-        $bookingItems = $bookingItemModel
-            ->select('
-                booking_items.id as booking_item_id,
-                booking_items.booking_id,
-                booking_items.status as booking_item_status,
-                booking_items.start_time,
-                booking_items.end_time,
-                bookings.*, 
-                events.title as event_title, 
-                events.date as event_date, 
-                events.location, 
-                services.title as service_title, 
-                users.name as customer_name
-            ')
+        if ($r = $this->requireLogin()) return $r;
+        $user = $this->getUser();
+        $userId = $user['id'];
+        $serviceModel = new ServiceModel();
+        $serviceImageModel = new ServiceImageModel();
+        $categoryModel = new CategoryModel();
+
+        $allServices = $serviceModel->where('vendor_id', $userId)->where('deleted_at', null)->findAll();
+        foreach ($allServices as &$svc) {
+            $svc['images'] = $serviceImageModel->where('service_id', $svc['id'])->findAll();
+            if (!empty($svc['category_id'])) {
+                $cat = $categoryModel->find($svc['category_id']);
+                $svc['category_name'] = $cat ? $cat['name'] : '';
+            } else {
+                $svc['category_name'] = '';
+            }
+        }
+
+        return view('dashboard/vendor_services', [
+            'user' => $user,
+            'services' => $allServices,
+            'currentTab' => 'services',
+        ]);
+    }
+
+    public function vendorBookings()
+    {
+        if ($r = $this->requireLogin()) return $r;
+        $user = $this->getUser();
+        $userId = $user['id'];
+        $serviceModel = new ServiceModel();
+        $bookingItemModel = new BookingItemModel();
+
+        $vendorServices = $serviceModel->where('vendor_id', $userId)->findAll();
+        $vendorServiceIds = array_column($vendorServices, 'id');
+
+        $bookingItems = [];
+        if (!empty($vendorServiceIds)) {
+            $bookingItems = $bookingItemModel
+                ->select('booking_items.*, bookings.user_id, bookings.event_id, bookings.status as booking_status, bookings.created_at as request_date,
+                          events.title as event_title, events.date as event_date, events.location, events.event_type, events.guest_count as event_guests,
+                          services.title as service_title, services.price as service_price,
+                          users.name as customer_name,
+                          payments.payment_status, payments.amount_paid')
+                ->join('bookings', 'bookings.id = booking_items.booking_id')
+                ->join('events', 'events.id = bookings.event_id')
+                ->join('services', 'services.id = booking_items.service_id')
+                ->join('users', 'users.id = bookings.user_id')
+                ->join('payments', 'payments.booking_id = booking_items.booking_id', 'left')
+                ->whereIn('booking_items.service_id', $vendorServiceIds)
+                ->orderBy('bookings.created_at', 'DESC')
+                ->findAll();
+        }
+
+        return view('dashboard/vendor_bookings', [
+            'user' => $user,
+            'bookingItems' => $bookingItems,
+            'currentTab' => 'bookings',
+        ]);
+    }
+
+    public function vendorCalendar()
+    {
+        if ($r = $this->requireLogin()) return $r;
+        $user = $this->getUser();
+
+        return view('dashboard/vendor_calendar', [
+            'user' => $user,
+            'currentTab' => 'calendar',
+        ]);
+    }
+
+    public function calendarData()
+    {
+        if (!session()->has('user_id')) return $this->response->setJSON([]);
+        $userId = session()->get('user_id');
+        $serviceModel = new ServiceModel();
+        $bookingItemModel = new BookingItemModel();
+
+        $vendorServices = $serviceModel->where('vendor_id', $userId)->findAll();
+        $vendorServiceIds = array_column($vendorServices, 'id');
+        if (empty($vendorServiceIds)) return $this->response->setJSON([]);
+
+        $items = $bookingItemModel
+            ->select('booking_items.*, events.title as event_title, events.date as event_date, events.location, events.event_type, services.title as service_title, users.name as customer_name')
             ->join('bookings', 'bookings.id = booking_items.booking_id')
             ->join('events', 'events.id = bookings.event_id')
             ->join('services', 'services.id = booking_items.service_id')
             ->join('users', 'users.id = bookings.user_id')
-            ->where('services.vendor_id', $userId)
+            ->whereIn('booking_items.service_id', $vendorServiceIds)
+            ->whereIn('booking_items.status', ['pending', 'accepted', 'confirmed'])
             ->findAll();
 
-        foreach ($bookingItems as &$item) {
-            $item['start_time'] = $this->formatTime($item['start_time']);
-            $item['end_time'] = $this->formatTime($item['end_time']);
-            $item['has_new_messages'] = $this->hasUnreadMessages($chatMessageModel, $item['booking_id'], $userId);
+        $calendarEvents = [];
+        foreach ($items as $item) {
+            $color = '#ffc107';
+            if ($item['status'] === 'accepted' || $item['status'] === 'confirmed') $color = '#198754';
+            $calendarEvents[] = [
+                'title' => $item['event_title'] . ' - ' . $item['service_title'],
+                'start' => $item['event_date'],
+                'color' => $color,
+                'extendedProps' => [
+                    'customer' => $item['customer_name'],
+                    'event_type' => $item['event_type'] ?? '',
+                    'location' => $item['location'] ?? '',
+                    'service' => $item['service_title'],
+                    'status' => ucfirst($item['status']),
+                ],
+            ];
         }
 
-        return $bookingItems;
+        return $this->response->setJSON($calendarEvents);
     }
 
-    private function fetchEvents($userId)
+    // =========================================================
+    // CUSTOMER TABS
+    // =========================================================
+
+    public function customerEvents()
     {
+        if ($r = $this->requireLogin()) return $r;
+        $user = $this->getUser();
+        $userId = $user['id'];
         $eventModel = new EventModel();
         $bookingModel = new BookingModel();
         $bookingItemModel = new BookingItemModel();
-        $userModel = new UserModel();
 
         $events = $eventModel->where('user_id', $userId)->findAll();
-
         foreach ($events as &$event) {
-            $event['bookingItems'] = [];
-
             $bookings = $bookingModel->where('event_id', $event['id'])->findAll();
+            $serviceCount = 0; $totalCost = 0;
             foreach ($bookings as $booking) {
-                $bookingItems = $bookingItemModel
-                    ->select('
-                        booking_items.*, 
-                        services.title, 
-                        users.name as vendor_name
-                    ')
-                    ->join('services', 'services.id = booking_items.service_id')
-                    ->join('users', 'users.id = services.vendor_id')
-                    ->where('booking_id', $booking['id'])
-                    ->findAll();
+                $items = $bookingItemModel->where('booking_id', $booking['id'])->findAll();
+                $serviceCount += count($items);
+                foreach ($items as $it) { $totalCost += (float)($it['price'] ?? 0); }
+            }
+            $event['servicesBooked'] = $serviceCount;
+            $event['totalCost'] = $totalCost;
+        }
 
-                $event['bookingItems'] = array_merge($event['bookingItems'], $bookingItems);
+        return view('dashboard/customer_events', [
+            'user' => $user,
+            'events' => $events,
+            'currentTab' => 'events',
+        ]);
+    }
+
+    public function customerBookings()
+    {
+        if ($r = $this->requireLogin()) return $r;
+        $user = $this->getUser();
+        $userId = $user['id'];
+        $bookingModel = new BookingModel();
+        $bookingItemModel = new BookingItemModel();
+        $paymentsModel = new PaymentsModel();
+        $userModel = new UserModel();
+
+        $bookings = $bookingModel->where('user_id', $userId)->findAll();
+        $allItems = [];
+
+        foreach ($bookings as $booking) {
+            $items = $bookingItemModel
+                ->select('booking_items.*, services.title as service_title, services.vendor_id, services.price as service_price,
+                          events.title as event_title, events.date as event_date, events.location')
+                ->join('services', 'services.id = booking_items.service_id')
+                ->join('bookings', 'bookings.id = booking_items.booking_id')
+                ->join('events', 'events.id = bookings.event_id')
+                ->where('booking_items.booking_id', $booking['id'])->findAll();
+
+            foreach ($items as &$item) {
+                $vendor = $userModel->find($item['vendor_id']);
+                $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
+                $payment = $paymentsModel->where('booking_id', $booking['id'])->first();
+                $item['payment_status'] = $payment ? $payment['payment_status'] : 'unpaid';
+                $item['amount_paid'] = $payment ? $payment['amount_paid'] : 0;
+                $itemPrice = (float)($item['price'] ?? $item['service_price'] ?? 0);
+                $item['outstanding'] = max(0, $itemPrice - (float)$item['amount_paid']);
+                $item['booking_id'] = $booking['id'];
+            }
+            $allItems = array_merge($allItems, $items);
+        }
+
+        return view('dashboard/customer_bookings', [
+            'user' => $user,
+            'bookingItems' => $allItems,
+            'currentTab' => 'bookings',
+        ]);
+    }
+
+    public function customerMessages()
+    {
+        if ($r = $this->requireLogin()) return $r;
+        $user = $this->getUser();
+        $userId = $user['id'];
+        $chatRoomModel = new ChatRoomModel();
+        $chatMessageModel = new ChatMessageModel();
+        $userModel = new UserModel();
+        $serviceModel = new ServiceModel();
+
+        $rooms = $chatRoomModel->where('customer_id', $userId)->findAll();
+        foreach ($rooms as &$room) {
+            $vendor = $userModel->find($room['vendor_id']);
+            $room['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
+            $service = $serviceModel->find($room['service_id']);
+            $room['service_name'] = $service ? $service['title'] : '';
+            $lastMsg = $chatMessageModel->where('chat_room_id', $room['id'])->orderBy('created_at', 'DESC')->first();
+            $room['last_message'] = $lastMsg ? $lastMsg['message'] : '';
+            $room['last_message_time'] = $lastMsg ? $lastMsg['created_at'] : $room['created_at'];
+            $room['unread_count'] = $chatMessageModel->where('chat_room_id', $room['id'])->where('receiver_id', $userId)->where('is_read', 0)->countAllResults();
+        }
+
+        return view('dashboard/customer_messages', [
+            'user' => $user,
+            'rooms' => $rooms,
+            'currentTab' => 'messages',
+        ]);
+    }
+
+    public function customerMessageThread($roomId)
+    {
+        if ($r = $this->requireLogin()) return $r;
+        $user = $this->getUser();
+        $userId = $user['id'];
+        $chatRoomModel = new ChatRoomModel();
+        $chatMessageModel = new ChatMessageModel();
+        $userModel = new UserModel();
+        $serviceModel = new ServiceModel();
+
+        $room = $chatRoomModel->find($roomId);
+        if (!$room || $room['customer_id'] != $userId) {
+            return redirect()->to('/profile/messages')->with('error', 'Conversation not found.');
+        }
+
+        $chatMessageModel->where('chat_room_id', $roomId)->where('receiver_id', $userId)->set('is_read', 1)->update();
+
+        $messages = $chatMessageModel->where('chat_room_id', $roomId)->orderBy('created_at', 'ASC')->findAll();
+        $vendor = $userModel->find($room['vendor_id']);
+        $service = $serviceModel->find($room['service_id']);
+
+        return view('dashboard/customer_message_thread', [
+            'user' => $user,
+            'room' => $room,
+            'messages' => $messages,
+            'vendor_name' => $vendor ? $vendor['name'] : 'Unknown',
+            'service_name' => $service ? $service['title'] : '',
+            'currentTab' => 'messages',
+        ]);
+    }
+
+    public function sendMessage()
+    {
+        if ($r = $this->requireLogin()) return $r;
+        $userId = session()->get('user_id');
+        $chatMessageModel = new ChatMessageModel();
+        $chatRoomModel = new ChatRoomModel();
+
+        $roomId = $this->request->getPost('chat_room_id');
+        $message = $this->request->getPost('message');
+        $room = $chatRoomModel->find($roomId);
+        if (!$room) return redirect()->to('/profile/messages');
+
+        $receiverId = ($room['customer_id'] == $userId) ? $room['vendor_id'] : $room['customer_id'];
+
+        $chatMessageModel->insert([
+            'chat_room_id' => $roomId,
+            'sender_id' => $userId,
+            'receiver_id' => $receiverId,
+            'message' => $message,
+            'is_read' => 0,
+        ]);
+
+        return redirect()->to('/profile/messages/' . $roomId);
+    }
+
+    public function customerPayments()
+    {
+        if ($r = $this->requireLogin()) return $r;
+        $user = $this->getUser();
+        $userId = $user['id'];
+        $bookingModel = new BookingModel();
+        $paymentsModel = new PaymentsModel();
+        $bookingItemModel = new BookingItemModel();
+        $serviceModel = new ServiceModel();
+        $eventModel = new EventModel();
+
+        $bookings = $bookingModel->where('user_id', $userId)->findAll();
+        $payments = [];
+        $totalPaid = 0; $totalOutstanding = 0;
+
+        foreach ($bookings as $booking) {
+            $bookingPayments = $paymentsModel->where('booking_id', $booking['id'])->findAll();
+            $event = $eventModel->find($booking['event_id']);
+            $items = $bookingItemModel->select('booking_items.*, services.title as service_title, users.name as vendor_name')
+                ->join('services', 'services.id = booking_items.service_id')
+                ->join('users', 'users.id = services.vendor_id')
+                ->where('booking_id', $booking['id'])->findAll();
+
+            foreach ($bookingPayments as &$p) {
+                $p['event_name'] = $event ? $event['title'] : '';
+                $p['service_name'] = !empty($items) ? $items[0]['service_title'] : '';
+                $p['vendor_name'] = !empty($items) ? $items[0]['vendor_name'] : '';
+                $totalPaid += (float)($p['amount_paid'] ?? 0);
+            }
+            $payments = array_merge($payments, $bookingPayments);
+
+            foreach ($items as $item) {
+                $itemTotal = (float)($item['price'] ?? 0);
+                $paidForBooking = 0;
+                foreach ($bookingPayments as $bp) { $paidForBooking += (float)($bp['amount_paid'] ?? 0); }
+                $totalOutstanding += max(0, $itemTotal - $paidForBooking);
             }
         }
 
-        return $events;
+        return view('dashboard/customer_payments', [
+            'user' => $user,
+            'payments' => $payments,
+            'totalPaid' => $totalPaid,
+            'totalOutstanding' => $totalOutstanding,
+            'currentTab' => 'payments',
+        ]);
     }
 
-    private function formatTime($time)
+    public function customerFavourites()
     {
-        return $time ? (new DateTime($time))->format('H:i') : null;
+        if ($r = $this->requireLogin()) return $r;
+        $user = $this->getUser();
+        $userId = $user['id'];
+        $favouriteModel = new FavouriteModel();
+        $serviceModel = new ServiceModel();
+        $serviceImageModel = new ServiceImageModel();
+        $categoryModel = new CategoryModel();
+        $userModel = new UserModel();
+
+        $favs = $favouriteModel->where('user_id', $userId)->findAll();
+        $favourites = [];
+
+        foreach ($favs as $fav) {
+            $service = $serviceModel->find($fav['service_id']);
+            if (!$service) continue;
+            $vendor = $userModel->find($service['vendor_id']);
+            $images = $serviceImageModel->where('service_id', $service['id'])->where('is_primary', 1)->findAll();
+            $category = !empty($service['category_id']) ? $categoryModel->find($service['category_id']) : null;
+
+            $favourites[] = [
+                'favourite_id' => $fav['id'],
+                'service' => $service,
+                'vendor_name' => $vendor ? $vendor['name'] : 'Unknown',
+                'category_name' => $category ? $category['name'] : '',
+                'image' => !empty($images) ? $images[0]['thumbnail_path'] : null,
+            ];
+        }
+
+        return view('dashboard/customer_favourites', [
+            'user' => $user,
+            'favourites' => $favourites,
+            'currentTab' => 'favourites',
+        ]);
     }
 
-    private function hasUnreadMessages($chatMessageModel, $bookingId, $userId)
+    public function removeFavourite($id)
     {
-        return $chatMessageModel
-            ->where('chat_room_id', $bookingId)
-            ->where('receiver_id', $userId)
-            ->where('is_read', false)
-            ->countAllResults() > 0;
+        if ($r = $this->requireLogin()) return $r;
+        $favouriteModel = new FavouriteModel();
+        $fav = $favouriteModel->find($id);
+        if ($fav && $fav['user_id'] == session()->get('user_id')) {
+            $favouriteModel->delete($id);
+        }
+        return redirect()->to('/profile/favourites')->with('success', 'Removed from favourites.');
     }
+
+    // =========================================================
+    // SHARED ACTIONS
+    // =========================================================
 
     public function updateBookingStatus($bookingItemId)
     {
         if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
-            return redirect()->to('/')->with('error', 'You are not authorized to update this booking.');
+            return redirect()->to('/')->with('error', 'Unauthorized.');
         }
-
-        $userId = session()->get('user_id');
         $bookingItemModel = new BookingItemModel();
         $bookingItem = $bookingItemModel->find($bookingItemId);
-
-        if (!$bookingItem || $bookingItem['service_id'] !== $userId) {
-            return redirect()->to('/profile')->with('error', 'Unauthorized booking update.');
-        }
+        if (!$bookingItem) return redirect()->to('/profile/bookings')->with('error', 'Booking not found.');
 
         $newStatus = $this->request->getPost('status');
-        if (!in_array($newStatus, ['pending', 'accepted', 'rejected'])) {
-            return redirect()->to('/profile')->with('error', 'Invalid status.');
+        if (!in_array($newStatus, ['pending', 'accepted', 'rejected', 'confirmed', 'cancelled'])) {
+            return redirect()->to('/profile/bookings')->with('error', 'Invalid status.');
         }
 
         $bookingItemModel->update($bookingItemId, ['status' => $newStatus]);
-        return $this->index();
+        return redirect()->to('/profile/bookings')->with('success', 'Booking status updated.');
     }
 
-    /*public function calendar($year = null, $month = null)
+    public function edit()
     {
-        $year = $year ?? date('Y');
-        $month = $month ?? date('m');
+        if ($r = $this->requireLogin()) return $r;
+        $user = $this->getUser();
 
-        // Fetch bookings by date and any other data required
-        $bookingsByDate = $this->getBookingsByDate($year, $month);
-
-        return view('vendor_calendar', [
-            'year' => $year,
-            'month' => $month,
-            'bookingsByDate' => $bookingsByDate,
-        ]);
-    }*/
-
-    private function getBookingsByDate($year, $month)
-    {
-        // Example: Logic to fetch bookings grouped by date
-        $bookingsModel = new BookingModel();
-        $bookings = $bookingsModel
-            ->select('date, start_time, end_time, service_title')
-            ->where('YEAR(date)', $year)
-            ->where('MONTH(date)', $month)
-            ->findAll();
-
-        $groupedBookings = [];
-        foreach ($bookings as $booking) {
-            $groupedBookings[$booking['date']][] = $booking;
+        if ($this->request->getMethod() === 'POST') {
+            $userModel = new UserModel();
+            $userModel->update($user['id'], [
+                'name' => $this->request->getVar('name'),
+                'username' => $this->request->getVar('username'),
+                'email' => $this->request->getVar('email'),
+            ]);
+            return redirect()->to('/profile')->with('success', 'Profile updated.');
         }
 
-        return $groupedBookings;
+        return view('profile_edit', ['user' => $user]);
     }
 
+    public function main()
+    {
+        return $this->index();
+    }
 }

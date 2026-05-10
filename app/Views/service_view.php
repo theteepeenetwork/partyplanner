@@ -111,13 +111,11 @@
                                             Edit Service
                                         </a>
                                     <?php else: ?>
-                                        <?php if (session()->has('user_id')): ?>
-                                            <button type="submit" class="btn btn-primary">Add to Cart</button>
-                                        <?php else: ?>
-                                            <a href="/login" class="btn btn-primary">Login to Book</a>
-                                        <?php endif; ?>
+                                        <a href="/event/add-to-event/<?= $service['id'] ?>" class="btn btn-primary btn-lg">
+                                            <i class="fas fa-calendar-plus me-1"></i>Add to Event
+                                        </a>
                                     <?php endif; ?>
-                                    <a href="/browse-services" class="btn btn-outline-secondary">Back to Services</a>
+                                    <a href="/browse-services" class="btn btn-outline-secondary ms-2">Back to Services</a>
                                 </div>
 
                             </form>
