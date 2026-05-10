@@ -174,7 +174,7 @@
                         <p class="service-card-description">
                             <?= esc($service['short_description'] ?? 'No description available.') ?>
                         </p>
-                        <a href="/service-details/<?= esc($service['id']) ?>" class="service-card-button">Learn More</a>
+                        <a href="/service/view/<?= esc($service['id']) ?>" class="service-card-button">Learn More</a>
                     </div>
                 </div>
             <?php endforeach; ?>

@@ -21,21 +21,33 @@
 
                         <!-- Categories -->
                         <p><strong>Category:</strong> <?= esc($category_names['main'] ?? 'Not Selected') ?></p>
-                        <p><strong>Subcategory:</strong> <?= esc($category_names['sub'] ?? 'Not Selected') ?></p>
-                        <p><strong>Further Subcategory:</strong> <?= esc($category_names['third'] ?? 'Not Selected') ?></p>
+                        <?php if (!empty($category_names['sub'])): ?>
+                            <p><strong>Subcategory:</strong> <?= esc($category_names['sub']) ?></p>
+                        <?php endif; ?>
+                        <?php if (!empty($category_names['third'])): ?>
+                            <p><strong>Further Subcategory:</strong> <?= esc($category_names['third']) ?></p>
+                        <?php endif; ?>
+
+                        <?php if (!empty($service['price'])): ?>
+                            <p class="service-price mt-2">From £<?= number_format($service['price'], 2) ?></p>
+                        <?php endif; ?>
 
                         <!-- Pricing Options -->
                         <div class="pricing-options">
-                            <h4>Pricing Options</h4>
-                            <form action="<?= base_url('service/checkout/' . $service['id']) ?>" method="post">
+                            <?php $hasPricing = !empty($guestPricing) || !empty($durationPricing) || !empty($tieredPackages); ?>
+                            <?php if ($hasPricing): ?>
+                                <h4>Pricing Options</h4>
+                            <?php endif; ?>
+
+                            <form action="<?= base_url('cart/add/' . $service['id']) ?>" method="post">
                                 <?php if (!empty($guestPricing)): ?>
                                     <div class="form-group">
                                         <label for="guestPricing">Guest-Based Pricing:</label>
                                         <select class="form-control" id="guestPricing" name="pricing_option">
                                             <?php foreach ($guestPricing as $pricing): ?>
                                                 <option value="guest_<?= esc($pricing['id']) ?>">
-                                                    <?= esc($pricing['min_guest']) ?> to <?= esc($pricing['max_guest']) ?> Guests:
-                                                    £<?= esc($pricing['guest_price']) ?> per person
+                                                    <?= esc($pricing['min_guest'] ?? $pricing['min_guests'] ?? '') ?> to <?= esc($pricing['max_guest'] ?? $pricing['max_guests'] ?? '') ?> Guests:
+                                                    £<?= esc($pricing['guest_price'] ?? $pricing['price'] ?? '') ?> per person
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
@@ -47,20 +59,13 @@
                                         <label for="durationPricing">Duration-Based Pricing:</label>
                                         <select class="form-control" id="durationPricing" name="pricing_option">
                                             <?php foreach ($durationPricing as $pricing): ?>
-                                                <?php if ($pricing['duration_type'] === 'hour'): ?>
-                                                    <option value="hour_<?= esc($pricing['id']) ?>">
-                                                        <?= esc($pricing['duration']) ?> Hour(s): £<?= esc($pricing['price']) ?>
-                                                    </option>
-                                                <?php elseif ($pricing['duration_type'] === 'day'): ?>
-                                                    <option value="day_<?= esc($pricing['id']) ?>">
-                                                        <?= esc($pricing['duration']) ?> Day(s): £<?= esc($pricing['price']) ?>
-                                                    </option>
-                                                <?php endif; ?>
+                                                <option value="duration_<?= esc($pricing['id']) ?>">
+                                                    <?= esc($pricing['duration_hours'] ?? $pricing['duration'] ?? '') ?> Hour(s): £<?= esc($pricing['price']) ?>
+                                                </option>
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
                                 <?php endif; ?>
-
 
                                 <?php if (!empty($tieredPackages)): ?>
                                     <div class="form-group">
@@ -68,16 +73,12 @@
                                         <select class="form-control" id="tieredPackages" name="pricing_option">
                                             <?php foreach ($tieredPackages as $package): ?>
                                                 <option value="package_<?= esc($package['id']) ?>">
-                                                    <?= esc($package['package_name']) ?>: £<?= esc($package['package_price']) ?>
+                                                    <?= esc($package['package_name']) ?>: £<?= esc($package['package_price'] ?? $package['price'] ?? '') ?>
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
                                     </div>
-                                <?php else: ?>
-                                    <p>No tiered packages available to display.</p>
                                 <?php endif; ?>
-
-
 
                                 <!-- Optional Extras -->
                                 <?php if (!empty($optional_extras)): ?>
@@ -104,11 +105,20 @@
                                 <?php endif; ?>
 
                                 <!-- Action Buttons -->
-                                <button type="submit" class="btn btn-primary">Add to Basket</button>
-                                <button type="button" class="btn btn-outline-secondary">Add to Wishlist</button>
-                                <a href="<?= base_url('service/edit/' . $service['id']) ?>" class="btn btn-primary">
-                                    Edit Service
-                                </a>
+                                <div class="mt-3">
+                                    <?php if (session()->has('user_id') && session()->get('role') === 'vendor' && $service['vendor_id'] == session()->get('user_id')): ?>
+                                        <a href="<?= base_url('service/edit/' . $service['id']) ?>" class="btn btn-primary">
+                                            Edit Service
+                                        </a>
+                                    <?php else: ?>
+                                        <?php if (session()->has('user_id')): ?>
+                                            <button type="submit" class="btn btn-primary">Add to Cart</button>
+                                        <?php else: ?>
+                                            <a href="/login" class="btn btn-primary">Login to Book</a>
+                                        <?php endif; ?>
+                                    <?php endif; ?>
+                                    <a href="/browse-services" class="btn btn-outline-secondary">Back to Services</a>
+                                </div>
 
                             </form>
                         </div>
@@ -120,10 +130,5 @@
         <?php endif; ?>
     </section>
 </main>
-
-
-
-
-
 
 <?= $this->include('footer') ?>

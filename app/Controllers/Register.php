@@ -31,7 +31,8 @@ class Register extends BaseController
             'name' => $this->request->getVar('name'),
             'username' => $this->request->getVar('username'),
             'email' => $this->request->getVar('email'),
-            'password' => password_hash($this->request->getVar('password'), PASSWORD_DEFAULT) // Hash the password
+            'password' => password_hash($this->request->getVar('password'), PASSWORD_DEFAULT),
+            'role' => 'customer',
         ];
 
         $userModel->save($data); // Use the $userModel object to save
@@ -41,13 +42,54 @@ class Register extends BaseController
     
     public function success()
     {
-        // Check if a success message exists in session data
         if (!session()->has('success')) {
-            return redirect()->to('/register'); // Redirect back to registration if no success message
+            return redirect()->to('/register');
         }
     
-        // Pass success message to the view
         $data['success'] = session()->getFlashdata('success');
         return view('register_success', $data);
+    }
+
+    public function vendor()
+    {
+        return view('register_vendor');
+    }
+
+    public function createVendor()
+    {
+        $userModel = new UserModel();
+
+        $rules = [
+            'username' => 'required|min_length[3]|max_length[255]|is_unique[users.username]',
+            'email'    => 'required|valid_email|is_unique[users.email]',
+            'password' => 'required|min_length[8]',
+            'confirm_password' => 'required|matches[password]'
+        ];
+    
+        if (!$this->validate($rules)) {
+            return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+        }
+
+        $data = [
+            'name' => $this->request->getVar('name'),
+            'username' => $this->request->getVar('username'),
+            'email' => $this->request->getVar('email'),
+            'password' => password_hash($this->request->getVar('password'), PASSWORD_DEFAULT),
+            'role' => 'vendor',
+        ];
+
+        $userModel->save($data);
+
+        return redirect()->to('/register/vendor/success')->with('success', 'Your vendor application has been submitted! You can now login.');
+    }
+
+    public function vendorSuccess()
+    {
+        if (!session()->has('success')) {
+            return redirect()->to('/register/vendor');
+        }
+    
+        $data['success'] = session()->getFlashdata('success');
+        return view('register_vendor_success', $data);
     }
 }
