@@ -35,3 +35,6 @@ For basic syntax checks: `find app -name "*.php" -exec php -l {} \;`
 - The `createvent/` directory at the workspace root is an earlier/legacy copy of the same app — it can be ignored for development purposes.
 - Stripe payment features require `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, and `STRIPE_WEBHOOK_SECRET` env vars, but the app runs without them for browsing, registration, login, and service creation.
 - The app is configured to run on port 8888 (`app/Config/App.php` sets `baseURL` to `http://localhost:8888/`).
+- `php-cs-fixer` can be extremely slow on a full `app/` scan (may hang for several minutes). For quick linting, prefer `find app -name "*.php" -exec php -l {} \;` which completes in ~5 seconds.
+- The `event_marketplace.sql` dump is actually idempotent (uses `CREATE TABLE IF NOT EXISTS`) and includes all ~26 tables plus seed data. Run `database_update.sql` after it for any ALTER additions.
+- MariaDB needs `/run/mysqld` to exist before starting: `sudo mkdir -p /run/mysqld && sudo chown mysql:mysql /run/mysqld`.
