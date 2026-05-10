@@ -179,12 +179,13 @@
             <div id="imagePreviewContainer">
                 <?php if (!empty(session('uploaded_images'))): ?>
                     <?php foreach (session('uploaded_images') as $index => $image): ?>
-                        <div class="image-preview" data-index="<?= $image['formId'] ?>">
-                            <img src="<?= base_url($image['image_path']) ?>" alt="Uploaded Image"
+                        <?php $imgId = $image['formId'] ?? $index; ?>
+                        <div class="image-preview" data-index="<?= esc($imgId) ?>">
+                            <img src="<?= base_url($image['image_path'] ?? $image['thumbnail_path'] ?? '') ?>" alt="Uploaded Image"
                                 style="max-width: 150px; height: auto;">
 
                             <button type="button" class="btn btn-danger btn-sm delete-image"
-                                data-index="<?= $image['formId'] ?>">Delete</button>
+                                data-index="<?= esc($imgId) ?>">Delete</button>
                         </div>
 
                     <?php endforeach; ?>
