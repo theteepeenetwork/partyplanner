@@ -1,0 +1,482 @@
+/* ==================== Dashboard Layout ==================== */
+.dashboard-wrapper {
+    padding-top: 80px;
+    min-height: 100vh;
+}
+
+.dashboard-tabs .nav-link {
+    color: var(--primary-blue-dark);
+    font-weight: 500;
+    border: none;
+    padding: 0.75rem 1.25rem;
+    border-bottom: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.dashboard-tabs .nav-link:hover {
+    color: var(--accent-orange);
+    border-bottom-color: var(--accent-orange);
+    background: transparent;
+}
+
+.dashboard-tabs .nav-link.active {
+    color: var(--accent-orange);
+    border-bottom-color: var(--accent-orange);
+    background: transparent;
+    font-weight: 600;
+}
+
+/* ==================== Dashboard Cards ==================== */
+.dash-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    border: 1px solid #eee;
+    transition: box-shadow 0.2s ease;
+}
+
+.dash-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.dash-card h5,
+.dash-card h4 {
+    color: var(--primary-blue-dark);
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+/* ==================== Stat Cards ==================== */
+.stat-card {
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    padding: 1.25rem;
+    text-align: center;
+    border: 1px solid #eee;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.stat-card .stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    margin-bottom: 0.75rem;
+}
+
+.stat-card .stat-value {
+    font-size: 1.75rem;
+    font-weight: 700;
+    color: var(--primary-blue-dark);
+    line-height: 1.2;
+}
+
+.stat-card .stat-label {
+    font-size: 0.8rem;
+    color: #6c757d;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 0.25rem;
+}
+
+.stat-icon.bg-primary-light {
+    background: #e3f2fd;
+    color: #1976d2;
+}
+
+.stat-icon.bg-success-light {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+
+.stat-icon.bg-warning-light {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.stat-icon.bg-info-light {
+    background: #e0f7fa;
+    color: #0097a7;
+}
+
+.stat-icon.bg-danger-light {
+    background: #fce4ec;
+    color: #d32f2f;
+}
+
+.stat-icon.bg-purple-light {
+    background: #f3e5f5;
+    color: #7b1fa2;
+}
+
+/* ==================== Attention Cards ==================== */
+.attention-card {
+    display: flex;
+    align-items: center;
+    padding: 1rem 1.25rem;
+    background: #fff;
+    border-radius: 10px;
+    border-left: 4px solid;
+    margin-bottom: 0.75rem;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.05);
+    transition: background 0.2s ease;
+}
+
+.attention-card:hover {
+    background: #f8f9fa;
+}
+
+.attention-card .attention-icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.attention-card .attention-content {
+    flex: 1;
+}
+
+.attention-card .attention-content .attention-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    margin-bottom: 0.15rem;
+    color: var(--primary-blue-dark);
+}
+
+.attention-card .attention-content .attention-desc {
+    font-size: 0.8rem;
+    color: #6c757d;
+    margin: 0;
+}
+
+.attention-card .attention-action {
+    flex-shrink: 0;
+    margin-left: 1rem;
+}
+
+.attention-card.border-warning { border-left-color: #ffc107; }
+.attention-card.border-danger { border-left-color: #dc3545; }
+.attention-card.border-info { border-left-color: #0dcaf0; }
+.attention-card.border-success { border-left-color: #198754; }
+.attention-card.border-primary { border-left-color: #0d6efd; }
+
+/* ==================== Booking Preview ==================== */
+.booking-preview-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.booking-preview-item:last-child {
+    border-bottom: none;
+}
+
+.booking-date-badge {
+    width: 52px;
+    height: 52px;
+    border-radius: 10px;
+    background: #e3f2fd;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    margin-right: 1rem;
+    flex-shrink: 0;
+}
+
+.booking-date-badge .date-month {
+    font-size: 0.65rem;
+    text-transform: uppercase;
+    font-weight: 600;
+    color: #1976d2;
+    line-height: 1;
+}
+
+.booking-date-badge .date-day {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: #1976d2;
+    line-height: 1.2;
+}
+
+.booking-preview-details {
+    flex: 1;
+}
+
+.booking-preview-details .booking-event-name {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--primary-blue-dark);
+}
+
+.booking-preview-details .booking-meta {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+/* ==================== Quick Actions ==================== */
+.quick-action-btn {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 1rem;
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    text-decoration: none;
+    color: var(--primary-blue-dark);
+    transition: all 0.2s ease;
+    text-align: center;
+}
+
+.quick-action-btn:hover {
+    border-color: var(--accent-orange);
+    color: var(--accent-orange);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+}
+
+.quick-action-btn .action-icon {
+    width: 44px;
+    height: 44px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2rem;
+    margin-bottom: 0.5rem;
+}
+
+.quick-action-btn .action-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+/* ==================== Checklist ==================== */
+.checklist-item {
+    display: flex;
+    align-items: center;
+    padding: 0.6rem 0;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.checklist-item:last-child {
+    border-bottom: none;
+}
+
+.checklist-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.checklist-icon.complete {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+
+.checklist-icon.incomplete {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.checklist-label {
+    font-size: 0.85rem;
+    color: var(--primary-blue-dark);
+    flex: 1;
+}
+
+/* ==================== Activity Feed ==================== */
+.activity-item {
+    display: flex;
+    align-items: flex-start;
+    padding: 0.65rem 0;
+    border-bottom: 1px solid #f5f5f5;
+}
+
+.activity-item:last-child {
+    border-bottom: none;
+}
+
+.activity-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-right: 0.75rem;
+    margin-top: 0.35rem;
+    flex-shrink: 0;
+}
+
+.activity-text {
+    font-size: 0.85rem;
+    color: var(--primary-blue-dark);
+    flex: 1;
+}
+
+.activity-time {
+    font-size: 0.75rem;
+    color: #adb5bd;
+    white-space: nowrap;
+    margin-left: 0.5rem;
+}
+
+/* ==================== Event Overview Cards ==================== */
+.event-overview-card {
+    background: #fff;
+    border-radius: 12px;
+    border: 1px solid #eee;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    padding: 1.5rem;
+    margin-bottom: 1.25rem;
+    transition: box-shadow 0.2s ease;
+}
+
+.event-overview-card:hover {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+}
+
+.event-overview-card .event-title {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--primary-blue-dark);
+}
+
+.event-overview-card .event-meta {
+    font-size: 0.85rem;
+    color: #6c757d;
+}
+
+/* ==================== Progress Tracker ==================== */
+.progress-tracker-item {
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 0;
+}
+
+.progress-tracker-icon {
+    width: 32px;
+    height: 32px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.progress-tracker-icon.booked {
+    background: #e8f5e9;
+    color: #388e3c;
+}
+
+.progress-tracker-icon.pending {
+    background: #fff3e0;
+    color: #f57c00;
+}
+
+.progress-tracker-icon.not-started {
+    background: #f5f5f5;
+    color: #bdbdbd;
+}
+
+/* ==================== Message Preview ==================== */
+.message-preview-item {
+    display: flex;
+    align-items: center;
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.message-preview-item:last-child {
+    border-bottom: none;
+}
+
+.message-avatar {
+    width: 40px;
+    height: 40px;
+    border-radius: 50%;
+    background: #e3f2fd;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    color: #1976d2;
+    margin-right: 0.75rem;
+    flex-shrink: 0;
+}
+
+.message-content {
+    flex: 1;
+    min-width: 0;
+}
+
+.message-sender {
+    font-weight: 600;
+    font-size: 0.85rem;
+    color: var(--primary-blue-dark);
+}
+
+.message-snippet {
+    font-size: 0.8rem;
+    color: #6c757d;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.message-time {
+    font-size: 0.7rem;
+    color: #adb5bd;
+    text-align: right;
+    flex-shrink: 0;
+    margin-left: 0.5rem;
+}
+
+.unread-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #0d6efd;
+    display: inline-block;
+    margin-left: 0.5rem;
+}
+
+/* ==================== Responsive ==================== */
+@media (max-width: 768px) {
+    .stat-card {
+        margin-bottom: 1rem;
+    }
+
+    .quick-action-btn {
+        padding: 0.75rem;
+    }
+
+    .dashboard-wrapper {
+        padding-top: 70px;
+    }
+}
