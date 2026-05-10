@@ -83,10 +83,11 @@ $routes->post('service/book', 'Service_Controller::bookService');
 
 
 
-// Use distinct URL patterns for deactivate, reactivate, and delete
+// Service status management
 $routes->match(['GET', 'POST'], 'service/deactivate/(:num)', 'Service_Controller::deactivate/$1');
 $routes->match(['GET', 'POST'], 'service/reactivate/(:num)', 'Service_Controller::reactivate/$1');
 $routes->match(['GET', 'POST'], 'service/delete/(:num)', 'Service_Controller::delete/$1');
+$routes->post('service/toggle-status/(:num)', 'Service_Controller::toggleStatus/$1');
 
 
 // Cart Routes
