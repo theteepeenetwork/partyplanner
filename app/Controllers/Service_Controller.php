@@ -1031,6 +1031,7 @@ class Service_Controller extends BaseController
                                 continue;
 
                             $insertResult = $guestPricingModel->insert([
+                                'service_id' => $serviceId,
                                 'private_event_pricing_id' => $privateEventPricingId,
                                 'min_guest' => $minGuest,
                                 'max_guest' => $maxGuest,
@@ -1058,6 +1059,7 @@ class Service_Controller extends BaseController
                                 continue;
 
                             $res = $serviceDurationPricingModel->insert([
+                                'service_id' => $serviceId,
                                 'private_event_pricing_id' => $privateEventPricingId,
                                 'duration_type' => 'hour',
                                 'duration' => $hour,
@@ -1079,6 +1081,7 @@ class Service_Controller extends BaseController
                                 continue;
 
                             $res = $serviceDurationPricingModel->insert([
+                                'service_id' => $serviceId,
                                 'private_event_pricing_id' => $privateEventPricingId,
                                 'duration_type' => 'day',
                                 'duration' => $day,
@@ -1104,6 +1107,7 @@ class Service_Controller extends BaseController
                                 continue;
 
                             $res = $tieredPricingModel->insert([
+                                'service_id' => $serviceId,
                                 'private_event_pricing_id' => $privateEventPricingId,
                                 'package_name' => $name,
                                 'package_description' => $desc,
