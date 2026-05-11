@@ -1,7 +1,7 @@
 /* ==================== Dashboard Layout ==================== */
 .dashboard-wrapper {
-    padding-top: 80px;
-    min-height: 100vh;
+    /* Body already pads for fixed navbar (see style.css --site-header-height) */
+    padding-top: 1rem;
 }
 
 .dashboard-tabs .nav-link {
@@ -477,6 +477,6 @@
     }
 
     .dashboard-wrapper {
-        padding-top: 70px;
+        padding-top: 0.75rem;
     }
 }

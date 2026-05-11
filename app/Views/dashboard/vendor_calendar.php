@@ -3,6 +3,7 @@
 <link href="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.css" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/fullcalendar@5.11.5/main.min.js"></script>
 
+<main class="page-main">
 <div class="dashboard-wrapper">
     <div class="container">
         <?= $this->include('dashboard/_vendor_tabs') ?>
@@ -71,5 +72,7 @@ document.addEventListener('DOMContentLoaded', function() {
     calendar.render();
 });
 </script>
+
+</main>
 
 <?= $this->include('footer') ?>

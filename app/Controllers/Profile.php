@@ -69,24 +69,24 @@ class Profile extends BaseController
             $upcomingBookings = $bookingItemModel->whereIn('service_id', $vendorServiceIds)->where('status', 'accepted')->countAllResults();
 
             $upcomingBookingsList = $bookingItemModel
-                ->select('booking_items.*, bookings.event_id, bookings.user_id, events.title as event_title, events.date as event_date, events.location, events.event_type, services.title as service_title, users.name as customer_name')
+                ->select('booking_items.*, bookings.event_id, bookings.user_id, events.title as event_title, events.`date` as event_date, events.location, events.event_type, services.title as service_title, users.name as customer_name', false)
                 ->join('bookings', 'bookings.id = booking_items.booking_id')
                 ->join('events', 'events.id = bookings.event_id')
                 ->join('services', 'services.id = booking_items.service_id')
                 ->join('users', 'users.id = bookings.user_id')
                 ->whereIn('booking_items.service_id', $vendorServiceIds)
                 ->where('booking_items.status', 'accepted')
-                ->orderBy('events.date', 'ASC')->limit(5)->findAll();
+                ->orderBy('events.`date`', 'ASC', false)->limit(5)->findAll();
 
             $pendingBookingsList = $bookingItemModel
-                ->select('booking_items.*, bookings.event_id, bookings.user_id, events.title as event_title, events.date as event_date, events.location, events.event_type, services.title as service_title, users.name as customer_name')
+                ->select('booking_items.*, bookings.event_id, bookings.user_id, events.title as event_title, events.`date` as event_date, events.location, events.event_type, services.title as service_title, users.name as customer_name', false)
                 ->join('bookings', 'bookings.id = booking_items.booking_id')
                 ->join('events', 'events.id = bookings.event_id')
                 ->join('services', 'services.id = booking_items.service_id')
                 ->join('users', 'users.id = bookings.user_id')
                 ->whereIn('booking_items.service_id', $vendorServiceIds)
                 ->where('booking_items.status', 'pending')
-                ->orderBy('events.date', 'ASC')->limit(5)->findAll();
+                ->orderBy('events.`date`', 'ASC', false)->limit(5)->findAll();
         }
 
         $unreadMessages = $chatMessageModel->where('receiver_id', $userId)->where('is_read', 0)->countAllResults();
@@ -237,10 +237,10 @@ class Profile extends BaseController
         if (!empty($vendorServiceIds)) {
             $bookingItems = $bookingItemModel
                 ->select('booking_items.*, bookings.user_id, bookings.event_id, bookings.status as booking_status, bookings.created_at as request_date,
-                          events.title as event_title, events.date as event_date, events.location, events.event_type, events.guest_count as event_guests,
+                          events.title as event_title, events.`date` as event_date, events.location, events.event_type, events.guest_count as event_guests,
                           services.title as service_title, services.price as service_price,
                           users.name as customer_name,
-                          payments.payment_status, payments.amount_paid')
+                          payments.payment_status, payments.amount_paid', false)
                 ->join('bookings', 'bookings.id = booking_items.booking_id')
                 ->join('events', 'events.id = bookings.event_id')
                 ->join('services', 'services.id = booking_items.service_id')
@@ -281,7 +281,7 @@ class Profile extends BaseController
         if (empty($vendorServiceIds)) return $this->response->setJSON([]);
 
         $items = $bookingItemModel
-            ->select('booking_items.*, events.title as event_title, events.date as event_date, events.location, events.event_type, services.title as service_title, users.name as customer_name')
+            ->select('booking_items.*, events.title as event_title, events.`date` as event_date, events.location, events.event_type, services.title as service_title, users.name as customer_name', false)
             ->join('bookings', 'bookings.id = booking_items.booking_id')
             ->join('events', 'events.id = bookings.event_id')
             ->join('services', 'services.id = booking_items.service_id')
@@ -360,7 +360,7 @@ class Profile extends BaseController
         foreach ($bookings as $booking) {
             $items = $bookingItemModel
                 ->select('booking_items.*, services.title as service_title, services.vendor_id, services.price as service_price,
-                          events.title as event_title, events.date as event_date, events.location')
+                          events.title as event_title, events.`date` as event_date, events.location', false)
                 ->join('services', 'services.id = booking_items.service_id')
                 ->join('bookings', 'bookings.id = booking_items.booking_id')
                 ->join('events', 'events.id = bookings.event_id')

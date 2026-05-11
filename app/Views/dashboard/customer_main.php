@@ -1,5 +1,6 @@
 <?= $this->include('header') ?>
 
+<main class="page-main">
 <div class="dashboard-wrapper">
     <div class="container">
 
@@ -415,5 +416,6 @@
 
     </div>
 </div>
+</main>
 
 <?= $this->include('footer') ?>

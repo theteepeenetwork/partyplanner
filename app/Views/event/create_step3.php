@@ -1,5 +1,6 @@
 <?= $this->include('header') ?>
 
+<main class="page-main">
 <div class="dashboard-wrapper">
     <div class="container" style="max-width: 700px;">
         <h3 class="mb-2">Create Your Event</h3>
@@ -52,5 +53,6 @@
         </div>
     </div>
 </div>
+</main>
 
 <?= $this->include('footer') ?>

@@ -1,5 +1,6 @@
 <?= $this->include('header') ?>
 
+<main class="page-main">
 <div class="dashboard-wrapper">
     <div class="container">
         <div class="d-flex justify-content-between align-items-center mb-4">
@@ -76,5 +77,6 @@
         <?php endif; ?>
     </div>
 </div>
+</main>
 
 <?= $this->include('footer') ?>

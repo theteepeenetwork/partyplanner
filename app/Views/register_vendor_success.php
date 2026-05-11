@@ -1,6 +1,6 @@
 <?= $this->include('header') ?>
 
-<main class="container mt-4" style="padding-top: 80px;">
+<main class="container mt-4">
     <div class="text-center py-5">
         <i class="fas fa-check-circle fa-4x text-success mb-3"></i>
         <h2>Vendor Registration Submitted</h2>

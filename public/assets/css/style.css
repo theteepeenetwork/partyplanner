@@ -10,6 +10,8 @@
     /* Burnt Orange */
     --dark-blue: #1c2833;
     /* Charcoal Blue */
+    /* Space for Bootstrap fixed-top navbar; keeps content below the bar */
+    --site-header-height: 72px;
 }
 
 * {
@@ -18,41 +20,46 @@
     box-sizing: border-box;
 }
 
+html {
+    height: 100%;
+}
+
 html,
 body {
-    height: 100%;
-    display: flex;
     margin: 0;
+    min-height: 100%;
+    display: flex;
     flex-direction: column;
     font-family: 'Arial', sans-serif;
     background-color: var(--primary-blue-light);
     color: var(--dark-blue);
     line-height: 1.6;
+}
 
+/* Offset all in-flow content below the fixed navbar */
+body {
+    padding-top: var(--site-header-height);
+}
+
+/* Grow main regions so the footer can sit at the bottom on short pages */
+body > main,
+body > .dashboard-wrapper {
+    flex: 1 0 auto;
+    width: 100%;
 }
 
 /* ==================== Navbar ==================== */
 header {
-    position: fixed;
-    top: 0;
-    width: 100%;
-    height: 64px;
+    /* Navbar uses Bootstrap .fixed-top; outer header stays in normal flow */
     background-color: var(--primary-blue-medium);
-    z-index: 1000;
 }
 
-
 main.container {
-    padding-top: 25px;
-    /* Or match your navbar's height */
+    padding-top: 1rem;
 }
 
 .navbar {
-
     z-index: 1030;
-    /* Bootstrap default for fixed/sticky navbar */
-    position: fixed;
-    /* or position: sticky; */
     background-color: var(--primary-blue-medium);
     box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
 }
@@ -440,6 +447,8 @@ footer {
     padding: 20px 0;
     text-align: center;
     width: 100%;
+    flex-shrink: 0;
+    margin-top: auto;
 }
 
 footer a {
@@ -479,7 +488,7 @@ img:hover {
 
 .content-wrapper {
     margin: 0 auto;
-    padding: 64px 0 70px;
+    padding: 1rem 0 70px;
     background-color: #fff;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     border-radius: 8px;

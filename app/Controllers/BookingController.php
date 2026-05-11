@@ -22,13 +22,13 @@ class BookingController extends Controller
         $month = $month ?: date('m');
 
         $bookings = $bookingItemModel
-            ->select('booking_items.*, events.date as event_date, services.title as service_title')
+            ->select('booking_items.*, events.`date` as event_date, services.title as service_title', false)
             ->join('bookings', 'bookings.id = booking_items.booking_id')
             ->join('services', 'services.id = booking_items.service_id')
             ->join('events', 'events.id = bookings.event_id')
             ->where('services.vendor_id', $vendorId)
-            ->where('YEAR(events.date)', $year)
-            ->where('MONTH(events.date)', $month)
+            ->where('YEAR(events.`date`)', $year, false)
+            ->where('MONTH(events.`date`)', $month, false)
             ->findAll();
 
         $bookingsByDate = [];
@@ -104,12 +104,12 @@ class BookingController extends Controller
     public function getBookingsByMonth($year, $month)
     {
         $builder = $this->db->table('bookings')
-            ->select('bookings.*, events.title as event_title, events.date as event_date, booking_items.start_time, booking_items.end_time, services.title as service_title')
+            ->select('bookings.*, events.title as event_title, events.`date` as event_date, booking_items.start_time, booking_items.end_time, services.title as service_title', false)
             ->join('booking_items', 'booking_items.booking_id = bookings.id')
             ->join('events', 'events.id = bookings.event_id')
             ->join('services', 'services.id = booking_items.service_id')
-            ->where('YEAR(events.date)', $year)
-            ->where('MONTH(events.date)', $month)
+            ->where('YEAR(events.`date`)', $year, false)
+            ->where('MONTH(events.`date`)', $month, false)
             ->get();
 
         $results = [];
@@ -134,12 +134,12 @@ class BookingController extends Controller
         $endDate = date("Y-m-t", strtotime($startDate)); // Get the last day of the month
 
         $bookings = $bookingItemModel
-            ->select('booking_items.*, bookings.event_id, bookings.status, events.date as event_date, services.title as service_title')
+            ->select('booking_items.*, bookings.event_id, bookings.status, events.`date` as event_date, services.title as service_title', false)
             ->join('bookings', 'bookings.id = booking_items.booking_id')
             ->join('events', 'events.id = bookings.event_id')
             ->join('services', 'services.id = booking_items.service_id')
-            ->where('events.date >=', $startDate)
-            ->where('events.date <=', $endDate)
+            ->where('events.`date` >=', $startDate, false)
+            ->where('events.`date` <=', $endDate, false)
             ->findAll();
 
 

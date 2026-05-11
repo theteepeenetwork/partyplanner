@@ -205,6 +205,8 @@
         </div>
     </section>
 
+</main>
+
     <?= $this->include('footer') ?>
 
     <!-- Initialize Select2 -->

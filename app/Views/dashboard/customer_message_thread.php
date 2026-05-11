@@ -1,5 +1,6 @@
 <?= $this->include('header') ?>
 
+<main class="page-main">
 <div class="dashboard-wrapper">
     <div class="container">
         <?= $this->include('dashboard/_customer_tabs') ?>
@@ -47,5 +48,7 @@ document.addEventListener('DOMContentLoaded', function() {
     container.scrollTop = container.scrollHeight;
 });
 </script>
+
+</main>
 
 <?= $this->include('footer') ?>

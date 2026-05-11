@@ -1,6 +1,7 @@
 <?= $this->include('header') ?>
 <link rel="stylesheet" href="<?= base_url('assets/css/dashboard.css') ?>">
 
+<main class="page-main">
 <div class="dashboard-wrapper">
     <div class="container" style="max-width: 900px;">
 
@@ -269,6 +270,7 @@
 
     </div>
 </div>
+</main>
 
 <script>
 function addExtraRow() {

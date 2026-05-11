@@ -1,5 +1,6 @@
 <?= $this->include('header') ?>
 
+<main class="page-main">
 <div class="dashboard-wrapper">
     <div class="container">
         <?= $this->include('dashboard/_vendor_tabs') ?>
@@ -102,5 +103,6 @@
         <?php endif; ?>
     </div>
 </div>
+</main>
 
 <?= $this->include('footer') ?>
