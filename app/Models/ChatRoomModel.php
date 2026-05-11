@@ -8,7 +8,7 @@ class ChatRoomModel extends Model
 {
     protected $table = 'chat_rooms';
     protected $primaryKey = 'id';
-    protected $allowedFields = ['vendor_id', 'customer_id', 'created_at', 'service_id'];
+    protected $allowedFields = ['vendor_id', 'customer_id', 'created_at', 'service_id', 'flagged_for_review'];
 
     /**
      * Find or create a conversation for one listing (service) between vendor and customer.
@@ -33,5 +33,3 @@ class ChatRoomModel extends Model
         return (int) $this->getInsertID();
     }
 }
-
- 

@@ -31,6 +31,10 @@ class Login extends BaseController
                 return redirect()->to($redirectUrl)->with('success', 'Welcome back, ' . $user['username']);
             }
 
+            if ($user['role'] === 'admin') {
+                return redirect()->to('/admin')->with('success', 'Welcome back, ' . $user['username']);
+            }
+
             return redirect()->to('/')->with('success', 'Welcome back, ' . $user['username']);
         } else {
             // Authentication failed
