@@ -4,6 +4,7 @@ namespace App\Controllers;
 
 use App\Models\CmsPageModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use Config\Database;
 
 class PublicPage extends BaseController
 {
@@ -37,6 +38,11 @@ class PublicPage extends BaseController
      */
     public function show(string $slug)
     {
+        $db = Database::connect();
+        if (! $db->tableExists('cms_pages')) {
+            throw PageNotFoundException::forPageNotFound();
+        }
+
         $model = new CmsPageModel();
         $page  = $model->where('slug', $slug)->where('status', 'published')->first();
         if (! $page) {

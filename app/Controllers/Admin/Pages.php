@@ -4,11 +4,32 @@ namespace App\Controllers\Admin;
 
 use App\Models\CmsPageModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use CodeIgniter\HTTP\ResponseInterface;
+use Config\Database;
 
 class Pages extends BaseAdminController
 {
+    /**
+     * CMS routes require the `cms_pages` table (see migrations or database_update.sql).
+     */
+    private function redirectIfCmsTableMissing(): ?ResponseInterface
+    {
+        if (Database::connect()->tableExists('cms_pages')) {
+            return null;
+        }
+
+        return redirect()->to('/admin')->with(
+            'error',
+            'The CMS database table is missing. From the project root run `php spark migrate`, or import `database_update.sql` into MySQL, then reload this page.'
+        );
+    }
+
     public function index()
     {
+        if ($r = $this->redirectIfCmsTableMissing()) {
+            return $r;
+        }
+
         $model = new CmsPageModel();
         $pages = $model->orderBy('slug', 'ASC')->findAll();
 
@@ -21,6 +42,10 @@ class Pages extends BaseAdminController
 
     public function edit(string $slug)
     {
+        if ($r = $this->redirectIfCmsTableMissing()) {
+            return $r;
+        }
+
         $model = new CmsPageModel();
         $page  = $model->where('slug', $slug)->first();
         if (! $page) {
