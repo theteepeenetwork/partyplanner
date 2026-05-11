@@ -9,11 +9,11 @@ class EventModel extends Model
     protected $table = 'events';
     protected $primaryKey = 'id';
     protected $allowedFields = [
-        'user_id', 'title', 'description', 'date', 'location',
+        'user_id', 'vendor_id', 'title', 'description', 'date', 'location',
         'venue_name', 'postcode', 'town_city', 'indoor_outdoor',
         'budget_min', 'budget_max', 'style_theme', 'notes', 'status',
         'category', 'event_type', 'guest_count', 'event_setting',
-        'organiser_pitch_fee', 'latitude', 'longitude', 'created_at',
+        'organiser_pitch_fee', 'latitude', 'longitude', 'price', 'created_at',
     ];
     protected $useTimestamps = false;
 }

@@ -4,6 +4,7 @@ namespace App\Controllers;
 use App\Models\ServiceModel;
 use App\Models\ServiceImageModel;
 use App\Models\CategoryModel;
+use App\Models\CmsPageModel;
 
 class Home extends BaseController
 {
@@ -12,6 +13,9 @@ class Home extends BaseController
         $serviceModel = new ServiceModel();
         $serviceImageModel = new ServiceImageModel();
         $categoryModel = new CategoryModel();
+        $cmsModel = new CmsPageModel();
+
+        $cmsHome = $cmsModel->where('slug', 'homepage')->where('status', 'published')->first();
 
         // Retrieve 9 random active services
         $services = $serviceModel
@@ -32,6 +36,7 @@ class Home extends BaseController
         $data = [
             'services' => $services,
             'categories' => $categories, // Include categories in the data array
+            'cmsHome' => $cmsHome,
         ];
 
         return view('home', $data);

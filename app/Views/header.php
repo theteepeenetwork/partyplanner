@@ -86,6 +86,8 @@
                                     <?php elseif (session()->get('role') === 'vendor'): ?>
                                         <li><a class="dropdown-item" href="/profile/services">My Services</a></li>
                                         <li><a class="dropdown-item" href="/profile/bookings">Bookings</a></li>
+                                    <?php elseif (session()->get('role') === 'admin'): ?>
+                                        <li><a class="dropdown-item" href="/admin">Admin</a></li>
                                     <?php endif; ?>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="/logout">Logout</a></li>

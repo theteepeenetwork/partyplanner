@@ -398,6 +398,33 @@ INSERT INTO `categories` (`id`, `name`) VALUES
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 
 -- ============================================================
+-- TABLE: users — allow admin role
+-- ============================================================
+ALTER TABLE users MODIFY COLUMN `role` ENUM('customer','vendor','admin') NOT NULL;
+
+-- ============================================================
+-- TABLE: cms_pages — editable public pages
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `cms_pages` (
+  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
+  `slug` varchar(191) NOT NULL,
+  `title` varchar(255) NOT NULL,
+  `content` text DEFAULT NULL,
+  `meta_title` varchar(255) DEFAULT NULL,
+  `meta_description` varchar(500) DEFAULT NULL,
+  `status` varchar(20) NOT NULL DEFAULT 'draft',
+  `created_at` datetime DEFAULT NULL,
+  `updated_at` datetime DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `slug` (`slug`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- ============================================================
+-- TABLE: chat_rooms — moderation flag
+-- ============================================================
+ALTER TABLE chat_rooms ADD COLUMN IF NOT EXISTS `flagged_for_review` tinyint(1) NOT NULL DEFAULT 0 AFTER `service_id`;
+
+-- ============================================================
 -- Done! Your database is now up to date.
 -- ============================================================
 SELECT 'Database update complete!' AS status;
