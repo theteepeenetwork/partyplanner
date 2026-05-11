@@ -396,10 +396,21 @@ class Profile extends BaseController
         $userModel = new UserModel();
         $serviceModel = new ServiceModel();
 
-        $rooms = $chatRoomModel->where('customer_id', $userId)->findAll();
+        $rooms = $chatRoomModel->groupStart()
+            ->where('customer_id', $userId)
+            ->orWhere('vendor_id', $userId)
+            ->groupEnd()
+            ->orderBy('created_at', 'DESC')
+            ->findAll();
+
         foreach ($rooms as &$room) {
+            $peerId = ((int) $room['customer_id'] === (int) $userId) ? (int) $room['vendor_id'] : (int) $room['customer_id'];
+            $peer = $userModel->find($peerId);
+            $room['peer_name'] = $peer ? $peer['name'] : 'Unknown';
             $vendor = $userModel->find($room['vendor_id']);
             $room['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
+            $customer = $userModel->find($room['customer_id']);
+            $room['customer_name'] = $customer ? $customer['name'] : 'Unknown';
             $service = $serviceModel->find($room['service_id']);
             $room['service_name'] = $service ? $service['title'] : '';
             $lastMsg = $chatMessageModel->where('chat_room_id', $room['id'])->orderBy('created_at', 'DESC')->first();
@@ -415,6 +426,79 @@ class Profile extends BaseController
         ]);
     }
 
+    /**
+     * Customer: open or create the thread for a listing after an eligible booking exists.
+     */
+    public function startMessageForService($serviceId)
+    {
+        if ($r = $this->requireLogin()) return $r;
+        $user = $this->getUser();
+        $userId = (int) $user['id'];
+        $serviceId = (int) $serviceId;
+
+        if ($user['role'] === 'vendor') {
+            return redirect()->to('/profile/messages')->with('error', 'Open a conversation from your bookings to message a customer.');
+        }
+
+        $serviceModel = new ServiceModel();
+        $service = $serviceModel->find($serviceId);
+        if (!$service) {
+            return redirect()->to('/browse-services')->with('error', 'Service not found.');
+        }
+
+        if ((int) $service['vendor_id'] === $userId) {
+            return redirect()->back()->with('error', 'You cannot message yourself.');
+        }
+
+        $bookingItemModel = new BookingItemModel();
+        if (!$bookingItemModel->customerHasEligibleBookingForService($userId, $serviceId)) {
+            return redirect()->back()->with('error', 'Messaging is available after you have booked this service.');
+        }
+
+        $chatRoomModel = new ChatRoomModel();
+        $roomId = $chatRoomModel->ensureRoom((int) $service['vendor_id'], $userId, $serviceId);
+
+        return redirect()->to('/profile/messages/' . $roomId);
+    }
+
+    /**
+     * Vendor: open the thread for a booking line item (must own the service).
+     */
+    public function openThreadForBookingItem($bookingItemId)
+    {
+        if ($r = $this->requireLogin()) return $r;
+        $user = $this->getUser();
+        if ($user['role'] !== 'vendor') {
+            return redirect()->to('/profile/messages')->with('error', 'Only vendors can use this link.');
+        }
+
+        $vendorId = (int) $user['id'];
+        $bookingItemModel = new BookingItemModel();
+        $row = $bookingItemModel
+            ->select('booking_items.*, bookings.user_id as customer_user_id, services.vendor_id', false)
+            ->join('bookings', 'bookings.id = booking_items.booking_id')
+            ->join('services', 'services.id = booking_items.service_id')
+            ->where('booking_items.id', (int) $bookingItemId)
+            ->first();
+
+        if (!$row || (int) $row['vendor_id'] !== $vendorId) {
+            return redirect()->to('/profile/bookings')->with('error', 'Booking not found.');
+        }
+
+        if (in_array($row['status'], ['rejected', 'cancelled'], true)) {
+            return redirect()->to('/profile/bookings')->with('error', 'Messaging is not available for cancelled or declined bookings.');
+        }
+
+        $chatRoomModel = new ChatRoomModel();
+        $roomId = $chatRoomModel->ensureRoom(
+            $vendorId,
+            (int) $row['customer_user_id'],
+            (int) $row['service_id']
+        );
+
+        return redirect()->to('/profile/messages/' . $roomId);
+    }
+
     public function customerMessageThread($roomId)
     {
         if ($r = $this->requireLogin()) return $r;
@@ -426,21 +510,23 @@ class Profile extends BaseController
         $serviceModel = new ServiceModel();
 
         $room = $chatRoomModel->find($roomId);
-        if (!$room || $room['customer_id'] != $userId) {
+        if (!$room || ((int) $room['customer_id'] !== (int) $userId && (int) $room['vendor_id'] !== (int) $userId)) {
             return redirect()->to('/profile/messages')->with('error', 'Conversation not found.');
         }
 
         $chatMessageModel->where('chat_room_id', $roomId)->where('receiver_id', $userId)->set('is_read', 1)->update();
 
         $messages = $chatMessageModel->where('chat_room_id', $roomId)->orderBy('created_at', 'ASC')->findAll();
-        $vendor = $userModel->find($room['vendor_id']);
+        $peerId = ((int) $room['customer_id'] === (int) $userId) ? (int) $room['vendor_id'] : (int) $room['customer_id'];
+        $peer = $userModel->find($peerId);
         $service = $serviceModel->find($room['service_id']);
 
         return view('dashboard/customer_message_thread', [
             'user' => $user,
             'room' => $room,
             'messages' => $messages,
-            'vendor_name' => $vendor ? $vendor['name'] : 'Unknown',
+            'peer_name' => $peer ? $peer['name'] : 'Unknown',
+            'vendor_name' => $peer ? $peer['name'] : 'Unknown',
             'service_name' => $service ? $service['title'] : '',
             'currentTab' => 'messages',
         ]);
@@ -449,16 +535,22 @@ class Profile extends BaseController
     public function sendMessage()
     {
         if ($r = $this->requireLogin()) return $r;
-        $userId = session()->get('user_id');
+        $userId = (int) session()->get('user_id');
         $chatMessageModel = new ChatMessageModel();
         $chatRoomModel = new ChatRoomModel();
 
-        $roomId = $this->request->getPost('chat_room_id');
+        $roomId = (int) $this->request->getPost('chat_room_id');
         $message = $this->request->getPost('message');
         $room = $chatRoomModel->find($roomId);
-        if (!$room) return redirect()->to('/profile/messages');
+        if (!$room) {
+            return redirect()->to('/profile/messages');
+        }
 
-        $receiverId = ($room['customer_id'] == $userId) ? $room['vendor_id'] : $room['customer_id'];
+        if ((int) $room['customer_id'] !== $userId && (int) $room['vendor_id'] !== $userId) {
+            return redirect()->to('/profile/messages')->with('error', 'You are not part of this conversation.');
+        }
+
+        $receiverId = ((int) $room['customer_id'] === $userId) ? (int) $room['vendor_id'] : (int) $room['customer_id'];
 
         $chatMessageModel->insert([
             'chat_room_id' => $roomId,

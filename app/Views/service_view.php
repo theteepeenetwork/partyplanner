@@ -3,6 +3,12 @@
 
 <main class="container">
     <section>
+        <?php if (session()->getFlashdata('error')): ?>
+            <div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div>
+        <?php endif; ?>
+        <?php if (session()->getFlashdata('success')): ?>
+            <div class="alert alert-success"><?= esc(session()->getFlashdata('success')) ?></div>
+        <?php endif; ?>
         <?php if (isset($service)): ?>
             <div class="service-preview card">
                 <div class="row">
@@ -114,6 +120,17 @@
                                         <a href="/event/add-to-event/<?= $service['id'] ?>" class="btn btn-primary btn-lg">
                                             <i class="fas fa-calendar-plus me-1"></i>Add to Event
                                         </a>
+                                    <?php endif; ?>
+                                    <?php if (!empty($message_vendor_eligible) && !empty($message_vendor_url)): ?>
+                                        <a href="<?= esc($message_vendor_url) ?>" class="btn btn-outline-primary btn-lg ms-2">
+                                            <i class="fas fa-comment-dots me-1"></i>Message vendor
+                                        </a>
+                                    <?php elseif (session()->has('user_id') && session()->get('role') === 'customer' && (int) $service['vendor_id'] !== (int) session()->get('user_id')): ?>
+                                        <span class="d-inline-block ms-2 small text-muted align-middle" title="Complete a booking request for this listing first">
+                                            <i class="fas fa-lock me-1"></i>Messaging unlocks after you book
+                                        </span>
+                                    <?php elseif (!session()->has('user_id')): ?>
+                                        <a href="/login" class="btn btn-outline-secondary btn-lg ms-2">Log in to book</a>
                                     <?php endif; ?>
                                     <a href="/browse-services" class="btn btn-outline-secondary ms-2">Back to Services</a>
                                 </div>

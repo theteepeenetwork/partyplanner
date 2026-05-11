@@ -36,6 +36,8 @@ $routes->get('/profile/calendar-data', 'Profile::calendarData');
 $routes->get('/profile/events', 'Profile::customerEvents');
 $routes->get('/profile/my-bookings', 'Profile::customerBookings');
 $routes->get('/profile/messages', 'Profile::customerMessages');
+$routes->get('/profile/messages/start/(:num)', 'Profile::startMessageForService/$1');
+$routes->get('/profile/messages/by-booking/(:num)', 'Profile::openThreadForBookingItem/$1');
 $routes->get('/profile/messages/(:num)', 'Profile::customerMessageThread/$1');
 $routes->post('/profile/messages/send', 'Profile::sendMessage');
 $routes->get('/profile/payments', 'Profile::customerPayments');

@@ -101,12 +101,23 @@ class Service_Controller extends BaseController
 
         $categories = $categoryModel->findAll();
 
+        $messageEligibleByServiceId = [];
+        if (session()->has('user_id') && session()->get('role') === 'customer') {
+            $serviceIds = array_column($services, 'id');
+            $bookingItemModel = new BookingItemModel();
+            $eligible = $bookingItemModel->eligibleServiceIdsForCustomer((int) session()->get('user_id'), $serviceIds);
+            foreach ($eligible as $sid) {
+                $messageEligibleByServiceId[$sid] = true;
+            }
+        }
+
         $data = [
             'services' => $services,
             'categories' => $categories,
             'selectedCategory' => $categoryFilter,
             'searchQuery' => $searchQuery ?? '',
             'basketEventId' => session()->get('preferred_basket_event_id'),
+            'message_eligible_by_service_id' => $messageEligibleByServiceId,
         ];
 
         return view('browse_services', $data);
@@ -1898,6 +1909,16 @@ class Service_Controller extends BaseController
         ];
 
         // Compile data for the view
+        $messageVendorEligible = false;
+        $messageVendorUrl = null;
+        if (session()->has('user_id') && session()->get('role') === 'customer') {
+            $bookingItemModel = new BookingItemModel();
+            if ($bookingItemModel->customerHasEligibleBookingForService((int) session()->get('user_id'), (int) $id)) {
+                $messageVendorEligible = true;
+                $messageVendorUrl = base_url('profile/messages/start/' . $id);
+            }
+        }
+
         $data = [
             'service' => $service,
             'images' => $images,
@@ -1910,6 +1931,8 @@ class Service_Controller extends BaseController
             'optional_extras' => $optionalExtras,
             'cancellation_policy' => $cancellationPolicy,
             'category_names' => $category_names,
+            'message_vendor_eligible' => $messageVendorEligible,
+            'message_vendor_url' => $messageVendorUrl,
         ];
 
         // Render the view
