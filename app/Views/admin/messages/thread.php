@@ -26,28 +26,61 @@
     <?php if (empty($room['flagged_for_review'])): ?>
         <form method="post" action="<?= site_url('/admin/messages/' . $room['id'] . '/flag') ?>">
             <?= csrf_field() ?>
-            <button class="btn btn-outline-warning btn-sm" type="submit">Flag for review</button>
+            <button class="btn btn-outline-warning btn-sm" type="submit">Flag conversation</button>
         </form>
     <?php else: ?>
         <form method="post" action="<?= site_url('/admin/messages/' . $room['id'] . '/unflag') ?>">
             <?= csrf_field() ?>
-            <button class="btn btn-outline-secondary btn-sm" type="submit">Clear flag</button>
+            <button class="btn btn-outline-secondary btn-sm" type="submit">Clear room flag</button>
         </form>
     <?php endif; ?>
+    <a class="btn btn-sm btn-outline-danger" href="<?= site_url('/admin/messages?moderation=pending') ?>">All pending language reviews</a>
 </div>
 <div class="card shadow-sm">
-    <div class="card-header bg-white fw-bold">Thread (read-only)</div>
+    <div class="card-header bg-white fw-bold">Thread &amp; moderation</div>
     <div class="list-group list-group-flush">
         <?php foreach ($messages as $m): ?>
-            <div class="list-group-item d-flex justify-content-between align-items-start">
-                <div>
-                    <div class="small text-muted"><?= esc($m['created_at'] ?? '') ?> — sender #<?= (int) ($m['sender_id'] ?? 0) ?></div>
-                    <div><?= nl2br(esc($m['message'] ?? '')) ?></div>
+            <?php
+            $st = $m['moderation_status'] ?? 'clean';
+            $pending = ($st === \App\Libraries\ChatModeration::STATUS_PENDING);
+            ?>
+            <div class="list-group-item">
+                <div class="d-flex justify-content-between align-items-start gap-3">
+                    <div class="flex-grow-1">
+                        <div class="small text-muted"><?= esc($m['created_at'] ?? '') ?> — sender #<?= (int) ($m['sender_id'] ?? 0) ?></div>
+                        <div class="mt-1"><?= nl2br(esc($m['message'] ?? '')) ?></div>
+                        <?= view('partials/chat_moderation_meta', ['msg' => $m]) ?>
+                        <?php if (!empty($m['profanity_matches'])): ?>
+                            <div class="small text-muted mt-1">Matched terms (lowercase): <code><?= esc($m['profanity_matches']) ?></code></div>
+                        <?php endif; ?>
+                        <?php if ($pending && !empty($m['original_message'])): ?>
+                            <details class="mt-2 small">
+                                <summary class="text-danger">View original text (moderator only)</summary>
+                                <div class="border rounded p-2 mt-1 bg-light"><?= nl2br(esc($m['original_message'])) ?></div>
+                            </details>
+                        <?php endif; ?>
+                    </div>
+                    <div class="text-nowrap">
+                        <?php if ($pending): ?>
+                            <form method="post" action="<?= site_url('/admin/messages/moderate/' . (int) $m['id'] . '/approve') ?>" class="mb-2">
+                                <?= csrf_field() ?>
+                                <label class="form-label small mb-0">Note (optional)</label>
+                                <input type="text" name="admin_note" class="form-control form-control-sm mb-1" maxlength="2000" placeholder="Reviewer note">
+                                <button type="submit" class="btn btn-sm btn-success w-100">Accept &amp; show as sent</button>
+                            </form>
+                            <form method="post" action="<?= site_url('/admin/messages/moderate/' . (int) $m['id'] . '/reject') ?>">
+                                <?= csrf_field() ?>
+                                <label class="form-label small mb-0">Note (optional)</label>
+                                <input type="text" name="admin_note" class="form-control form-control-sm mb-1" maxlength="2000" placeholder="Reason">
+                                <button type="submit" class="btn btn-sm btn-outline-danger w-100" onclick="return confirm('Mark as not sent?');">Reject &amp; not sent</button>
+                            </form>
+                        <?php endif; ?>
+                        <form method="post" action="<?= site_url('/admin/messages/delete/' . (int) $m['id']) ?>" class="mt-2" onsubmit="return confirm('Remove this message entirely?');">
+                            <?= csrf_field() ?>
+                            <button class="btn btn-sm btn-outline-secondary" type="submit">Delete message</button>
+                        </form>
+                    </div>
                 </div>
-                <form method="post" action="<?= site_url('/admin/messages/delete/' . $m['id']) ?>" onsubmit="return confirm('Remove this message?');">
-                    <?= csrf_field() ?>
-                    <button class="btn btn-sm btn-outline-danger" type="submit">Remove</button>
-                </form>
             </div>
         <?php endforeach; ?>
         <?php if (empty($messages)): ?>

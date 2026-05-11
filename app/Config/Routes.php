@@ -171,6 +171,8 @@ $routes->group('admin', ['filter' => ['adminauth', 'csrf']], static function ($r
     $routes->get('bookings/(:num)/delete', 'Admin\Bookings::deleteConfirm/$1');
     $routes->post('bookings/(:num)/delete', 'Admin\Bookings::delete/$1');
 
+    $routes->post('messages/moderate/(:num)/approve', 'Admin\Messages::approveMessage/$1');
+    $routes->post('messages/moderate/(:num)/reject', 'Admin\Messages::rejectMessage/$1');
     $routes->get('messages', 'Admin\Messages::index');
     $routes->get('messages/(:num)', 'Admin\Messages::thread/$1');
     $routes->post('messages/delete/(:num)', 'Admin\Messages::deleteMessage/$1');

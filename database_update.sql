@@ -425,6 +425,16 @@ CREATE TABLE IF NOT EXISTS `cms_pages` (
 ALTER TABLE chat_rooms ADD COLUMN IF NOT EXISTS `flagged_for_review` tinyint(1) NOT NULL DEFAULT 0 AFTER `service_id`;
 
 -- ============================================================
+-- TABLE: chat_messages — profanity / language moderation
+-- ============================================================
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `original_message` text DEFAULT NULL AFTER `message`;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `moderation_status` varchar(20) NOT NULL DEFAULT 'clean' AFTER `original_message`;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `admin_note` text DEFAULT NULL AFTER `moderation_status`;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `profanity_matches` varchar(500) DEFAULT NULL AFTER `admin_note`;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `reviewed_by` int(11) DEFAULT NULL AFTER `profanity_matches`;
+ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `reviewed_at` datetime DEFAULT NULL AFTER `reviewed_by`;
+
+-- ============================================================
 -- Done! Your database is now up to date.
 -- ============================================================
 SELECT 'Database update complete!' AS status;

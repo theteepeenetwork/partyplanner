@@ -35,6 +35,11 @@
                     <li><i class="fas fa-clock text-warning me-2"></i>Pending bookings: <strong><?= (int) $pendingBookings ?></strong></li>
                     <li><i class="fas fa-pause-circle text-secondary me-2"></i>Non-active services: <strong><?= (int) $inactiveServices ?></strong></li>
                     <li><i class="fas fa-flag text-danger me-2"></i>Flagged conversations: <strong><?= (int) $flaggedRooms ?></strong></li>
+                    <li><i class="fas fa-language text-warning me-2"></i>Chat messages pending language review: <strong><?= (int) ($pendingLanguage ?? 0) ?></strong>
+                        <?php if (!empty($pendingLanguage)): ?>
+                            <a href="<?= site_url('/admin/messages?moderation=pending') ?>" class="small ms-1">Review queue</a>
+                        <?php endif; ?>
+                    </li>
                 </ul>
             </div>
         </div>
@@ -98,6 +103,9 @@
                             <td>
                                 <a href="<?= site_url('/admin/messages/' . $m['room_id']) ?>">#<?= (int) $m['room_id'] ?></a>
                                 <?php if (!empty($m['flagged_for_review'])): ?><span class="badge bg-danger">flagged</span><?php endif; ?>
+                                <?php if (($m['moderation_status'] ?? '') === \App\Libraries\ChatModeration::STATUS_PENDING): ?>
+                                    <span class="badge bg-warning text-dark">language</span>
+                                <?php endif; ?>
                             </td>
                             <td class="small text-truncate" style="max-width:220px"><?php $msg = (string) ($m['message'] ?? ''); echo esc(strlen($msg) > 80 ? substr($msg, 0, 80) . '…' : $msg); ?></td>
                             <td class="text-nowrap small"><?= esc($m['created_at'] ?? '') ?></td>
