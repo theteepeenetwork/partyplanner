@@ -139,3 +139,56 @@ $routes->get('calendarView/(:num)/(:num)', 'BookingController::calendarView/$1/$
 $routes->get('calendarView', 'BookingController::calendarView');
 $routes->get('calendarData/(:num)/(:num)', 'BookingController::calendarData/$1/$2');
 
+// Public CMS pages (published only)
+$routes->get('about', 'PublicPage::about');
+$routes->get('how-it-works', 'PublicPage::howItWorks');
+$routes->get('contact', 'PublicPage::contact');
+$routes->get('vendor-info', 'PublicPage::vendorInfo');
+$routes->get('faq', 'PublicPage::faq');
+$routes->get('page/(:segment)', 'PublicPage::show/$1');
+
+// Admin backend
+$routes->group('admin', ['filter' => ['adminauth', 'csrf']], static function ($routes) {
+    $routes->get('/', 'Admin\Dashboard::index');
+
+    $routes->get('customers', 'Admin\Customers::index');
+    $routes->get('customers/(:num)', 'Admin\Customers::show/$1');
+    $routes->match(['GET', 'POST'], 'customers/(:num)/edit', 'Admin\Customers::edit/$1');
+    $routes->get('customers/(:num)/delete', 'Admin\Customers::deleteConfirm/$1');
+    $routes->post('customers/(:num)/delete', 'Admin\Customers::delete/$1');
+
+    $routes->get('vendors', 'Admin\Vendors::index');
+    $routes->get('vendors/(:num)', 'Admin\Vendors::show/$1');
+    $routes->match(['GET', 'POST'], 'vendors/(:num)/edit', 'Admin\Vendors::edit/$1');
+    $routes->get('vendors/(:num)/delete', 'Admin\Vendors::deleteConfirm/$1');
+    $routes->post('vendors/(:num)/delete', 'Admin\Vendors::delete/$1');
+
+    $routes->get('bookings', 'Admin\Bookings::index');
+    $routes->get('bookings/(:num)', 'Admin\Bookings::show/$1');
+    $routes->post('bookings/(:num)/status', 'Admin\Bookings::updateStatus/$1');
+    $routes->get('bookings/(:num)/delete', 'Admin\Bookings::deleteConfirm/$1');
+    $routes->post('bookings/(:num)/delete', 'Admin\Bookings::delete/$1');
+
+    $routes->get('messages', 'Admin\Messages::index');
+    $routes->get('messages/(:num)', 'Admin\Messages::thread/$1');
+    $routes->post('messages/delete/(:num)', 'Admin\Messages::deleteMessage/$1');
+    $routes->post('messages/(:num)/flag', 'Admin\Messages::flagRoom/$1');
+    $routes->post('messages/(:num)/unflag', 'Admin\Messages::unflagRoom/$1');
+
+    $routes->get('services', 'Admin\Services::index');
+    $routes->get('services/(:num)', 'Admin\Services::show/$1');
+    $routes->match(['GET', 'POST'], 'services/(:num)/edit', 'Admin\Services::edit/$1');
+    $routes->post('services/(:num)/toggle', 'Admin\Services::toggleStatus/$1');
+    $routes->get('services/(:num)/delete', 'Admin\Services::deleteConfirm/$1');
+    $routes->post('services/(:num)/delete', 'Admin\Services::delete/$1');
+
+    $routes->get('events', 'Admin\Events::index');
+    $routes->get('events/(:num)', 'Admin\Events::show/$1');
+    $routes->match(['GET', 'POST'], 'events/(:num)/edit', 'Admin\Events::edit/$1');
+    $routes->get('events/(:num)/delete', 'Admin\Events::deleteConfirm/$1');
+    $routes->post('events/(:num)/delete', 'Admin\Events::delete/$1');
+
+    $routes->get('pages', 'Admin\Pages::index');
+    $routes->match(['GET', 'POST'], 'pages/edit/(:segment)', 'Admin\Pages::edit/$1');
+});
+
