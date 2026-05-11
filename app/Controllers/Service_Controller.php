@@ -112,8 +112,7 @@ class Service_Controller extends BaseController
             'services' => $services,
             'categories' => $categories,
             'selectedCategory' => $categoryFilter,
-            'searchQuery' => $searchQuery,
-            'selectedSort' => $sort,
+            'searchQuery' => $searchQuery ?? '',
             'basketEventId' => session()->get('preferred_basket_event_id'),
         ];
 
@@ -137,14 +136,6 @@ class Service_Controller extends BaseController
         }
         if ($cuisine !== null && $cuisine !== '') {
             $params['category'] = $cuisine;
-        }
-        $sort = $this->request->getGet('sort');
-        if ($sort !== null && $sort !== '' && in_array($sort, ['newest', 'price_asc', 'price_desc', 'title'], true)) {
-            $params['sort'] = $sort;
-        }
-        $eventIdParam = $this->request->getGet('event_id');
-        if ($eventIdParam !== null && $eventIdParam !== '') {
-            $params['event_id'] = $eventIdParam;
         }
 
         $url = '/browse-services';
@@ -173,95 +164,6 @@ class Service_Controller extends BaseController
         ) {
             session()->set('preferred_basket_event_id', (int) $eventId);
         }
-    }
-
-    /**
-     * @return list<string>
-     */
-    private function getServicesTableColumns(): array
-    {
-        if ($this->servicesTableColumns === null) {
-            $this->servicesTableColumns = \Config\Database::connect()->getFieldNames('services');
-        }
-
-        return $this->servicesTableColumns;
-    }
-
-    /**
-     * @param list<string> $cols
-     */
-    private function applyPublicServiceCatalogFilters(ServiceModel $serviceModel, array $cols)
-    {
-        $q = $serviceModel;
-        if (in_array('status', $cols, true)) {
-            $q = $q->where('status', 'active');
-        }
-        if (in_array('deleted_at', $cols, true)) {
-            $q = $q->where('deleted_at', null);
-        }
-
-        return $q;
-    }
-
-    /**
-     * @param list<string> $cols
-     */
-    private function applyBrowseSearch($builder, string $searchQuery, array $cols)
-    {
-        $db = \Config\Database::connect();
-
-        $builder = $builder->groupStart()
-            ->like('title', $searchQuery);
-        if (in_array('short_description', $cols, true)) {
-            $builder = $builder->orLike('short_description', $searchQuery);
-        }
-        if (in_array('description', $cols, true)) {
-            $builder = $builder->orLike('description', $searchQuery);
-        }
-        if (in_array('service_tags', $cols, true)) {
-            $builder = $builder->orLike('service_tags', $searchQuery);
-        }
-
-        if ($db->tableExists('services_service_tags') && $db->tableExists('services_tags')) {
-            $tagSub = $db->table('services_service_tags')
-                ->select('services_service_tags.service_id')
-                ->distinct()
-                ->join('services_tags', 'services_tags.id = services_service_tags.tag_id')
-                ->like('services_tags.name', $searchQuery);
-            $builder = $builder->orWhereIn('id', $tagSub, false);
-        }
-
-        return $builder->groupEnd();
-    }
-
-    /**
-     * @param list<string> $cols
-     */
-    private function applyBrowseSort($builder, string $sort, array $cols)
-    {
-        switch ($sort) {
-            case 'price_asc':
-                if (in_array('price', $cols, true)) {
-                    return $builder->orderBy('price', 'ASC')->orderBy('id', 'DESC');
-                }
-                break;
-            case 'price_desc':
-                if (in_array('price', $cols, true)) {
-                    return $builder->orderBy('price', 'DESC')->orderBy('id', 'DESC');
-                }
-                break;
-            case 'title':
-                return $builder->orderBy('title', 'ASC')->orderBy('id', 'ASC');
-            case 'newest':
-            default:
-                if (in_array('created_at', $cols, true)) {
-                    return $builder->orderBy('created_at', 'DESC');
-                }
-
-                return $builder->orderBy('id', 'DESC');
-        }
-
-        return $builder->orderBy('id', 'DESC');
     }
 
     public function destroy($step)

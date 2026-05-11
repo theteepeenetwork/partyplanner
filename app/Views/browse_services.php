@@ -3,13 +3,12 @@
 <main class="container">
     <h2 class="mb-4">Browse Services</h2>
 
-    <form class="row mb-3 g-2 align-items-end" action="/browse-services" method="get">
+    <form class="row mb-4 g-2" action="/browse-services" method="get">
         <?php if (!empty($basketEventId)): ?>
             <input type="hidden" name="event_id" value="<?= esc($basketEventId) ?>">
         <?php endif; ?>
-        <div class="col-md-4">
-            <label for="browse-q" class="form-label small text-muted mb-0">Keywords</label>
-            <input type="text" class="form-control" id="browse-q" name="q" placeholder="Title, description, tags…"
+        <div class="col-md-5">
+            <input type="text" class="form-control" name="q" placeholder="Search services..."
                 value="<?= esc($searchQuery ?? '') ?>">
         </div>
         <div class="col-md-3">
@@ -67,7 +66,7 @@
                 $filterParts[] = 'sort: ' . esc($sortLabels[$selectedSort] ?? $selectedSort);
             }
             ?>
-            Showing results for <?= implode('; ', $filterParts) ?>
+            Showing results for <?= implode(' in ', $filterParts) ?>
             <a href="/browse-services<?= !empty($basketEventId) ? '?event_id=' . esc($basketEventId) : '' ?>" class="ms-2">(Clear filters)</a>
         </p>
     <?php endif; ?>
@@ -109,7 +108,7 @@
             <i class="fas fa-search fa-3x text-muted mb-3"></i>
             <h4>No services found</h4>
             <p class="text-muted">Try adjusting your search or browse all categories.</p>
-            <?php if ($hasActiveFilters): ?>
+            <?php if (!empty($searchQuery) || !empty($selectedCategory)): ?>
                 <a href="/browse-services<?= !empty($basketEventId) ? '?event_id=' . esc($basketEventId) : '' ?>" class="btn btn-outline-primary">View All Services</a>
             <?php endif; ?>
         </div>
