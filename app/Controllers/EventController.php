@@ -203,6 +203,18 @@ class EventController extends BaseController
             return redirect()->to('/event/create')->with('info', 'Create an event first, then we\'ll add this service to it.');
         }
 
+        $preferredEventId = session()->get('preferred_basket_event_id');
+        if ($preferredEventId !== null) {
+            foreach ($events as $ev) {
+                if ((int) $ev['id'] === (int) $preferredEventId) {
+                    session()->remove('preferred_basket_event_id');
+
+                    return redirect()->to('/event/add-to-basket/' . $serviceId . '?event_id=' . (int) $preferredEventId);
+                }
+            }
+            session()->remove('preferred_basket_event_id');
+        }
+
         // User has events — show event selection
         return view('event/select_event', [
             'service' => $service,
