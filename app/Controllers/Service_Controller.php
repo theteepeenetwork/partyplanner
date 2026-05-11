@@ -122,12 +122,110 @@ class Service_Controller extends BaseController
             'services' => $services,
             'categories' => $categories,
             'selectedCategory' => $categoryFilter,
+            'selectedSort' => $sort,
             'searchQuery' => $searchQuery ?? '',
             'basketEventId' => session()->get('preferred_basket_event_id'),
             'message_eligible_by_service_id' => $messageEligibleByServiceId,
         ];
 
         return view('browse_services', $data);
+    }
+
+    /**
+     * Column names on `services` (cached per request) for schema-safe filters.
+     *
+     * @return list<string>
+     */
+    private function getServicesTableColumns(): array
+    {
+        if ($this->servicesTableColumns !== null) {
+            return $this->servicesTableColumns;
+        }
+
+        $db = \Config\Database::connect();
+        $this->servicesTableColumns = $db->getFieldNames('services');
+
+        return $this->servicesTableColumns;
+    }
+
+    /**
+     * Public catalogue: active, non-soft-deleted listings when those columns exist.
+     *
+     * @param list<string> $cols
+     */
+    private function applyPublicServiceCatalogFilters(ServiceModel $serviceModel, array $cols): ServiceModel
+    {
+        $builder = $serviceModel;
+        if (in_array('status', $cols, true)) {
+            $builder = $builder->where('status', 'active');
+        }
+        if (in_array('deleted_at', $cols, true)) {
+            $builder = $builder->where('deleted_at', null);
+        }
+
+        return $builder;
+    }
+
+    /**
+     * @param list<string> $cols
+     */
+    private function applyBrowseSearch(ServiceModel $builder, string $searchQuery, array $cols): ServiceModel
+    {
+        $fields = array_values(array_filter(
+            ['title', 'short_description', 'description', 'service_tags'],
+            static fn ($f) => in_array($f, $cols, true)
+        ));
+
+        if ($fields === []) {
+            return $builder;
+        }
+
+        $builder->groupStart();
+        foreach ($fields as $i => $field) {
+            if ($i === 0) {
+                $builder->like($field, $searchQuery);
+            } else {
+                $builder->orLike($field, $searchQuery);
+            }
+        }
+        $builder->groupEnd();
+
+        return $builder;
+    }
+
+    /**
+     * @param list<string> $cols
+     */
+    private function applyBrowseSort(ServiceModel $builder, string $sort, array $cols): ServiceModel
+    {
+        switch ($sort) {
+            case 'price_asc':
+                if (in_array('price', $cols, true)) {
+                    return $builder->orderBy('price', 'ASC');
+                }
+                break;
+            case 'price_desc':
+                if (in_array('price', $cols, true)) {
+                    return $builder->orderBy('price', 'DESC');
+                }
+                break;
+            case 'title':
+                if (in_array('title', $cols, true)) {
+                    return $builder->orderBy('title', 'ASC');
+                }
+                break;
+            case 'newest':
+            default:
+                if (in_array('created_at', $cols, true)) {
+                    return $builder->orderBy('created_at', 'DESC');
+                }
+                if (in_array('id', $cols, true)) {
+                    return $builder->orderBy('id', 'DESC');
+                }
+                break;
+        }
+
+        return $builder;
     }
 
     /**
