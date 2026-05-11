@@ -174,8 +174,11 @@
                                             <?php if (!empty($event['location'])): ?>
                                                 <span class="ms-3"><i class="fas fa-map-marker-alt me-1"></i><?= esc($event['location']) ?></span>
                                             <?php endif; ?>
-                                            <?php if (!empty($event['category'])): ?>
-                                                <span class="ms-3"><i class="fas fa-tag me-1"></i><?= esc($event['category']) ?></span>
+                                            <?php
+                                            $eventTypeLabel = $event['event_type'] ?? $event['category'] ?? '';
+                                            ?>
+                                            <?php if ($eventTypeLabel !== ''): ?>
+                                                <span class="ms-3"><i class="fas fa-tag me-1"></i><?= esc($eventTypeLabel) ?></span>
                                             <?php endif; ?>
                                         </div>
                                         <div class="mt-2">
