@@ -125,8 +125,7 @@
                                 <p class="attention-desc"><?= $unreadMessages ?> unread message<?= $unreadMessages > 1 ? 's' : '' ?></p>
                             </div>
                             <div class="attention-action">
-                                <!-- TODO: Link to messages page -->
-                                <a href="#" class="btn btn-sm btn-outline-info">View</a>
+                                <a href="/profile/messages" class="btn btn-sm btn-outline-info">View</a>
                             </div>
                         </div>
                     <?php endif; ?>

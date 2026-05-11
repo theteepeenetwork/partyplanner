@@ -234,46 +234,41 @@ class CartController extends BaseController
 
         //other
 
-        $serviceIds = array_column($cartItems, 'service_id');
-
         $bookingModel = new BookingModel();
-        $bookingId = $bookingModel->insert([
+        if (!$bookingModel->insert([
             'user_id' => $userId,
             'event_id' => $eventId,
             'status' => 'pending',
             'payment_intent_id' => $paymentResult['payment_intent_id'],
-        ]);
-
-        if ($bookingId) {
-            $bookingItemModel = new BookingItemModel();
-            foreach ($cartItems as $item) {
-                $bookingItemModel->insert([
-                    'booking_id' => $bookingId,
-                    'service_id' => $item['service_id'],
-                    'start_time' => $item['start_time'],  // Save start time from cart
-                    'end_time' => $item['end_time'],      // Save end time from cart
-                    'status' => 'pending',
-                ]);
-            }
-
-            // Assume getVendorIdFromServices is a helper function to get the vendor ID
-            $vendorId = $this->getVendorIdFromServices($serviceIds);
-
-            $chatRoomModel = new ChatRoomModel();
-            $chatRoomModel->insert([
-                'vendor_id' => $vendorId,
-                'customer_id' => $userId,
-                'created_at' => date('Y-m-d H:i:s'),
-            ]);
-
-            $cartModel->where('user_id', $userId)->where('event_id', $eventId)->delete();
-
-            $this->updateCartCount();
-
-            return redirect()->to('/profile')->with('success', 'Your booking request has been submitted!');
-        } else {
+        ])) {
             return redirect()->to('/cart')->with('error', 'Failed to create a booking.');
         }
+
+        $bookingId = (int) $bookingModel->getInsertID();
+        $bookingItemModel = new BookingItemModel();
+        $serviceModel = new ServiceModel();
+        $chatRoomModel = new ChatRoomModel();
+
+        foreach ($cartItems as $item) {
+            $bookingItemModel->insert([
+                'booking_id' => $bookingId,
+                'service_id' => $item['service_id'],
+                'start_time' => $item['start_time'],
+                'end_time' => $item['end_time'],
+                'status' => 'pending',
+            ]);
+
+            $svc = $serviceModel->find($item['service_id']);
+            if ($svc) {
+                $chatRoomModel->ensureRoom((int) $svc['vendor_id'], (int) $userId, (int) $item['service_id']);
+            }
+        }
+
+        $cartModel->where('user_id', $userId)->where('event_id', $eventId)->delete();
+
+        $this->updateCartCount();
+
+        return redirect()->to('/profile')->with('success', 'Your booking request has been submitted!');
     }
 
     //*******Stripe Functions ****************
@@ -393,14 +388,16 @@ class CartController extends BaseController
                     $totalDeposit += $eventDeposit;
 
                     // Insert booking for the event
-                    $bookingId = $bookingModel->insert([
+                    $bookingModel->insert([
                         'user_id' => $userId,
                         'event_id' => $eventId,
                         'status' => 'pending',
                         'payment_intent_id' => $paymentIntentId, // Save payment intent ID
                     ]);
+                    $bookingId = (int) $bookingModel->getInsertID();
 
                     if ($bookingId) {
+                        $chatRoomModel = new ChatRoomModel();
                         // Insert booking items for each service in the event
                         foreach ($cartItems as $item) {
                             $bookingItemModel->insert([
@@ -410,17 +407,12 @@ class CartController extends BaseController
                                 'end_time' => $item['end_time'],
                                 'status' => 'pending',
                             ]);
-                        }
 
-                        // Notify vendors and create chat room
-                        $serviceIds = array_column($cartItems, 'service_id');
-                        $vendorId = $this->getVendorIdFromServices($serviceIds);
-                        $chatRoomModel = new ChatRoomModel();
-                        $chatRoomModel->insert([
-                            'vendor_id' => $vendorId,
-                            'customer_id' => $userId,
-                            'created_at' => date('Y-m-d H:i:s'),
-                        ]);
+                            $svc = $serviceModel->find($item['service_id']);
+                            if ($svc) {
+                                $chatRoomModel->ensureRoom((int) $svc['vendor_id'], (int) $userId, (int) $item['service_id']);
+                            }
+                        }
 
                         // Insert payment data into the payments table
                         $paymentData = [

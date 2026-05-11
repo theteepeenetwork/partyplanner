@@ -3,12 +3,12 @@
 <main class="page-main">
 <div class="dashboard-wrapper">
     <div class="container">
-        <?= $this->include('dashboard/_customer_tabs') ?>
+        <?= $user['role'] === 'vendor' ? $this->include('dashboard/_vendor_tabs') : $this->include('dashboard/_customer_tabs') ?>
 
         <div class="d-flex align-items-center mb-4">
             <a href="/profile/messages" class="btn btn-sm btn-outline-secondary me-3"><i class="fas fa-arrow-left"></i></a>
             <div>
-                <h5 class="mb-0"><?= esc($vendor_name) ?></h5>
+                <h5 class="mb-0"><?= esc($peer_name ?? $vendor_name) ?></h5>
                 <small class="text-muted"><?= esc($service_name) ?></small>
             </div>
         </div>

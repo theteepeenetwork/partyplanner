@@ -3,6 +3,10 @@
 <main class="container">
     <h2 class="mb-4">Browse Services</h2>
 
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div>
+    <?php endif; ?>
+
     <form class="row mb-4 g-2" action="/browse-services" method="get">
         <?php if (!empty($basketEventId)): ?>
             <input type="hidden" name="event_id" value="<?= esc($basketEventId) ?>">
@@ -74,6 +78,9 @@
                     </a>
                     <div class="text-center pb-3">
                         <a href="<?= base_url('service/view/' . esc($service['id'])) ?>" class="service-card-button">View Details</a>
+                        <?php if (session()->has('user_id') && session()->get('role') === 'customer' && !empty($message_eligible_by_service_id[$service['id']])): ?>
+                            <a href="<?= base_url('profile/messages/start/' . esc($service['id'])) ?>" class="btn btn-sm btn-outline-primary ms-1">Message vendor</a>
+                        <?php endif; ?>
                     </div>
                 </div>
             <?php endforeach; ?>

@@ -65,6 +65,7 @@
                                 </div>
                             </div>
                             <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                <a href="<?= base_url('profile/messages/by-booking/' . (int) $item['id']) ?>" class="btn btn-sm btn-outline-primary mb-2 d-block d-md-inline-block">Message customer</a>
                                 <form method="POST" action="/profile/update-booking-status/<?= $item['id'] ?>" class="d-inline">
                                     <input type="hidden" name="status" value="accepted">
                                     <button type="submit" class="btn btn-sm btn-success me-1"><i class="fas fa-check me-1"></i>Accept</button>
@@ -104,6 +105,7 @@
                                 </div>
                             </div>
                             <div class="col-md-3 text-md-end mt-2 mt-md-0">
+                                <a href="<?= base_url('profile/messages/by-booking/' . (int) $item['id']) ?>" class="btn btn-sm btn-outline-primary mb-2">Message customer</a><br>
                                 <span class="badge bg-light text-dark"><?= !empty($item['event_date']) ? date('d M', strtotime($item['event_date'])) : '' ?></span>
                             </div>
                         </div>

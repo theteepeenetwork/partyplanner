@@ -11,4 +11,7 @@
     <li class="nav-item">
         <a class="nav-link <?= ($currentTab ?? '') === 'calendar' ? 'active' : '' ?>" href="/profile/calendar">Calendar</a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link <?= ($currentTab ?? '') === 'messages' ? 'active' : '' ?>" href="/profile/messages">Messages</a>
+    </li>
 </ul>

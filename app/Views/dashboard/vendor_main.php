@@ -107,7 +107,7 @@
                             </div>
                             <div class="attention-action">
                                 <!-- TODO: Link to messages page when built -->
-                                <a href="#" class="btn btn-sm btn-outline-info">View</a>
+                                <a href="/profile/messages" class="btn btn-sm btn-outline-info">View</a>
                             </div>
                         </div>
                     <?php endif; ?>

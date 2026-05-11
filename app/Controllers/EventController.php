@@ -9,6 +9,7 @@ use App\Models\UserModel;
 use App\Models\BookingModel;
 use App\Models\BookingItemModel;
 use App\Models\PaymentsModel;
+use App\Models\ChatRoomModel;
 
 class EventController extends BaseController
 {
@@ -376,6 +377,8 @@ class EventController extends BaseController
         $bookingModel = new BookingModel();
         $bookingItemModel = new BookingItemModel();
         $paymentsModel = new PaymentsModel();
+        $chatRoomModel = new ChatRoomModel();
+        $serviceModel = new ServiceModel();
 
         $event = $eventModel->find($eventId);
         if (!$event || $event['user_id'] != $userId) {
@@ -407,6 +410,11 @@ class EventController extends BaseController
                 'price' => $item['estimated_total'],
                 'status' => 'pending',
             ]);
+
+            $svc = $serviceModel->find($item['service_id']);
+            if ($svc) {
+                $chatRoomModel->ensureRoom((int) $svc['vendor_id'], (int) $userId, (int) $item['service_id']);
+            }
 
             $totalDeposit += (float)$item['deposit_amount'];
         }

@@ -3,9 +3,13 @@
 <main class="page-main">
 <div class="dashboard-wrapper">
     <div class="container">
-        <?= $this->include('dashboard/_customer_tabs') ?>
+        <?= $user['role'] === 'vendor' ? $this->include('dashboard/_vendor_tabs') : $this->include('dashboard/_customer_tabs') ?>
 
         <h4 class="mb-4">Messages</h4>
+
+        <?php if (session()->getFlashdata('error')): ?>
+            <div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div>
+        <?php endif; ?>
 
         <?php if (!empty($rooms)): ?>
             <?php foreach ($rooms as $room): ?>
@@ -17,7 +21,7 @@
                             </div>
                             <div class="message-content flex-grow-1">
                                 <div class="d-flex justify-content-between">
-                                    <div class="message-sender"><?= esc($room['vendor_name']) ?></div>
+                                    <div class="message-sender"><?= esc($room['peer_name'] ?? $room['vendor_name']) ?></div>
                                     <span class="message-time"><?= date('d M H:i', strtotime($room['last_message_time'])) ?></span>
                                 </div>
                                 <?php if (!empty($room['service_name'])): ?>
@@ -36,7 +40,7 @@
             <div class="dash-card text-center py-5">
                 <i class="fas fa-comments fa-3x text-muted mb-3"></i>
                 <h5>No messages yet</h5>
-                <p class="text-muted">Messages from vendors will appear here after you book services.</p>
+                <p class="text-muted">When you book a service, you can message the vendor here. Vendors can reply from the same inbox.</p>
             </div>
         <?php endif; ?>
     </div>
