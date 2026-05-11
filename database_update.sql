@@ -71,6 +71,8 @@ CALL `event_marketplace_add_column_if_missing`('services', 'updated_at', '`updat
 -- TABLE: events — add all columns for event creation flow
 -- ============================================================
 CALL `event_marketplace_add_column_if_missing`('events', 'user_id', '`user_id` int(11) DEFAULT NULL AFTER `id`');
+-- Legacy schemas may lack `category`; `event_type` is positioned AFTER `category`.
+CALL `event_marketplace_add_column_if_missing`('events', 'category', '`category` varchar(255) DEFAULT NULL');
 CALL `event_marketplace_add_column_if_missing`('events', 'event_type', '`event_type` varchar(100) DEFAULT NULL AFTER `category`');
 CALL `event_marketplace_add_column_if_missing`('events', 'guest_count', '`guest_count` int(11) DEFAULT NULL AFTER `event_type`');
 CALL `event_marketplace_add_column_if_missing`('events', 'venue_name', '`venue_name` varchar(255) DEFAULT NULL AFTER `location`');
