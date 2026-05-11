@@ -10,6 +10,16 @@ use App\Models\BookingModel;
 use App\Models\BookingItemModel;
 use App\Models\PaymentsModel;
 use App\Models\ChatRoomModel;
+use App\Models\ServiceEventTypeModel;
+use App\Models\ServicePublicEventPricingModel;
+use App\Models\ServicePrivatePricingModel;
+use App\Models\ServiceGuestBasedPricingModel;
+use App\Models\ServiceCustomDurationPricingModel;
+use App\Models\ServiceTieredPackagesPricingModel;
+use App\Models\ServiceLocationModel;
+use App\Models\ServiceOptionalExtrasModel;
+use App\Libraries\EventBookingQuote;
+use App\Libraries\UKAddressGeocoder;
 
 class EventController extends BaseController
 {
@@ -38,6 +48,7 @@ class EventController extends BaseController
             $rules = [
                 'title' => 'required|min_length[3]|max_length[255]',
                 'event_type' => 'required',
+                'event_setting' => 'required|in_list[private,public]',
                 'date' => 'required|valid_date',
                 'guest_count' => 'required|is_natural_no_zero',
             ];
@@ -52,6 +63,7 @@ class EventController extends BaseController
             session()->set('event_step1', [
                 'title' => $this->request->getPost('title'),
                 'event_type' => $this->request->getPost('event_type'),
+                'event_setting' => $this->request->getPost('event_setting'),
                 'date' => $this->request->getPost('date'),
                 'guest_count' => $this->request->getPost('guest_count'),
             ]);
@@ -74,13 +86,18 @@ class EventController extends BaseController
                 'postcode' => $this->request->getPost('postcode'),
                 'town_city' => $this->request->getPost('town_city'),
                 'indoor_outdoor' => $this->request->getPost('indoor_outdoor'),
+                'organiser_pitch_fee' => $this->request->getPost('organiser_pitch_fee'),
             ]);
 
             return redirect()->to('/event/create/step3');
         }
 
+        $step1 = session()->get('event_step1') ?? [];
         $data = session()->get('event_step2') ?? [];
-        return view('event/create_step2', ['old' => $data]);
+        return view('event/create_step2', [
+            'old' => $data,
+            'eventSetting' => $step1['event_setting'] ?? 'private',
+        ]);
     }
 
     public function createStep3()
@@ -132,12 +149,27 @@ class EventController extends BaseController
 
         $location = trim(($step2['town_city'] ?? '') . (!empty($step2['postcode']) ? ', ' . $step2['postcode'] : ''));
 
+        $eventSetting = $step1['event_setting'] ?? 'private';
+        $pitchFee = null;
+        if ($eventSetting === 'public' && isset($step2['organiser_pitch_fee']) && $step2['organiser_pitch_fee'] !== '') {
+            $pitchFee = (float) $step2['organiser_pitch_fee'];
+        }
+
+        $geo = (new UKAddressGeocoder())->geocode(
+            $step2['postcode'] ?? null,
+            $step2['town_city'] ?? null
+        );
+
         $eventData = [
             'user_id' => session()->get('user_id'),
             'title' => $step1['title'],
             'event_type' => $step1['event_type'],
             'date' => $step1['date'],
             'guest_count' => $step1['guest_count'],
+            'event_setting' => $eventSetting,
+            'organiser_pitch_fee' => $pitchFee,
+            'latitude' => $geo['latitude'] ?? null,
+            'longitude' => $geo['longitude'] ?? null,
             'category' => $step1['event_type'],
             'location' => $location ?: null,
             'venue_name' => $step2['venue_name'] ?? null,
@@ -209,6 +241,7 @@ class EventController extends BaseController
             foreach ($events as $ev) {
                 if ((int) $ev['id'] === (int) $preferredEventId) {
                     session()->remove('preferred_basket_event_id');
+                    session()->set('pending_add_to_event', $selectedOptions);
 
                     return redirect()->to('/event/add-to-basket/' . $serviceId . '?event_id=' . (int) $preferredEventId);
                 }
@@ -234,6 +267,14 @@ class EventController extends BaseController
         $serviceModel = new ServiceModel();
         $eventModel = new EventModel();
         $basketModel = new EventBasketItemModel();
+        $eventTypeModel = new ServiceEventTypeModel();
+        $publicPricingModel = new ServicePublicEventPricingModel();
+        $privatePricingModel = new ServicePrivatePricingModel();
+        $guestModel = new ServiceGuestBasedPricingModel();
+        $durationModel = new ServiceCustomDurationPricingModel();
+        $packageModel = new ServiceTieredPackagesPricingModel();
+        $locationModel = new ServiceLocationModel();
+        $extrasModel = new ServiceOptionalExtrasModel();
 
         $service = $serviceModel->find($serviceId);
         $event = $eventModel->find($eventId);
@@ -243,30 +284,147 @@ class EventController extends BaseController
             return redirect()->to('/browse-services')->with('error', 'Invalid service or event.');
         }
 
-        // Get options from session or request
         $pendingAdd = session()->get('pending_add_to_event');
         $pricingOption = $this->request->getPost('pricing_option') ?? ($pendingAdd['pricing_option'] ?? null);
-        $extras = $this->request->getPost('extras') ?? ($pendingAdd['extras'] ?? null);
+        $extrasRaw = $this->request->getPost('extras') ?? ($pendingAdd['extras'] ?? null);
         session()->remove('pending_add_to_event');
 
+        if (is_string($extrasRaw)) {
+            $decoded = json_decode($extrasRaw, true);
+            $extrasRaw = is_array($decoded) ? $decoded : null;
+        }
+        $selectedExtras = [];
+        if (is_array($extrasRaw)) {
+            foreach ($extrasRaw as $x) {
+                $selectedExtras[] = (int) $x;
+            }
+        } elseif ($extrasRaw !== null && $extrasRaw !== '') {
+            $selectedExtras[] = (int) $extrasRaw;
+        }
+
+        $svcTypes = $eventTypeModel->where('service_id', $serviceId)->findAll();
+        $typeSlugs = array_column($svcTypes, 'event_type');
+        $eventSetting = $event['event_setting'] ?? 'private';
+
+        if ($eventSetting === 'public' && !in_array('public', $typeSlugs, true)) {
+            return redirect()->to('/service/view/' . $serviceId)
+                ->with('error', 'This service is not offered for public / pitch events. Create a private-format event or choose another vendor.');
+        }
+        if ($eventSetting === 'private' && !in_array('private', $typeSlugs, true)) {
+            return redirect()->to('/service/view/' . $serviceId)
+                ->with('error', 'This service is not offered for private events. Switch your event to public format or choose another vendor.');
+        }
+
+        $locationRow = $locationModel->where('service_id', $serviceId)->first();
+        $locMerged = $this->mergeServiceLocation($service, $locationRow);
+
+        $publicBands = $publicPricingModel->where('service_id', $serviceId)->orderBy('min_attendance', 'ASC')->findAll();
+        $privatePricing = $privatePricingModel->where('service_id', $serviceId)->first();
+        $privateId = $privatePricing['id'] ?? null;
+        $guestTiers = $privateId ? $guestModel->where('private_event_pricing_id', $privateId)->findAll() : [];
+        $durationTiers = $privateId ? $durationModel->where('private_event_pricing_id', $privateId)->findAll() : [];
+        $packages = $privateId ? $packageModel->where('private_event_pricing_id', $privateId)->findAll() : [];
+
+        $extraRows = $extrasModel->where('service_id', $serviceId)->findAll();
+        $extrasById = [];
+        foreach ($extraRows as $er) {
+            $extrasById[(int) $er['id']] = [
+                'price' => (float) ($er['price'] ?? 0),
+                'name' => (string) ($er['name'] ?? 'Extra'),
+            ];
+        }
+
+        $quoteCalc = new EventBookingQuote();
+        $quote = $quoteCalc->calculate(
+            $service,
+            $event,
+            $locMerged,
+            $publicBands,
+            $privatePricing,
+            $guestTiers,
+            $durationTiers,
+            $packages,
+            $extrasById,
+            $selectedExtras,
+            $pricingOption
+        );
+
+        if (!empty($quote['errors'])) {
+            return redirect()->to('/service/view/' . $serviceId)
+                ->with('error', implode(' ', $quote['errors']));
+        }
+
+        $estimated = $quote['total'];
         $depositPercent = 0.15;
-        $servicePrice = (float)$service['price'];
-        $depositAmount = round($servicePrice * $depositPercent, 2);
+        $depositAmount = round($estimated * $depositPercent, 2);
+
+        $packageLabel = $pricingOption;
+        if ($privatePricing && !empty($privatePricing['pricing_type']) && $privatePricing['pricing_type'] === 'tiered_packages_pricing'
+            && is_string($pricingOption) && preg_match('/^package_(\d+)$/', $pricingOption, $m)) {
+            foreach ($packages as $p) {
+                if ((int) $p['id'] === (int) $m[1]) {
+                    $packageLabel = $p['package_name'] ?? $pricingOption;
+                    break;
+                }
+            }
+        }
+
+        $breakdownPayload = json_encode([
+            'lines' => $quote['lines'],
+            'warnings' => $quote['warnings'],
+            'distance_km' => $quote['distance_km'],
+        ], JSON_UNESCAPED_UNICODE);
 
         $basketModel->insert([
             'event_id' => $eventId,
             'user_id' => $userId,
             'service_id' => $serviceId,
             'vendor_id' => $service['vendor_id'],
-            'package_name' => $pricingOption,
-            'extras' => is_array($extras) ? json_encode($extras) : $extras,
+            'package_name' => $packageLabel,
+            'extras' => json_encode($selectedExtras),
             'quantity' => 1,
-            'unit_price' => $servicePrice,
+            'unit_price' => round($estimated, 2),
             'deposit_amount' => $depositAmount,
-            'estimated_total' => $servicePrice,
+            'estimated_total' => round($estimated, 2),
+            'quote_breakdown' => $breakdownPayload,
         ]);
 
-        return redirect()->to('/event/basket/' . $eventId)->with('success', '"' . $service['title'] . '" added to your event basket!');
+        $flashSuccess = '"' . $service['title'] . '" added to your event basket. Estimated total: £' . number_format($estimated, 2);
+        session()->setFlashdata('success', $flashSuccess);
+        if (!empty($quote['warnings'])) {
+            session()->setFlashdata('info', implode(' ', $quote['warnings']));
+        }
+
+        return redirect()->to('/event/basket/' . $eventId);
+    }
+
+    /**
+     * @param array<string,mixed>|null $locationRow
+     * @return array<string,mixed>
+     */
+    private function mergeServiceLocation(array $service, ?array $locationRow): array
+    {
+        $base = [
+            'latitude' => null,
+            'longitude' => null,
+            'all_travel_included' => 0,
+            'no_travel_limit' => 0,
+            'free_coverage_radius' => null,
+            'paid_coverage_radius' => null,
+            'travel_fee_per_km' => null,
+        ];
+        $row = $locationRow ?? [];
+        $out = array_merge($base, $row);
+        $keys = ['latitude', 'longitude', 'all_travel_included', 'no_travel_limit', 'free_coverage_radius', 'paid_coverage_radius', 'travel_fee_per_km'];
+        foreach ($keys as $k) {
+            if (!isset($out[$k]) || $out[$k] === null || $out[$k] === '') {
+                if (array_key_exists($k, $service) && $service[$k] !== null && $service[$k] !== '') {
+                    $out[$k] = $service[$k];
+                }
+            }
+        }
+
+        return $out;
     }
 
     // =========================================================
@@ -299,6 +457,8 @@ class EventController extends BaseController
             $item['service_title'] = $service ? $service['title'] : 'Unknown Service';
             $item['service_description'] = $service ? ($service['short_description'] ?? '') : '';
             $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown Vendor';
+            $qd = json_decode($item['quote_breakdown'] ?? '', true);
+            $item['quote_detail'] = is_array($qd) ? $qd : null;
             $totalDeposit += (float)$item['deposit_amount'];
             $totalEstimated += (float)$item['estimated_total'];
             $basketItems[] = $item;

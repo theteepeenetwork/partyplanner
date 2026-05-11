@@ -24,8 +24,9 @@
                         <?php if (!empty($item['package_name'])): ?>
                             <span class="text-muted small ms-1">(<?= esc($item['package_name']) ?>)</span>
                         <?php endif; ?>
+                        <div class="small text-muted">Est. total £<?= number_format((float) $item['estimated_total'], 2) ?> · Deposit £<?= number_format((float) $item['deposit_amount'], 2) ?></div>
                     </div>
-                    <span>£<?= number_format($item['deposit_amount'], 2) ?></span>
+                    <span class="text-nowrap">£<?= number_format($item['deposit_amount'], 2) ?></span>
                 </div>
             <?php endforeach; ?>
             <div class="d-flex justify-content-between pt-3">

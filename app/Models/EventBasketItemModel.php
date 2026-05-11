@@ -12,7 +12,7 @@ class EventBasketItemModel extends Model
         'event_id', 'user_id', 'service_id', 'vendor_id',
         'package_name', 'extras', 'quantity',
         'unit_price', 'deposit_amount', 'estimated_total',
-        'notes', 'created_at', 'updated_at',
+        'notes', 'quote_breakdown', 'created_at', 'updated_at',
     ];
     protected $useTimestamps = true;
     protected $createdField = 'created_at';

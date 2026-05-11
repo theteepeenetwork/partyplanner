@@ -32,6 +32,15 @@
                     </div>
                 </div>
 
+                <?php if (($eventSetting ?? 'private') === 'public'): ?>
+                <div class="mb-3">
+                    <label for="organiser_pitch_fee" class="form-label">Organiser pitch / stand fee (£)</label>
+                    <input type="number" class="form-control" id="organiser_pitch_fee" name="organiser_pitch_fee"
+                           value="<?= esc($old['organiser_pitch_fee'] ?? '') ?>" min="0" step="0.01" placeholder="e.g. 150.00">
+                    <div class="form-text">If the organiser has quoted a pitch or stand fee, enter it here for an accurate total. Leave blank to estimate using each vendor’s maximum pitch for your expected attendance.</div>
+                </div>
+                <?php endif; ?>
+
                 <div class="mb-3">
                     <label class="form-label">Indoor / Outdoor</label>
                     <div class="d-flex gap-3">

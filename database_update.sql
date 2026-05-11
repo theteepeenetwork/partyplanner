@@ -52,6 +52,10 @@ ALTER TABLE events ADD COLUMN IF NOT EXISTS `style_theme` varchar(255) DEFAULT N
 ALTER TABLE events ADD COLUMN IF NOT EXISTS `notes` text DEFAULT NULL AFTER `style_theme`;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS `status` varchar(20) DEFAULT 'active' AFTER `notes`;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS `created_at` datetime DEFAULT CURRENT_TIMESTAMP;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS `event_setting` varchar(20) NOT NULL DEFAULT 'private' COMMENT 'public vs private pricing path' AFTER `guest_count`;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS `organiser_pitch_fee` decimal(10,2) DEFAULT NULL COMMENT 'Actual pitch/stand fee for public events' AFTER `event_setting`;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS `latitude` decimal(10,8) DEFAULT NULL AFTER `town_city`;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS `longitude` decimal(11,8) DEFAULT NULL AFTER `latitude`;
 
 -- ============================================================
 -- TABLE: booking_items — add pricing and package columns
@@ -205,6 +209,7 @@ CREATE TABLE IF NOT EXISTS `event_basket_items` (
   `deposit_amount` decimal(10,2) DEFAULT NULL,
   `estimated_total` decimal(10,2) DEFAULT NULL,
   `notes` text DEFAULT NULL,
+  `quote_breakdown` text DEFAULT NULL COMMENT 'JSON line items for estimated_total',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`),
@@ -212,6 +217,8 @@ CREATE TABLE IF NOT EXISTS `event_basket_items` (
   KEY `user_id` (`user_id`),
   KEY `service_id` (`service_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+ALTER TABLE event_basket_items ADD COLUMN IF NOT EXISTS `quote_breakdown` text DEFAULT NULL COMMENT 'JSON line items for estimated_total' AFTER `notes`;
 
 -- ============================================================
 -- NEW TABLE: chat_rooms
