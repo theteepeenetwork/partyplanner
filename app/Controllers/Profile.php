@@ -237,7 +237,7 @@ class Profile extends BaseController
         if (!empty($vendorServiceIds)) {
             $bookingItems = $bookingItemModel
                 ->select('booking_items.*, bookings.user_id, bookings.event_id, bookings.status as booking_status, bookings.created_at as request_date,
-                          events.title as event_title, events.`date` as event_date, events.location, events.event_type, events.guest_count as event_guests,
+                          events.title as event_title, events.`date` as event_date, events.location, events.event_type,
                           services.title as service_title, services.price as service_price,
                           users.name as customer_name,
                           payments.payment_status, payments.amount_paid', false)

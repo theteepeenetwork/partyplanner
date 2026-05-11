@@ -62,6 +62,8 @@ class Service_Controller extends BaseController
 
     public function browse()
     {
+        $this->setPreferredBasketEventFromQuery($this->request->getGet('event_id'));
+
         $serviceModel = new ServiceModel();
         $serviceImageModel = new ServiceImageModel();
         $categoryModel = new CategoryModel();
@@ -104,9 +106,57 @@ class Service_Controller extends BaseController
             'categories' => $categories,
             'selectedCategory' => $categoryFilter,
             'searchQuery' => $searchQuery ?? '',
+            'basketEventId' => session()->get('preferred_basket_event_id'),
         ];
 
         return view('browse_services', $data);
+    }
+
+    /**
+     * Legacy route `/service/search` (still linked from older views). Delegates to the
+     * same catalogue as browse-services; optional `event_id` scopes the add-to-basket flow.
+     */
+    public function search()
+    {
+        $this->setPreferredBasketEventFromQuery($this->request->getGet('event_id'));
+
+        $q = $this->request->getGet('q');
+        $cuisine = $this->request->getGet('cuisine');
+
+        $params = [];
+        if ($q !== null && $q !== '') {
+            $params['q'] = $q;
+        }
+        if ($cuisine !== null && $cuisine !== '') {
+            $params['category'] = $cuisine;
+        }
+
+        $url = '/browse-services';
+        if ($params !== []) {
+            $url .= '?' . http_build_query($params);
+        }
+
+        return redirect()->to($url);
+    }
+
+    /**
+     * When customers browse with ?event_id=, remember it so "Add to event" can skip the picker.
+     */
+    private function setPreferredBasketEventFromQuery(?string $eventId): void
+    {
+        if ($eventId === null || $eventId === '' || !session()->has('user_id')) {
+            return;
+        }
+
+        $eventModel = new EventModel();
+        $event = $eventModel->find((int) $eventId);
+        if (
+            $event
+            && isset($event['user_id'])
+            && (int) $event['user_id'] === (int) session()->get('user_id')
+        ) {
+            session()->set('preferred_basket_event_id', (int) $eventId);
+        }
     }
 
     public function destroy($step)
