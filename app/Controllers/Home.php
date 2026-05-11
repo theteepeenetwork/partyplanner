@@ -13,11 +13,15 @@ class Home extends BaseController
         $serviceModel = new ServiceModel();
         $serviceImageModel = new ServiceImageModel();
         $categoryModel = new CategoryModel();
-        $cmsModel = new CmsPageModel();
-
-        $cmsHome = $cmsModel->where('slug', 'homepage')->where('status', 'published')->first();
 
         $db = \Config\Database::connect();
+
+        $cmsHome = null;
+        if ($db->tableExists('cms_pages')) {
+            $cmsModel = new CmsPageModel();
+            $cmsHome  = $cmsModel->where('slug', 'homepage')->where('status', 'published')->first();
+        }
+
         $cols = $db->getFieldNames('services');
 
         $builder = $serviceModel;
