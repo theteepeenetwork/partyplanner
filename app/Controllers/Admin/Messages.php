@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Admin;
 
+use App\Libraries\ChatModeration;
 use App\Models\ChatMessageModel;
 use App\Models\ChatRoomModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -17,6 +18,7 @@ class Messages extends BaseAdminController
         $vendorId   = (int) $this->request->getGet('vendor_id');
         $customerId = (int) $this->request->getGet('customer_id');
         $bookingId  = (int) $this->request->getGet('booking_id');
+        $moderation = trim((string) $this->request->getGet('moderation'));
 
         $builder = $db->table('chat_rooms')
             ->select('chat_rooms.*, v.name as vendor_name, c.name as customer_name, s.title as service_title')
@@ -54,10 +56,28 @@ class Messages extends BaseAdminController
                 $builder->where('1=0', null, false);
             }
         }
+        if ($moderation === 'pending') {
+            $pendingRooms = $db->table('chat_messages')
+                ->select('chat_room_id')
+                ->where('moderation_status', ChatModeration::STATUS_PENDING)
+                ->groupBy('chat_room_id')
+                ->get()
+                ->getResultArray();
+            $prids = array_column($pendingRooms, 'chat_room_id');
+            if ($prids === []) {
+                $builder->where('1=0', null, false);
+            } else {
+                $builder->whereIn('chat_rooms.id', $prids);
+            }
+        }
+
         if ($keyword !== '') {
             $roomIds = $db->table('chat_messages')
                 ->select('chat_room_id')
+                ->groupStart()
                 ->like('message', $keyword)
+                ->orLike('original_message', $keyword)
+                ->groupEnd()
                 ->groupBy('chat_room_id')
                 ->get()
                 ->getResultArray();
@@ -80,6 +100,7 @@ class Messages extends BaseAdminController
             'vendor_id'   => $vendorId,
             'customer_id' => $customerId,
             'booking_id'  => $bookingId,
+            'moderation'  => $moderation,
         ]);
     }
 
@@ -131,7 +152,9 @@ class Messages extends BaseAdminController
             return redirect()->back()->with('error', 'Message not found.');
         }
 
+        $rid = (int) $msg['chat_room_id'];
         $msgModel->delete($messageId);
+        ChatModeration::refreshRoomModerationFlag($rid);
 
         return redirect()->back()->with('success', 'Message removed.');
     }
@@ -156,5 +179,58 @@ class Messages extends BaseAdminController
         $roomModel->update($roomId, ['flagged_for_review' => 0]);
 
         return redirect()->back()->with('success', 'Flag cleared.');
+    }
+
+    public function approveMessage(int $messageId)
+    {
+        $msgModel = new ChatMessageModel();
+        $msg      = $msgModel->find($messageId);
+        if (! $msg || ($msg['moderation_status'] ?? '') !== ChatModeration::STATUS_PENDING) {
+            return redirect()->back()->with('error', 'That message is not awaiting language review.');
+        }
+
+        $note = trim((string) $this->request->getPost('admin_note'));
+        if (strlen($note) > 2000) {
+            $note = substr($note, 0, 2000);
+        }
+
+        $body = $msg['original_message'] ?? $msg['message'];
+        $msgModel->update($messageId, [
+            'message'           => $body,
+            'moderation_status' => ChatModeration::STATUS_APPROVED,
+            'admin_note'        => $note !== '' ? $note : null,
+            'reviewed_by'       => (int) session()->get('user_id'),
+            'reviewed_at'       => date('Y-m-d H:i:s'),
+        ]);
+
+        ChatModeration::refreshRoomModerationFlag((int) $msg['chat_room_id']);
+
+        return redirect()->back()->with('success', 'Message reviewed and accepted; participants now see the approved text.');
+    }
+
+    public function rejectMessage(int $messageId)
+    {
+        $msgModel = new ChatMessageModel();
+        $msg      = $msgModel->find($messageId);
+        if (! $msg || ($msg['moderation_status'] ?? '') !== ChatModeration::STATUS_PENDING) {
+            return redirect()->back()->with('error', 'That message is not awaiting language review.');
+        }
+
+        $note = trim((string) $this->request->getPost('admin_note'));
+        if (strlen($note) > 2000) {
+            $note = substr($note, 0, 2000);
+        }
+
+        $msgModel->update($messageId, [
+            'message'           => ChatModeration::REJECTED_PLACEHOLDER,
+            'moderation_status' => ChatModeration::STATUS_REJECTED,
+            'admin_note'        => $note !== '' ? $note : null,
+            'reviewed_by'       => (int) session()->get('user_id'),
+            'reviewed_at'       => date('Y-m-d H:i:s'),
+        ]);
+
+        ChatModeration::refreshRoomModerationFlag((int) $msg['chat_room_id']);
+
+        return redirect()->back()->with('success', 'Message reviewed and marked as not sent.');
     }
 }

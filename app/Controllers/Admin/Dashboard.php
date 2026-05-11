@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Admin;
 
+use App\Libraries\ChatModeration;
 use App\Models\BookingModel;
 use App\Models\ServiceModel;
 use App\Models\UserModel;
@@ -43,6 +44,7 @@ class Dashboard extends BaseAdminController
         $pendingBookings = $bookingModel->where('status', 'pending')->countAllResults();
         $inactiveServices = $serviceModel->where('deleted_at', null)->whereNotIn('status', ['active'])->countAllResults();
         $flaggedRooms     = $db->table('chat_rooms')->where('flagged_for_review', 1)->countAllResults();
+        $pendingLanguage  = $db->table('chat_messages')->where('moderation_status', ChatModeration::STATUS_PENDING)->countAllResults();
 
         return $this->layout('admin/dashboard_home', [
             'title'            => 'Admin dashboard',
@@ -53,6 +55,7 @@ class Dashboard extends BaseAdminController
             'pendingBookings'  => $pendingBookings,
             'inactiveServices' => $inactiveServices,
             'flaggedRooms'     => $flaggedRooms,
+            'pendingLanguage'  => $pendingLanguage,
         ]);
     }
 }

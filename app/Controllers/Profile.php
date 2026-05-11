@@ -13,6 +13,7 @@ use App\Models\ChatRoomModel;
 use App\Models\PaymentsModel;
 use App\Models\CategoryModel;
 use App\Models\FavouriteModel;
+use App\Libraries\ChatModeration;
 use DateTime;
 
 class Profile extends BaseController
@@ -552,15 +553,26 @@ class Profile extends BaseController
 
         $receiverId = ((int) $room['customer_id'] === $userId) ? (int) $room['vendor_id'] : (int) $room['customer_id'];
 
-        $chatMessageModel->insert([
+        $moderation = new ChatModeration();
+        $row        = array_merge([
             'chat_room_id' => $roomId,
-            'sender_id' => $userId,
-            'receiver_id' => $receiverId,
-            'message' => $message,
-            'is_read' => 0,
-        ]);
+            'sender_id'    => $userId,
+            'receiver_id'  => $receiverId,
+            'is_read'      => 0,
+        ], $moderation->moderationFieldsForInsert((string) $message));
 
-        return redirect()->to('/profile/messages/' . $roomId);
+        $chatMessageModel->insert($row);
+        ChatModeration::refreshRoomModerationFlag($roomId);
+
+        $response = redirect()->to('/profile/messages/' . $roomId);
+        if (($row['moderation_status'] ?? '') === ChatModeration::STATUS_PENDING) {
+            $response = $response->with(
+                'moderation_warning',
+                'Inappropriate language was detected. Your message was partially masked and flagged for admin review.'
+            );
+        }
+
+        return $response;
     }
 
     public function customerPayments()

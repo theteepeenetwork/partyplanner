@@ -108,10 +108,14 @@ button:hover {
 </style>
 
 <div class="chat-window">
+    <?php if ($modWarn = session()->getFlashdata('moderation_warning')): ?>
+        <div class="alert alert-warning m-2"><?= esc($modWarn) ?></div>
+    <?php endif; ?>
     <div class="chat-messages" id="chat-messages">
         <?php foreach ($messages as $message): ?>
             <div class="message <?= $message['sender_id'] == session()->get('user_id') ? 'sent' : 'received';?>">
                 <p><?= esc($message['message']) ?></p>
+                <?= view('partials/chat_moderation_meta', ['msg' => $message]) ?>
                 <span class="timestamp"><?= esc($message['created_at']) ?></span>
             </div>
         <?php endforeach; ?>

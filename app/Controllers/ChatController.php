@@ -6,6 +6,7 @@ use App\Models\ChatMessageModel;
 use App\Models\UserModel;
 use App\Models\ServiceModel;
 use App\Models\BookingItemModel;
+use App\Libraries\ChatModeration;
 use CodeIgniter\Controller;
 
 class ChatController extends Controller
@@ -108,17 +109,26 @@ class ChatController extends Controller
             return redirect()->back()->with('error', 'Receiver not found.');
         }
 
-        // Insert the message into the chat_messages table
-        $chatMessageModel = new ChatMessageModel();
-        $chatMessageModel->insert([
+        $moderation = new ChatModeration();
+        $row        = array_merge([
             'chat_room_id' => $chatRoomId,
-            'sender_id' => $senderId,
-            'receiver_id' => $receiverId,
-            'message' => $message,
-            'is_read' => false,
-        ]);
+            'sender_id'    => $senderId,
+            'receiver_id'  => $receiverId,
+            'is_read'      => false,
+        ], $moderation->moderationFieldsForInsert((string) $message));
 
-        return redirect()->to("/chat/view/$chatRoomId");
+        $chatMessageModel->insert($row);
+        ChatModeration::refreshRoomModerationFlag($chatRoomId);
+
+        $response = redirect()->to("/chat/view/$chatRoomId");
+        if (($row['moderation_status'] ?? '') === ChatModeration::STATUS_PENDING) {
+            $response = $response->with(
+                'moderation_warning',
+                'Inappropriate language was detected. Your message was partially masked and flagged for admin review.'
+            );
+        }
+
+        return $response;
     }
 
     public function checkNewMessages()

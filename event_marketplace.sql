@@ -287,6 +287,12 @@ CREATE TABLE IF NOT EXISTS `chat_messages` (
   `sender_id` int(11) NOT NULL,
   `receiver_id` int(11) DEFAULT NULL,
   `message` text DEFAULT NULL,
+  `original_message` text DEFAULT NULL,
+  `moderation_status` varchar(20) NOT NULL DEFAULT 'clean',
+  `admin_note` text DEFAULT NULL,
+  `profanity_matches` varchar(500) DEFAULT NULL,
+  `reviewed_by` int(11) DEFAULT NULL,
+  `reviewed_at` datetime DEFAULT NULL,
   `is_read` tinyint(1) DEFAULT 0,
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
