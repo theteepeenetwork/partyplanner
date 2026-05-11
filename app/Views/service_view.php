@@ -10,6 +10,21 @@
             <div class="alert alert-success"><?= esc(session()->getFlashdata('success')) ?></div>
         <?php endif; ?>
         <?php if (isset($service)): ?>
+            <?php
+            $pricingType = $privatePricing['pricing_type'] ?? null;
+            if ($pricingType === null) {
+                if (!empty($guestPricing)) {
+                    $pricingType = 'guest_based_pricing';
+                } elseif (!empty($durationPricing)) {
+                    $pricingType = 'custom_duration_pricing';
+                } elseif (!empty($tieredPackages)) {
+                    $pricingType = 'tiered_packages_pricing';
+                }
+            }
+            $showGuest = $pricingType === 'guest_based_pricing';
+            $showDuration = $pricingType === 'custom_duration_pricing';
+            $showPackages = $pricingType === 'tiered_packages_pricing';
+            ?>
             <div class="service-preview card">
                 <div class="row">
                     <!-- Left: Gallery -->
@@ -35,21 +50,22 @@
                         <?php endif; ?>
 
                         <?php if (!empty($service['price'])): ?>
-                            <p class="service-price mt-2">From £<?= number_format($service['price'], 2) ?></p>
+                            <p class="service-price mt-2">From £<?= number_format((float) $service['price'], 2) ?></p>
                         <?php endif; ?>
 
                         <!-- Pricing Options -->
                         <div class="pricing-options">
-                            <?php $hasPricing = !empty($guestPricing) || !empty($durationPricing) || !empty($tieredPackages); ?>
+                            <?php $hasPricing = $showGuest || $showDuration || $showPackages; ?>
                             <?php if ($hasPricing): ?>
                                 <h4>Pricing Options</h4>
                             <?php endif; ?>
 
-                            <form action="<?= base_url('cart/add/' . $service['id']) ?>" method="post">
-                                <?php if (!empty($guestPricing)): ?>
+                            <form action="<?= site_url('event/add-to-event/' . $service['id']) ?>" method="post">
+                                <?= csrf_field() ?>
+                                <?php if ($showGuest): ?>
                                     <div class="form-group">
                                         <label for="guestPricing">Guest-Based Pricing:</label>
-                                        <select class="form-control" id="guestPricing" name="pricing_option">
+                                        <select class="form-control" id="guestPricing" name="pricing_option" required>
                                             <?php foreach ($guestPricing as $pricing): ?>
                                                 <option value="guest_<?= esc($pricing['id']) ?>">
                                                     <?= esc($pricing['min_guest'] ?? $pricing['min_guests'] ?? '') ?> to <?= esc($pricing['max_guest'] ?? $pricing['max_guests'] ?? '') ?> Guests:
@@ -60,10 +76,10 @@
                                     </div>
                                 <?php endif; ?>
 
-                                <?php if (!empty($durationPricing)): ?>
+                                <?php if ($showDuration): ?>
                                     <div class="form-group">
                                         <label for="durationPricing">Duration-Based Pricing:</label>
-                                        <select class="form-control" id="durationPricing" name="pricing_option">
+                                        <select class="form-control" id="durationPricing" name="pricing_option" required>
                                             <?php foreach ($durationPricing as $pricing): ?>
                                                 <option value="duration_<?= esc($pricing['id']) ?>">
                                                     <?= esc($pricing['duration_hours'] ?? $pricing['duration'] ?? '') ?> Hour(s): £<?= esc($pricing['price']) ?>
@@ -73,10 +89,10 @@
                                     </div>
                                 <?php endif; ?>
 
-                                <?php if (!empty($tieredPackages)): ?>
+                                <?php if ($showPackages): ?>
                                     <div class="form-group">
                                         <label for="tieredPackages">Tiered Packages:</label>
-                                        <select class="form-control" id="tieredPackages" name="pricing_option">
+                                        <select class="form-control" id="tieredPackages" name="pricing_option" required>
                                             <?php foreach ($tieredPackages as $package): ?>
                                                 <option value="package_<?= esc($package['id']) ?>">
                                                     <?= esc($package['package_name']) ?>: £<?= esc($package['package_price'] ?? $package['price'] ?? '') ?>
@@ -117,9 +133,9 @@
                                             Edit Service
                                         </a>
                                     <?php else: ?>
-                                        <a href="/event/add-to-event/<?= $service['id'] ?>" class="btn btn-primary btn-lg">
+                                        <button type="submit" class="btn btn-primary btn-lg">
                                             <i class="fas fa-calendar-plus me-1"></i>Add to Event
-                                        </a>
+                                        </button>
                                     <?php endif; ?>
                                     <?php if (!empty($message_vendor_eligible) && !empty($message_vendor_url)): ?>
                                         <a href="<?= esc($message_vendor_url) ?>" class="btn btn-outline-primary btn-lg ms-2">
