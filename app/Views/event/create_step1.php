@@ -56,6 +56,20 @@
                            value="<?= esc($old['guest_count'] ?? '') ?>" min="1" placeholder="e.g. 100" required>
                 </div>
 
+                <div class="mb-3">
+                    <label class="form-label">Event format <span class="text-danger">*</span></label>
+                    <p class="small text-muted">We use this to match vendor pricing (private hire vs public / pitch events).</p>
+                    <?php $es = $old['event_setting'] ?? 'private'; ?>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="event_setting" id="es_private" value="private" <?= $es === 'private' ? 'checked' : '' ?> required>
+                        <label class="form-check-label" for="es_private">Private event (wedding, party, venue hire, corporate at a site)</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="event_setting" id="es_public" value="public" <?= $es === 'public' ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="es_public">Public / trade event (fair, festival, market — pitch or stand)</label>
+                    </div>
+                </div>
+
                 <div class="d-flex justify-content-end">
                     <button type="submit" class="btn btn-primary">Next: Location <i class="fas fa-arrow-right ms-1"></i></button>
                 </div>

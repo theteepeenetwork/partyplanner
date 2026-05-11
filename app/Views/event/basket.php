@@ -14,6 +14,9 @@
         <?php if (session()->getFlashdata('success')): ?>
             <div class="alert alert-success"><?= session()->getFlashdata('success') ?></div>
         <?php endif; ?>
+        <?php if (session()->getFlashdata('info')): ?>
+            <div class="alert alert-info"><?= esc(session()->getFlashdata('info')) ?></div>
+        <?php endif; ?>
         <?php if (session()->getFlashdata('error')): ?>
             <div class="alert alert-danger"><?= session()->getFlashdata('error') ?></div>
         <?php endif; ?>
@@ -32,6 +35,22 @@
                             </div>
                             <?php if (!empty($item['service_description'])): ?>
                                 <p class="small text-muted mt-1 mb-0"><?= esc(substr($item['service_description'], 0, 100)) ?></p>
+                            <?php endif; ?>
+                            <?php if (!empty($item['quote_detail']['lines'])): ?>
+                                <div class="mt-2 small">
+                                    <div class="text-muted fw-semibold mb-1">Quote breakdown</div>
+                                    <ul class="mb-0 ps-3">
+                                        <?php foreach ($item['quote_detail']['lines'] as $line): ?>
+                                            <li class="d-flex justify-content-between gap-2">
+                                                <span><?= esc($line['label'] ?? '') ?></span>
+                                                <span>£<?= number_format((float) ($line['amount'] ?? 0), 2) ?></span>
+                                            </li>
+                                        <?php endforeach; ?>
+                                    </ul>
+                                    <?php if (isset($item['quote_detail']['distance_km']) && $item['quote_detail']['distance_km'] !== null): ?>
+                                        <div class="text-muted mt-1">Road distance (approx.): <?= esc($item['quote_detail']['distance_km']) ?> km</div>
+                                    <?php endif; ?>
+                                </div>
                             <?php endif; ?>
                         </div>
                         <div class="col-md-3 text-md-end mt-2 mt-md-0">
