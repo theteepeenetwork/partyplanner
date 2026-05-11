@@ -17,8 +17,19 @@ class Home extends BaseController
 
         $cmsHome = $cmsModel->where('slug', 'homepage')->where('status', 'published')->first();
 
+        $db = \Config\Database::connect();
+        $cols = $db->getFieldNames('services');
+
+        $builder = $serviceModel;
+        if (in_array('status', $cols, true)) {
+            $builder = $builder->where('status', 'active');
+        }
+        if (in_array('deleted_at', $cols, true)) {
+            $builder = $builder->where('deleted_at', null);
+        }
+
         // Retrieve 9 random active services
-        $services = $serviceModel
+        $services = $builder
             ->orderBy('rand()')
             ->limit(9)
             ->findAll();

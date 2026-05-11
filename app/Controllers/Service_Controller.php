@@ -33,6 +33,9 @@ use DateTime;
 
 class Service_Controller extends BaseController
 {
+    /** @var list<string>|null */
+    private ?array $servicesTableColumns = null;
+
     public function index()
     {
         if (!session()->has('user_id')) {
@@ -69,23 +72,27 @@ class Service_Controller extends BaseController
         $categoryModel = new CategoryModel();
 
         $categoryFilter = $this->request->getGet('category');
-        $searchQuery = $this->request->getGet('q');
+        $searchQuery = trim((string) $this->request->getGet('q'));
+        $sort = (string) $this->request->getGet('sort');
+        if (! in_array($sort, ['newest', 'price_asc', 'price_desc', 'title'], true)) {
+            $sort = 'newest';
+        }
 
-        $builder = $serviceModel->where('status', 'active')->where('deleted_at', null);
+        $cols = $this->getServicesTableColumns();
 
-        if ($categoryFilter) {
+        $builder = $this->applyPublicServiceCatalogFilters($serviceModel, $cols);
+
+        if ($categoryFilter !== null && $categoryFilter !== '' && in_array('category_id', $cols, true)) {
             $builder = $builder->where('category_id', $categoryFilter);
         }
 
-        if ($searchQuery) {
-            $builder = $builder->groupStart()
-                ->like('title', $searchQuery)
-                ->orLike('short_description', $searchQuery)
-                ->orLike('description', $searchQuery)
-                ->groupEnd();
+        if ($searchQuery !== '') {
+            $builder = $this->applyBrowseSearch($builder, $searchQuery, $cols);
         }
 
-        $services = $builder->orderBy('created_at', 'DESC')->findAll();
+        $builder = $this->applyBrowseSort($builder, $sort, $cols);
+
+        $services = $builder->findAll();
 
         foreach ($services as &$service) {
             $service['images'] = $serviceImageModel
