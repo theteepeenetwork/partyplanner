@@ -69,8 +69,11 @@
                         </div>
                         <div class="col-md-4 text-md-end mt-3 mt-md-0">
                             <a href="/service/view/<?= $item['service_id'] ?>" class="btn btn-sm btn-outline-primary me-1">View Service</a>
-                            <!-- TODO: Link to message thread with this vendor -->
-                            <a href="/profile/messages" class="btn btn-sm btn-outline-secondary">Message Vendor</a>
+                            <?php if (!in_array($item['status'], ['rejected', 'cancelled'], true)): ?>
+                                <a href="<?= base_url('profile/messages/start/' . (int) $item['service_id']) ?>" class="btn btn-sm btn-outline-secondary">Message vendor</a>
+                            <?php else: ?>
+                                <span class="btn btn-sm btn-outline-secondary disabled" tabindex="-1">Message vendor</span>
+                            <?php endif; ?>
                         </div>
                     </div>
                 </div>

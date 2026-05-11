@@ -4,42 +4,51 @@ namespace App\Controllers;
 use App\Models\ChatRoomModel;
 use App\Models\ChatMessageModel;
 use App\Models\UserModel;
+use App\Models\ServiceModel;
+use App\Models\BookingItemModel;
 use CodeIgniter\Controller;
 
 class ChatController extends Controller
 {
     public function startChat($userId, $serviceId)
     {
-        $currentUserId = session()->get('user_id');
+        $currentUserId = (int) session()->get('user_id');
+        if (!$currentUserId) {
+            return redirect()->to('/login')->with('error', 'Please log in to continue.');
+        }
+
+        $serviceModel = new ServiceModel();
+        $service = $serviceModel->find((int) $serviceId);
+        if (!$service) {
+            return redirect()->back()->with('error', 'Service not found.');
+        }
+
+        $bookingItemModel = new BookingItemModel();
 
         // Determine roles and IDs
-        if (session()->get('role') == 'vendor') {
+        if (session()->get('role') === 'vendor') {
             $vendorId = $currentUserId;
-            $customerId = $userId;
+            $customerId = (int) $userId;
+            if ((int) $service['vendor_id'] !== $vendorId) {
+                return redirect()->back()->with('error', 'You can only start chats for your own services.');
+            }
+            if (!$bookingItemModel->customerHasEligibleBookingForService($customerId, (int) $serviceId)) {
+                return redirect()->back()->with('error', 'Messaging is only available once the customer has booked this service.');
+            }
         } else {
-            $vendorId = $userId;
+            $vendorId = (int) $userId;
             $customerId = $currentUserId;
+            if ((int) $service['vendor_id'] !== $vendorId) {
+                return redirect()->back()->with('error', 'Invalid vendor for this listing.');
+            }
+            if (!$bookingItemModel->customerHasEligibleBookingForService($customerId, (int) $serviceId)) {
+                return redirect()->back()->with('error', 'Messaging is available after you have booked this service.');
+            }
         }
 
         // Check if a chat room already exists between the vendor, customer, and service
         $chatRoomModel = new ChatRoomModel();
-        $chatRoom = $chatRoomModel->where('vendor_id', $vendorId)
-                                   ->where('customer_id', $customerId)
-                                   ->where('service_id', $serviceId)
-                                   ->first();
-
-        // If the chat room does not exist, create a new one
-        if (!$chatRoom) {
-            $chatRoomModel->insert([
-                'vendor_id' => $vendorId,
-                'customer_id' => $customerId,
-                'service_id' => $serviceId,
-            ]);
-            $chatRoomId = $chatRoomModel->getInsertID();
-        } else {
-            // Use the existing chat room
-            $chatRoomId = $chatRoom['id'];
-        }
+        $chatRoomId = $chatRoomModel->ensureRoom($vendorId, $customerId, (int) $serviceId);
 
         // Redirect to the chat view with the appropriate chat room ID
         return redirect()->to("/chat/view/$chatRoomId");
@@ -47,6 +56,17 @@ class ChatController extends Controller
 
     public function viewChat($chatRoomId)
     {
+        $uid = (int) session()->get('user_id');
+        if (!$uid) {
+            return redirect()->to('/login');
+        }
+
+        $chatRoomModel = new ChatRoomModel();
+        $room = $chatRoomModel->find((int) $chatRoomId);
+        if (!$room || ((int) $room['customer_id'] !== $uid && (int) $room['vendor_id'] !== $uid)) {
+            return redirect()->to('/profile/messages')->with('error', 'Conversation not found.');
+        }
+
         $chatMessageModel = new ChatMessageModel();
         $messages = $chatMessageModel->where('chat_room_id', $chatRoomId)
                                      ->orderBy('created_at', 'ASC')
@@ -57,9 +77,9 @@ class ChatController extends Controller
 
     public function sendMessage()
     {
-        $chatRoomId = $this->request->getPost('chat_room_id');
+        $chatRoomId = (int) $this->request->getPost('chat_room_id');
         $message = $this->request->getPost('message');
-        $senderId = session()->get('user_id');
+        $senderId = (int) session()->get('user_id');
 
         // Fetch chat room details to determine the receiver
         $chatRoomModel = new ChatRoomModel();
@@ -67,6 +87,10 @@ class ChatController extends Controller
 
         if (!$chatRoom) {
             return redirect()->back()->with('error', 'Chat room not found.');
+        }
+
+        if ((int) $chatRoom['customer_id'] !== $senderId && (int) $chatRoom['vendor_id'] !== $senderId) {
+            return redirect()->back()->with('error', 'You are not part of this conversation.');
         }
 
         // Determine the receiver based on the sender and chat room participants
