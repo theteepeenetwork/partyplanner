@@ -33,6 +33,9 @@ use DateTime;
 
 class Service_Controller extends BaseController
 {
+    /** @var list<string>|null */
+    private ?array $servicesTableColumns = null;
+
     public function index()
     {
         if (!session()->has('user_id')) {
@@ -69,23 +72,27 @@ class Service_Controller extends BaseController
         $categoryModel = new CategoryModel();
 
         $categoryFilter = $this->request->getGet('category');
-        $searchQuery = $this->request->getGet('q');
+        $searchQuery = trim((string) $this->request->getGet('q'));
+        $sort = (string) $this->request->getGet('sort');
+        if (! in_array($sort, ['newest', 'price_asc', 'price_desc', 'title'], true)) {
+            $sort = 'newest';
+        }
 
-        $builder = $serviceModel->where('status', 'active')->where('deleted_at', null);
+        $cols = $this->getServicesTableColumns();
 
-        if ($categoryFilter) {
+        $builder = $this->applyPublicServiceCatalogFilters($serviceModel, $cols);
+
+        if ($categoryFilter !== null && $categoryFilter !== '' && in_array('category_id', $cols, true)) {
             $builder = $builder->where('category_id', $categoryFilter);
         }
 
-        if ($searchQuery) {
-            $builder = $builder->groupStart()
-                ->like('title', $searchQuery)
-                ->orLike('short_description', $searchQuery)
-                ->orLike('description', $searchQuery)
-                ->groupEnd();
+        if ($searchQuery !== '') {
+            $builder = $this->applyBrowseSearch($builder, $searchQuery, $cols);
         }
 
-        $services = $builder->orderBy('created_at', 'DESC')->findAll();
+        $builder = $this->applyBrowseSort($builder, $sort, $cols);
+
+        $services = $builder->findAll();
 
         foreach ($services as &$service) {
             $service['images'] = $serviceImageModel
@@ -105,7 +112,8 @@ class Service_Controller extends BaseController
             'services' => $services,
             'categories' => $categories,
             'selectedCategory' => $categoryFilter,
-            'searchQuery' => $searchQuery ?? '',
+            'searchQuery' => $searchQuery,
+            'selectedSort' => $sort,
             'basketEventId' => session()->get('preferred_basket_event_id'),
         ];
 
@@ -129,6 +137,14 @@ class Service_Controller extends BaseController
         }
         if ($cuisine !== null && $cuisine !== '') {
             $params['category'] = $cuisine;
+        }
+        $sort = $this->request->getGet('sort');
+        if ($sort !== null && $sort !== '' && in_array($sort, ['newest', 'price_asc', 'price_desc', 'title'], true)) {
+            $params['sort'] = $sort;
+        }
+        $eventIdParam = $this->request->getGet('event_id');
+        if ($eventIdParam !== null && $eventIdParam !== '') {
+            $params['event_id'] = $eventIdParam;
         }
 
         $url = '/browse-services';
@@ -157,6 +173,95 @@ class Service_Controller extends BaseController
         ) {
             session()->set('preferred_basket_event_id', (int) $eventId);
         }
+    }
+
+    /**
+     * @return list<string>
+     */
+    private function getServicesTableColumns(): array
+    {
+        if ($this->servicesTableColumns === null) {
+            $this->servicesTableColumns = \Config\Database::connect()->getFieldNames('services');
+        }
+
+        return $this->servicesTableColumns;
+    }
+
+    /**
+     * @param list<string> $cols
+     */
+    private function applyPublicServiceCatalogFilters(ServiceModel $serviceModel, array $cols)
+    {
+        $q = $serviceModel;
+        if (in_array('status', $cols, true)) {
+            $q = $q->where('status', 'active');
+        }
+        if (in_array('deleted_at', $cols, true)) {
+            $q = $q->where('deleted_at', null);
+        }
+
+        return $q;
+    }
+
+    /**
+     * @param list<string> $cols
+     */
+    private function applyBrowseSearch($builder, string $searchQuery, array $cols)
+    {
+        $db = \Config\Database::connect();
+
+        $builder = $builder->groupStart()
+            ->like('title', $searchQuery);
+        if (in_array('short_description', $cols, true)) {
+            $builder = $builder->orLike('short_description', $searchQuery);
+        }
+        if (in_array('description', $cols, true)) {
+            $builder = $builder->orLike('description', $searchQuery);
+        }
+        if (in_array('service_tags', $cols, true)) {
+            $builder = $builder->orLike('service_tags', $searchQuery);
+        }
+
+        if ($db->tableExists('services_service_tags') && $db->tableExists('services_tags')) {
+            $tagSub = $db->table('services_service_tags')
+                ->select('services_service_tags.service_id')
+                ->distinct()
+                ->join('services_tags', 'services_tags.id = services_service_tags.tag_id')
+                ->like('services_tags.name', $searchQuery);
+            $builder = $builder->orWhereIn('id', $tagSub, false);
+        }
+
+        return $builder->groupEnd();
+    }
+
+    /**
+     * @param list<string> $cols
+     */
+    private function applyBrowseSort($builder, string $sort, array $cols)
+    {
+        switch ($sort) {
+            case 'price_asc':
+                if (in_array('price', $cols, true)) {
+                    return $builder->orderBy('price', 'ASC')->orderBy('id', 'DESC');
+                }
+                break;
+            case 'price_desc':
+                if (in_array('price', $cols, true)) {
+                    return $builder->orderBy('price', 'DESC')->orderBy('id', 'DESC');
+                }
+                break;
+            case 'title':
+                return $builder->orderBy('title', 'ASC')->orderBy('id', 'ASC');
+            case 'newest':
+            default:
+                if (in_array('created_at', $cols, true)) {
+                    return $builder->orderBy('created_at', 'DESC');
+                }
+
+                return $builder->orderBy('id', 'DESC');
+        }
+
+        return $builder->orderBy('id', 'DESC');
     }
 
     public function destroy($step)

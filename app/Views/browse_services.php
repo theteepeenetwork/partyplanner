@@ -3,16 +3,18 @@
 <main class="container">
     <h2 class="mb-4">Browse Services</h2>
 
-    <form class="row mb-4 g-2" action="/browse-services" method="get">
+    <form class="row mb-3 g-2 align-items-end" action="/browse-services" method="get">
         <?php if (!empty($basketEventId)): ?>
             <input type="hidden" name="event_id" value="<?= esc($basketEventId) ?>">
         <?php endif; ?>
-        <div class="col-md-5">
-            <input type="text" class="form-control" name="q" placeholder="Search services..."
+        <div class="col-md-4">
+            <label for="browse-q" class="form-label small text-muted mb-0">Keywords</label>
+            <input type="text" class="form-control" id="browse-q" name="q" placeholder="Title, description, tags…"
                 value="<?= esc($searchQuery ?? '') ?>">
         </div>
-        <div class="col-md-4">
-            <select class="form-control" name="category">
+        <div class="col-md-3">
+            <label for="browse-category" class="form-label small text-muted mb-0">Category</label>
+            <select class="form-control" id="browse-category" name="category">
                 <option value="">All Categories</option>
                 <?php foreach ($categories as $category): ?>
                     <option value="<?= esc($category['id']) ?>"
@@ -23,25 +25,49 @@
             </select>
         </div>
         <div class="col-md-3">
-            <button type="submit" class="btn btn-primary w-100">Search</button>
+            <label for="browse-sort" class="form-label small text-muted mb-0">Sort by</label>
+            <select class="form-control" id="browse-sort" name="sort">
+                <option value="newest" <?= (($selectedSort ?? 'newest') === 'newest') ? 'selected' : '' ?>>Newest listed</option>
+                <option value="price_asc" <?= (($selectedSort ?? '') === 'price_asc') ? 'selected' : '' ?>>Price: low to high</option>
+                <option value="price_desc" <?= (($selectedSort ?? '') === 'price_desc') ? 'selected' : '' ?>>Price: high to low</option>
+                <option value="title" <?= (($selectedSort ?? '') === 'title') ? 'selected' : '' ?>>Title A–Z</option>
+            </select>
+        </div>
+        <div class="col-md-2">
+            <button type="submit" class="btn btn-primary w-100">Apply</button>
         </div>
     </form>
+    <p class="small text-muted mb-4">Search matches service title, descriptions, free-text tags, linked tag names, and category filters together.</p>
 
-    <?php if (!empty($searchQuery) || !empty($selectedCategory)): ?>
+    <?php
+    $hasActiveFilters = !empty($searchQuery) || !empty($selectedCategory)
+        || (!empty($selectedSort) && $selectedSort !== 'newest');
+    ?>
+    <?php if ($hasActiveFilters): ?>
         <p class="text-muted mb-3">
             <?php
             $filterParts = [];
-            if (!empty($searchQuery)) $filterParts[] = '"' . esc($searchQuery) . '"';
+            if (!empty($searchQuery)) {
+                $filterParts[] = 'keywords "' . esc($searchQuery) . '"';
+            }
             if (!empty($selectedCategory)) {
                 foreach ($categories as $cat) {
                     if ($cat['id'] == $selectedCategory) {
-                        $filterParts[] = esc($cat['name']);
+                        $filterParts[] = 'category "' . esc($cat['name']) . '"';
                         break;
                     }
                 }
             }
+            if (!empty($selectedSort) && $selectedSort !== 'newest') {
+                $sortLabels = [
+                    'price_asc' => 'price (low to high)',
+                    'price_desc' => 'price (high to low)',
+                    'title' => 'title A–Z',
+                ];
+                $filterParts[] = 'sort: ' . esc($sortLabels[$selectedSort] ?? $selectedSort);
+            }
             ?>
-            Showing results for <?= implode(' in ', $filterParts) ?>
+            Showing results for <?= implode('; ', $filterParts) ?>
             <a href="/browse-services<?= !empty($basketEventId) ? '?event_id=' . esc($basketEventId) : '' ?>" class="ms-2">(Clear filters)</a>
         </p>
     <?php endif; ?>
@@ -83,7 +109,7 @@
             <i class="fas fa-search fa-3x text-muted mb-3"></i>
             <h4>No services found</h4>
             <p class="text-muted">Try adjusting your search or browse all categories.</p>
-            <?php if (!empty($searchQuery) || !empty($selectedCategory)): ?>
+            <?php if ($hasActiveFilters): ?>
                 <a href="/browse-services<?= !empty($basketEventId) ? '?event_id=' . esc($basketEventId) : '' ?>" class="btn btn-outline-primary">View All Services</a>
             <?php endif; ?>
         </div>
