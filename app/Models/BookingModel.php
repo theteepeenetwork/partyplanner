@@ -55,12 +55,12 @@ class BookingModel extends Model
     public function getBookingsByMonth($year, $month)
     {
         $builder = $this->db->table('bookings')
-            ->select('bookings.*, events.title as event_title, events.date as event_date, booking_items.start_time, booking_items.end_time, services.title as service_title')
+            ->select('bookings.*, events.title as event_title, events.`date` as event_date, booking_items.start_time, booking_items.end_time, services.title as service_title', false)
             ->join('booking_items', 'booking_items.booking_id = bookings.id')
             ->join('events', 'events.id = bookings.event_id')
             ->join('services', 'services.id = booking_items.service_id')
-            ->where('YEAR(events.date)', $year)
-            ->where('MONTH(events.date)', $month)
+            ->where('YEAR(events.`date`)', $year, false)
+            ->where('MONTH(events.`date`)', $month, false)
             ->get();
 
         $results = [];

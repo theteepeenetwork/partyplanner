@@ -1,5 +1,6 @@
 <?= $this->include('header') ?>
 
+<main class="page-main">
 <div class="dashboard-wrapper">
     <div class="container" style="max-width: 700px;">
         <div class="text-center py-5">
@@ -42,5 +43,6 @@
         </div>
     </div>
 </div>
+</main>
 
 <?= $this->include('footer') ?>

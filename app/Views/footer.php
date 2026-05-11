@@ -1,5 +1,4 @@
-</main>
-<footer class="bg-light text-center text-lg-start mt-4 border-top">
+<footer class="bg-light text-center text-lg-start mt-4 border-top site-footer">
     <div class="container p-4">
         <div class="row">
             <div class="col-lg-3 col-md-6 mb-4 mb-md-0">

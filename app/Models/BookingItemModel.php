@@ -12,6 +12,9 @@ class BookingItemModel extends Model
         'booking_id',
         'service_id',
         'quantity',
+        'package_name',
+        'guest_count',
+        'price',
         'status',
         'start_time',
         'end_time'

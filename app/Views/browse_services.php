@@ -1,6 +1,6 @@
 <?= $this->include('header') ?>
 
-<main class="container" style="padding-top: 80px;">
+<main class="container">
     <h2 class="mb-4">Browse Services</h2>
 
     <form class="row mb-4 g-2" action="/browse-services" method="get">

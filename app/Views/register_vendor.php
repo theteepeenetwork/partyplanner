@@ -1,6 +1,6 @@
 <?= $this->include('header') ?>
 
-<main class="container mt-4" style="padding-top: 80px;">
+<main class="container mt-4">
     <h2>Vendor Registration</h2>
     <p class="text-muted mb-4">Register as a vendor to list your event services on our platform. Once registered, you'll be able to create service listings and receive bookings from customers.</p>
 

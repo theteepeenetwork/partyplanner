@@ -16,6 +16,8 @@ class PaymentsModel extends Model
         'amount_paid',
         'currency',
         'payment_method',
+        'payment_type',
+        'description',
         'created_at',
         'updated_at'
     ];
