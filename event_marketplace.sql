@@ -536,8 +536,22 @@ CREATE TABLE IF NOT EXISTS `services_optional_extras` (
 -- Idempotent via ON DUPLICATE KEY UPDATE on primary keys.
 -- Test accounts (password TestPass123!): admin, qa_customer, m.pearson1 (vendor), mark90 (customer)
 -- --------------------------------------------------------
--- Older `events` tables may lack columns the app and seeds expect (`CREATE TABLE IF NOT EXISTS` does not upgrade them).
-ALTER TABLE `events` ADD COLUMN IF NOT EXISTS `description` text DEFAULT NULL;
+-- Older `events` tables may lack `description` (`CREATE TABLE IF NOT EXISTS` does not upgrade them).
+-- Oracle MySQL has no `ADD COLUMN IF NOT EXISTS` (MariaDB-only); use information_schema + PREPARE.
+SET @evm_has_ev_desc := (
+  SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = 'events'
+    AND COLUMN_NAME = 'description'
+);
+SET @evm_ev_desc_sql := IF(
+  @evm_has_ev_desc > 0,
+  'SELECT 1',
+  'ALTER TABLE `events` ADD COLUMN `description` text DEFAULT NULL'
+);
+PREPARE evm_ev_desc_stmt FROM @evm_ev_desc_sql;
+EXECUTE evm_ev_desc_stmt;
+DEALLOCATE PREPARE evm_ev_desc_stmt;
 
 INSERT INTO `events` (`id`, `user_id`, `title`, `description`, `date`, `location`, `event_type`, `guest_count`, `status`) VALUES
 (501, 6, 'QA Sample Wedding', 'Seeded private event for dashboard and booking QA.', '2026-09-15', 'Manchester Town Hall', 'Wedding', 80, 'active')
