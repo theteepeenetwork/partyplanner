@@ -23,8 +23,8 @@
             <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
                 <h5 class="text-dark">For Vendors</h5>
                 <p class="text-muted">Are you an event service provider? List your services on our platform.</p>
-                <p class="mb-2"><a href="<?= site_url('vendor-info') ?>" class="text-primary">How selling works</a></p>
-                <a href="<?= site_url('register/vendor') ?>" class="btn btn-outline-primary btn-sm">Become a Vendor</a>
+                <p class="mb-2"><a href="/vendor-info" class="text-primary">How selling works</a></p>
+                <a href="/register/vendor" class="btn btn-outline-primary btn-sm">Become a Vendor</a>
             </div>
 
             <div class="col-lg-3 col-md-12 mb-4 mb-md-0">
