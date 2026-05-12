@@ -6,6 +6,8 @@
 
         <?= $this->include('dashboard/_customer_tabs') ?>
 
+        <?= $this->include('dashboard/_flash_alerts') ?>
+
         <!-- 1. Welcome Section -->
         <div class="mb-4">
             <h3>Welcome back, <?= esc($user['name']) ?> 👋</h3>

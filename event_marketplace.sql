@@ -39,7 +39,8 @@ ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 
 INSERT INTO `users` (`id`, `name`, `username`, `email`, `password`, `role`) VALUES
 (1, 'Site Admin', 'admin', 'admin@example.test', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'admin'),
-(6, 'QA Customer', 'qa_customer', 'qa.customer@example.test', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'customer')
+(6, 'QA Customer', 'qa_customer', 'qa.customer@example.test', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'customer'),
+(7, 'QA Vendor', 'qa_vendor', 'qa.vendor@example.test', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'vendor')
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `username`=VALUES(`username`), `email`=VALUES(`email`), `password`=VALUES(`password`), `role`=VALUES(`role`);
 
 -- --------------------------------------------------------
@@ -532,7 +533,7 @@ CREATE TABLE IF NOT EXISTS `services_optional_extras` (
 -- --------------------------------------------------------
 -- QA / demo data (events, bookings, messaging, favourites)
 -- Idempotent via ON DUPLICATE KEY UPDATE on primary keys.
--- Test accounts: username admin or qa_customer — password: TestPass123!
+-- Test accounts: admin, qa_customer, qa_vendor — password: TestPass123!
 -- --------------------------------------------------------
 
 INSERT INTO `events` (`id`, `user_id`, `title`, `description`, `date`, `location`, `event_type`, `guest_count`, `status`) VALUES

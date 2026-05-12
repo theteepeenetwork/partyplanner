@@ -6,6 +6,8 @@
 
         <?= $this->include('dashboard/_vendor_tabs') ?>
 
+        <?= $this->include('dashboard/_flash_alerts') ?>
+
         <!-- 1. Greeting / Header -->
         <div class="mb-4">
             <h3>Welcome back, <?= esc($user['name']) ?> 👋</h3>
