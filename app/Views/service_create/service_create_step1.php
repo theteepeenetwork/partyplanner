@@ -215,7 +215,7 @@
                     <option value="">Select Category</option>
                     <?php foreach ($categories as $category): ?>
                         <?php if ($category['level'] === 0): ?>
-                            <option value="<?= esc($category['id']) ?>" <?= old('category_id', session('step2_data.category_id') ?? '') == $category['id'] ? 'selected' : '' ?>>
+                            <option value="<?= esc($category['id']) ?>" <?= old('category_id', session('step1_data.category_id') ?? '') == $category['id'] ? 'selected' : '' ?>>
                                 <?= esc($category['name']) ?>
                             </option>
                         <?php endif; ?>
@@ -273,5 +273,6 @@
         var selectedThirdCategoryId =
             <?= json_encode(old('third_category_id', session('step1_data.third_category_id') ?? '')) ?>;
     </script>
+    <script src="<?= base_url('assets/js/category_cascade.js') ?>"></script>
     <script src="<?= base_url('assets/js/service_forms/step1.js') ?>"></script>
     <script src="<?= base_url('assets/js/test.js') ?>"></script>

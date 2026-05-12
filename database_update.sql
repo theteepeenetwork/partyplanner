@@ -416,19 +416,53 @@ CALL `event_marketplace_add_column_if_missing`('services_optional_extras', 'quan
 -- ============================================================
 -- SEED: default categories (if empty)
 -- ============================================================
-INSERT INTO `categories` (`id`, `name`) VALUES
-(1, 'Catering'),
-(2, 'Photography'),
-(3, 'Entertainment'),
-(4, 'Transport'),
-(5, 'Makeup'),
-(6, 'Stationery'),
-(7, 'Gifts'),
-(8, 'LED Dance Floors'),
-(9, 'Illuminated Letters'),
-(10, 'Chair Covers'),
-(11, 'Amusement Rides')
-ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
+INSERT INTO `categories` (`id`, `parent_id`, `name`) VALUES
+(1, NULL, 'Catering'),
+(2, NULL, 'Photography'),
+(3, NULL, 'Entertainment'),
+(4, NULL, 'Transport'),
+(5, NULL, 'Makeup'),
+(6, NULL, 'Stationery'),
+(7, NULL, 'Gifts'),
+(8, NULL, 'LED Dance Floors'),
+(9, NULL, 'Illuminated Letters'),
+(10, NULL, 'Chair Covers'),
+(11, NULL, 'Amusement Rides')
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `parent_id`=VALUES(`parent_id`);
+
+INSERT INTO `categories` (`id`, `parent_id`, `name`) VALUES
+(100, 1, 'Mobile food vendors'),
+(101, 1, 'Buffet & plated meals'),
+(102, 1, 'Street food & stalls'),
+(103, 1, 'Bar service & drinks'),
+(104, 1, 'Cakes & desserts')
+ON DUPLICATE KEY UPDATE `parent_id`=VALUES(`parent_id`), `name`=VALUES(`name`);
+
+INSERT INTO `categories` (`id`, `parent_id`, `name`) VALUES
+(200, 100, 'Vegetarian'),
+(201, 100, 'Vegan'),
+(202, 100, 'Halal'),
+(203, 100, 'Gluten-free options'),
+(204, 100, 'General / mixed menu')
+ON DUPLICATE KEY UPDATE `parent_id`=VALUES(`parent_id`), `name`=VALUES(`name`);
+
+INSERT INTO `categories` (`id`, `parent_id`, `name`) VALUES
+(210, 101, 'Formal plated'),
+(211, 101, 'Family-style sharing'),
+(212, 101, 'BBQ & outdoor')
+ON DUPLICATE KEY UPDATE `parent_id`=VALUES(`parent_id`), `name`=VALUES(`name`);
+
+INSERT INTO `categories` (`id`, `parent_id`, `name`) VALUES
+(120, 2, 'Weddings'),
+(121, 2, 'Corporate & brand'),
+(122, 2, 'Parties & celebrations')
+ON DUPLICATE KEY UPDATE `parent_id`=VALUES(`parent_id`), `name`=VALUES(`name`);
+
+INSERT INTO `categories` (`id`, `parent_id`, `name`) VALUES
+(220, 120, 'Full-day coverage'),
+(221, 120, 'Ceremony only'),
+(222, 120, 'Engagement & pre-wedding')
+ON DUPLICATE KEY UPDATE `parent_id`=VALUES(`parent_id`), `name`=VALUES(`name`);
 
 -- ============================================================
 -- TABLE: users — allow admin role

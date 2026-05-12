@@ -148,7 +148,7 @@
             <!-- Subcategory -->
             <div class="form-group">
                 <label for="subcategory_id">Subcategory:</label>
-                <select class="form-control" id="subcategory_id" name="subcategory_id" disabled required>
+                <select class="form-control" id="subcategory_id" name="subcategory_id" disabled>
                     <option value="">Select Subcategory</option>
                 </select>
                 <div class="invalid-feedback">Please select a subcategory.</div>
