@@ -176,7 +176,6 @@ class EventController extends BaseController
             'organiser_pitch_fee' => $pitchFee,
             'latitude' => $geo['latitude'] ?? null,
             'longitude' => $geo['longitude'] ?? null,
-            'category' => $step1['event_type'],
             'location' => $location ?: null,
             'venue_name' => $step2['venue_name'] ?? null,
             'postcode' => $step2['postcode'] ?? null,
