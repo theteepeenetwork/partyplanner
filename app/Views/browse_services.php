@@ -53,7 +53,7 @@
             <button type="submit" class="btn btn-primary">Apply</button>
         </div>
     </form>
-    <p class="small text-muted mb-4">Search matches service title, descriptions, free-text tags, and the names of the categories you assign to a listing. Use the three category fields to narrow results (for example Catering → Mobile food vendors → Vegetarian).</p>
+    <p class="small text-muted mb-4">Search matches service title, descriptions, free-text tags, and the names of the categories you assign to a listing. Use the three filters to narrow results from broad groups down to specific offerings (for example Catering &amp; Food → Street food vendors → optional further refinement when your taxonomy uses three levels).</p>
 
     <?php
     $catById = [];

@@ -1,22 +1,22 @@
 -- Comprehensive category seed for event_marketplace
--- Generated May 12, 2026
--- Replaces the original starter category list with a broader, more scalable hierarchy.
+-- Generated May 12, 2026 — idempotent refresh for existing databases.
+--
+-- Safe usage:
+--   Does NOT drop `categories` (preserves FKs and references).
+--   Upserts every row by primary key (`id`).
+--
+-- Canonical seeds are also embedded in:
+--   event_marketplace.sql (fresh installs)
+--   database_update.sql (updates)
+--
+SET NAMES utf8mb4;
 
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
-
-DROP TABLE IF EXISTS `categories`;
-
-CREATE TABLE `categories` (
-  `id` int(11) NOT NULL,
+CREATE TABLE IF NOT EXISTS `categories` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `parent_id` int(11) DEFAULT NULL,
-  `name` varchar(255) NOT NULL
+  `name` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_categories_parent_id` (`parent_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `categories` (`id`, `parent_id`, `name`) VALUES
@@ -403,17 +403,8 @@ INSERT INTO `categories` (`id`, `parent_id`, `name`) VALUES
 (2408, 24, 'Mobile farms'),
 (2500, 25, 'Bespoke services'),
 (2501, 25, 'Not sure / help me choose'),
-(2502, 25, 'Other event supplier');
+(2502, 25, 'Other event supplier')
+ON DUPLICATE KEY UPDATE `parent_id`=VALUES(`parent_id`), `name`=VALUES(`name`);
 
-ALTER TABLE `categories`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_categories_parent_id` (`parent_id`);
-
-ALTER TABLE `categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2503;
-
-COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+-- Next explicit id after seeded rows (adjust if you add rows manually above).
+ALTER TABLE `categories` AUTO_INCREMENT=2503;
