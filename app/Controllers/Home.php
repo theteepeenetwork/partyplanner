@@ -45,8 +45,8 @@ class Home extends BaseController
                 ->findAll();
         }
 
-        // Fetch all categories
-        $categories = $categoryModel->findAll(); // No need for 'deleted_at'
+        // Top-level categories only (sub-tiers load in browse / service flows)
+        $categories = $categoryModel->getRootCategories();
 
         $data = [
             'services' => $services,

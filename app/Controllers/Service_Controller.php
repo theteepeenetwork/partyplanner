@@ -72,6 +72,8 @@ class Service_Controller extends BaseController
         $categoryModel = new CategoryModel();
 
         $categoryFilter = $this->request->getGet('category');
+        $subcategoryFilter = $this->request->getGet('subcategory');
+        $thirdCategoryFilter = $this->request->getGet('third_category');
         $searchQuery = trim((string) $this->request->getGet('q'));
         $sort = (string) $this->request->getGet('sort');
         if (! in_array($sort, ['newest', 'price_asc', 'price_desc', 'title'], true)) {
@@ -82,9 +84,13 @@ class Service_Controller extends BaseController
 
         $builder = $this->applyPublicServiceCatalogFilters($serviceModel, $cols);
 
-        if ($categoryFilter !== null && $categoryFilter !== '' && in_array('category_id', $cols, true)) {
-            $builder = $builder->where('category_id', $categoryFilter);
-        }
+        $builder = $this->applyBrowseCategoryFilters(
+            $builder,
+            $cols,
+            $categoryFilter !== null ? (string) $categoryFilter : '',
+            $subcategoryFilter !== null ? (string) $subcategoryFilter : '',
+            $thirdCategoryFilter !== null ? (string) $thirdCategoryFilter : ''
+        );
 
         if ($searchQuery !== '') {
             $builder = $this->applyBrowseSearch($builder, $searchQuery, $cols);
@@ -98,15 +104,8 @@ class Service_Controller extends BaseController
             $service['images'] = $serviceImageModel
                 ->where(['service_id' => $service['id'], 'is_primary' => 1])
                 ->findAll();
-            if (!empty($service['category_id'])) {
-                $category = $categoryModel->find($service['category_id']);
-                $service['category_name'] = $category ? $category['name'] : '';
-            } else {
-                $service['category_name'] = '';
-            }
+            $service['category_name'] = $categoryModel->getServiceCategoryLabel($service);
         }
-
-        $categories = $categoryModel->findAll();
 
         $messageEligibleByServiceId = [];
         if (session()->has('user_id') && session()->get('role') === 'customer') {
@@ -120,8 +119,11 @@ class Service_Controller extends BaseController
 
         $data = [
             'services' => $services,
-            'categories' => $categories,
+            'categories' => $this->buildCategoryTree(),
+            'rootCategories' => $categoryModel->getRootCategories(),
             'selectedCategory' => $categoryFilter,
+            'selectedSubcategory' => $subcategoryFilter,
+            'selectedThirdCategory' => $thirdCategoryFilter,
             'selectedSort' => $sort,
             'searchQuery' => $searchQuery ?? '',
             'basketEventId' => session()->get('preferred_basket_event_id'),
@@ -176,19 +178,91 @@ class Service_Controller extends BaseController
             static fn ($f) => in_array($f, $cols, true)
         ));
 
-        if ($fields === []) {
+        $canJoinCats = in_array('category_id', $cols, true);
+        if ($canJoinCats) {
+            $builder->join('categories cat_browse_main', 'cat_browse_main.id = services.category_id', 'left');
+            if (in_array('subcategory_id', $cols, true)) {
+                $builder->join('categories cat_browse_sub', 'cat_browse_sub.id = services.subcategory_id', 'left');
+            }
+            if (in_array('third_category_id', $cols, true)) {
+                $builder->join('categories cat_browse_third', 'cat_browse_third.id = services.third_category_id', 'left');
+            }
+            $builder->select('services.*')->groupBy('services.id');
+        }
+
+        if ($fields === [] && ! $canJoinCats) {
             return $builder;
         }
 
         $builder->groupStart();
-        foreach ($fields as $i => $field) {
-            if ($i === 0) {
-                $builder->like($field, $searchQuery);
+        $isFirst = true;
+        foreach ($fields as $field) {
+            if ($isFirst) {
+                $builder->like('services.' . $field, $searchQuery);
+                $isFirst = false;
             } else {
-                $builder->orLike($field, $searchQuery);
+                $builder->orLike('services.' . $field, $searchQuery);
+            }
+        }
+        if ($canJoinCats) {
+            if ($isFirst) {
+                $builder->like('cat_browse_main.name', $searchQuery);
+                $isFirst = false;
+            } else {
+                $builder->orLike('cat_browse_main.name', $searchQuery);
+            }
+            if (in_array('subcategory_id', $cols, true)) {
+                $builder->orLike('cat_browse_sub.name', $searchQuery);
+            }
+            if (in_array('third_category_id', $cols, true)) {
+                $builder->orLike('cat_browse_third.name', $searchQuery);
             }
         }
         $builder->groupEnd();
+
+        return $builder;
+    }
+
+    /**
+     * Narrow catalogue by root / sub / optional third category GET params.
+     *
+     * @param list<string> $cols
+     */
+    private function applyBrowseCategoryFilters(
+        ServiceModel $builder,
+        array $cols,
+        string $rootId,
+        string $subId,
+        string $thirdId
+    ): ServiceModel {
+        $third = trim($thirdId);
+        $sub = trim($subId);
+        $root = trim($rootId);
+
+        if ($third !== '' && in_array('third_category_id', $cols, true)) {
+            $builder->where('third_category_id', (int) $third);
+            if ($sub !== '' && in_array('subcategory_id', $cols, true)) {
+                $builder->where('subcategory_id', (int) $sub);
+            }
+            if ($root !== '' && in_array('category_id', $cols, true)) {
+                $builder->where('category_id', (int) $root);
+            }
+
+            return $builder;
+        }
+
+        if ($sub !== '' && in_array('subcategory_id', $cols, true)) {
+            $builder->where('subcategory_id', (int) $sub);
+            if ($root !== '' && in_array('category_id', $cols, true)) {
+                $builder->where('category_id', (int) $root);
+            }
+
+            return $builder;
+        }
+
+        if ($root !== '' && in_array('category_id', $cols, true)) {
+            $builder->where('category_id', (int) $root);
+        }
 
         return $builder;
     }
@@ -201,26 +275,26 @@ class Service_Controller extends BaseController
         switch ($sort) {
             case 'price_asc':
                 if (in_array('price', $cols, true)) {
-                    return $builder->orderBy('price', 'ASC');
+                    return $builder->orderBy('services.price', 'ASC');
                 }
                 break;
             case 'price_desc':
                 if (in_array('price', $cols, true)) {
-                    return $builder->orderBy('price', 'DESC');
+                    return $builder->orderBy('services.price', 'DESC');
                 }
                 break;
             case 'title':
                 if (in_array('title', $cols, true)) {
-                    return $builder->orderBy('title', 'ASC');
+                    return $builder->orderBy('services.title', 'ASC');
                 }
                 break;
             case 'newest':
             default:
                 if (in_array('created_at', $cols, true)) {
-                    return $builder->orderBy('created_at', 'DESC');
+                    return $builder->orderBy('services.created_at', 'DESC');
                 }
                 if (in_array('id', $cols, true)) {
-                    return $builder->orderBy('id', 'DESC');
+                    return $builder->orderBy('services.id', 'DESC');
                 }
                 break;
         }
@@ -239,6 +313,8 @@ class Service_Controller extends BaseController
         $q = $this->request->getGet('q');
         $cuisine = $this->request->getGet('cuisine');
         $category = $this->request->getGet('category');
+        $subcategory = $this->request->getGet('subcategory');
+        $thirdCategory = $this->request->getGet('third_category');
 
         $params = [];
         if ($q !== null && $q !== '') {
@@ -249,6 +325,12 @@ class Service_Controller extends BaseController
         }
         if ($category !== null && $category !== '') {
             $params['category'] = $category;
+        }
+        if ($subcategory !== null && $subcategory !== '') {
+            $params['subcategory'] = $subcategory;
+        }
+        if ($thirdCategory !== null && $thirdCategory !== '') {
+            $params['third_category'] = $thirdCategory;
         }
 
         $url = '/browse-services';
@@ -320,6 +402,16 @@ class Service_Controller extends BaseController
             // Validate the form
             if (!$this->validate($rules)) {
                 return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            }
+
+            $categoryModel = new CategoryModel();
+            $catErr = $categoryModel->validateAssignment(
+                $this->request->getPost('category_id'),
+                $this->request->getPost('subcategory_id'),
+                $this->request->getPost('third_category_id')
+            );
+            if ($catErr !== null) {
+                return redirect()->back()->withInput()->with('errors', ['category' => $catErr]);
             }
 
             // Save step 1 data to session
@@ -1810,6 +1902,15 @@ class Service_Controller extends BaseController
                 return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
             }
 
+            $catErr = $categoryModel->validateAssignment(
+                $this->request->getPost('category_id'),
+                $this->request->getPost('subcategory_id'),
+                $this->request->getPost('third_category_id')
+            );
+            if ($catErr !== null) {
+                return redirect()->back()->withInput()->with('errors', ['category' => $catErr]);
+            }
+
             $db = \Config\Database::connect();
             $db->transStart();
 
@@ -1820,6 +1921,7 @@ class Service_Controller extends BaseController
                 'price' => $this->request->getPost('price') ?: 0,
                 'category_id' => $this->request->getPost('category_id') ?: null,
                 'subcategory_id' => $this->request->getPost('subcategory_id') ?: null,
+                'third_category_id' => $this->request->getPost('third_category_id') ?: null,
                 'service_tags' => $this->request->getPost('service_tags'),
             ];
             $serviceModel->update($id, $serviceData);
@@ -1914,7 +2016,7 @@ class Service_Controller extends BaseController
             $tieredPackages = $tieredPricingModel->where('private_event_pricing_id', $privatePricing['id'])->findAll();
         }
 
-        $categories = $categoryModel->findAll();
+        $categories = $this->buildCategoryTree();
 
         $data = [
             'service' => $service,
@@ -2010,12 +2112,23 @@ class Service_Controller extends BaseController
         $cancellationPolicy = $cancellationRecord['policy'] ?? '';
 
         // Build category names
-        $mainCategory = $categoryModel->find($service['category_id']);
         $category_names = [
-            'main' => $mainCategory['name'] ?? 'Not Selected',
+            'main' => 'Not Selected',
             'sub' => '',
             'third' => '',
         ];
+        if (! empty($service['category_id'])) {
+            $mainCategory = $categoryModel->find($service['category_id']);
+            $category_names['main'] = $mainCategory['name'] ?? 'Not Selected';
+        }
+        if (! empty($service['subcategory_id'])) {
+            $subCategory = $categoryModel->find($service['subcategory_id']);
+            $category_names['sub'] = $subCategory['name'] ?? '';
+        }
+        if (! empty($service['third_category_id'])) {
+            $thirdCategory = $categoryModel->find($service['third_category_id']);
+            $category_names['third'] = $thirdCategory['name'] ?? '';
+        }
 
         // Compile data for the view
         $messageVendorEligible = false;

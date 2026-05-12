@@ -312,7 +312,7 @@
                             <div class="attention-title">Add Photography</div>
                             <p class="attention-desc">Capture every special moment</p>
                         </div>
-                        <a href="/browse-services?category=2" class="btn btn-sm btn-outline-info">Browse</a>
+                        <a href="/browse-services?category=3" class="btn btn-sm btn-outline-info">Browse</a>
                     </div>
                     <div class="attention-card border-success mb-2">
                         <div class="attention-icon bg-success-light"><i class="fas fa-utensils"></i></div>
@@ -328,7 +328,7 @@
                             <div class="attention-title">Add Entertainment</div>
                             <p class="attention-desc">Customers also booked DJs</p>
                         </div>
-                        <a href="/browse-services?category=3" class="btn btn-sm btn-outline-warning">Browse</a>
+                        <a href="/browse-services?category=4" class="btn btn-sm btn-outline-warning">Browse</a>
                     </div>
                 </div>
 

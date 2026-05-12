@@ -55,10 +55,24 @@
                         <select class="form-select" id="category_id" name="category_id">
                             <option value="">Select Category</option>
                             <?php foreach ($categories as $cat): ?>
-                                <?php if (empty($cat['parent_id'])): ?>
-                                    <option value="<?= $cat['id'] ?>" <?= ($service['category_id'] ?? '') == $cat['id'] ? 'selected' : '' ?>><?= esc($cat['name']) ?></option>
+                                <?php if (($cat['level'] ?? 0) === 0): ?>
+                                    <option value="<?= $cat['id'] ?>" <?= (string) old('category_id', $service['category_id'] ?? '') === (string) $cat['id'] ? 'selected' : '' ?>><?= esc($cat['name']) ?></option>
                                 <?php endif; ?>
                             <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-6 mb-3">
+                        <label for="subcategory_id" class="form-label">Subcategory</label>
+                        <select class="form-select" id="subcategory_id" name="subcategory_id">
+                            <option value="">Select Subcategory</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="row">
+                    <div class="col-md-6 mb-3">
+                        <label for="third_category_id" class="form-label">Further subcategory (optional)</label>
+                        <select class="form-select" id="third_category_id" name="third_category_id">
+                            <option value="">Select Further Subcategory</option>
                         </select>
                     </div>
                     <div class="col-md-6 mb-3">
@@ -273,6 +287,29 @@
     </div>
 </div>
 </main>
+
+<script>
+    var categories = <?= json_encode($categories ?? []) ?>;
+    var selectedSubcategoryId = <?= json_encode(old('subcategory_id', $service['subcategory_id'] ?? '')) ?>;
+    var selectedThirdCategoryId = <?= json_encode(old('third_category_id', $service['third_category_id'] ?? '')) ?>;
+</script>
+<script src="<?= base_url('assets/js/category_cascade.js') ?>"></script>
+<script>
+    $(function () {
+        if (typeof window.initCategoryCascade === 'function') {
+            window.initCategoryCascade({
+                rootSelect: '#category_id',
+                subSelect: '#subcategory_id',
+                thirdSelect: '#third_category_id',
+                categories: categories,
+                preselectSub: selectedSubcategoryId,
+                preselectThird: selectedThirdCategoryId,
+                subPlaceholder: 'Select Subcategory',
+                thirdPlaceholder: 'Select Further Subcategory (optional)',
+            });
+        }
+    });
+</script>
 
 <script>
 function addExtraRow() {

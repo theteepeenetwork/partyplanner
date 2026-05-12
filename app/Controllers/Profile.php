@@ -235,7 +235,7 @@ class Profile extends BaseController
             'totalDeclined' => $totalDeclined, 'totalConfirmed' => $totalConfirmed,
             'totalAwaitingPayment' => $totalAwaitingPayment, 'unreadMessages' => $unreadMessages,
             'recentMessages' => $recentMessages, 'totalSpend' => $totalSpend,
-            'depositsPaid' => $depositsPaid, 'categories' => $categoryModel->findAll(),
+            'depositsPaid' => $depositsPaid, 'categories' => $categoryModel->getRootCategories(),
             'currentTab' => 'main',
         ]);
     }
@@ -256,12 +256,7 @@ class Profile extends BaseController
         $allServices = $serviceModel->where('vendor_id', $userId)->where('deleted_at', null)->findAll();
         foreach ($allServices as &$svc) {
             $svc['images'] = $serviceImageModel->where('service_id', $svc['id'])->findAll();
-            if (!empty($svc['category_id'])) {
-                $cat = $categoryModel->find($svc['category_id']);
-                $svc['category_name'] = $cat ? $cat['name'] : '';
-            } else {
-                $svc['category_name'] = '';
-            }
+            $svc['category_name'] = $categoryModel->getServiceCategoryLabel($svc);
         }
 
         return view('dashboard/vendor_services', [
@@ -710,13 +705,11 @@ class Profile extends BaseController
             if (!$service) continue;
             $vendor = $userModel->find($service['vendor_id']);
             $images = $serviceImageModel->where('service_id', $service['id'])->where('is_primary', 1)->findAll();
-            $category = !empty($service['category_id']) ? $categoryModel->find($service['category_id']) : null;
-
             $favourites[] = [
                 'favourite_id' => $fav['id'],
                 'service' => $service,
                 'vendor_name' => $vendor ? $vendor['name'] : 'Unknown',
-                'category_name' => $category ? $category['name'] : '',
+                'category_name' => $categoryModel->getServiceCategoryLabel($service),
                 'image' => !empty($images) ? $images[0]['thumbnail_path'] : null,
             ];
         }
