@@ -2,39 +2,70 @@
 -- Event Marketplace — Database Update Script
 -- Run this against your existing event_marketplace database
 -- All statements are idempotent (safe to run multiple times)
+--
+-- Column changes use a helper procedure because standard MySQL
+-- does not support "ALTER TABLE ... ADD COLUMN IF NOT EXISTS"
+-- (that syntax is MariaDB-only). Import/run the whole file.
 -- ============================================================
 
+-- ------------------------------------------------------------
+-- Portable conditional ADD COLUMN (MySQL has no IF NOT EXISTS on ADD COLUMN)
+-- ------------------------------------------------------------
+DROP PROCEDURE IF EXISTS `event_marketplace_add_column_if_missing`;
+DELIMITER $$
+CREATE PROCEDURE `event_marketplace_add_column_if_missing`(
+  IN p_table VARCHAR(64),
+  IN p_column VARCHAR(64),
+  IN p_definition VARCHAR(4096)
+)
+BEGIN
+  DECLARE col_count INT DEFAULT 0;
+
+  SELECT COUNT(*) INTO col_count
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = p_table
+    AND COLUMN_NAME = p_column;
+
+  IF col_count = 0 THEN
+    SET @evm_sql := CONCAT('ALTER TABLE `', p_table, '` ADD COLUMN ', p_definition);
+    PREPARE evm_stmt FROM @evm_sql;
+    EXECUTE evm_stmt;
+    DEALLOCATE PREPARE evm_stmt;
+  END IF;
+END$$
+DELIMITER ;
 -- ============================================================
 -- TABLE: categories — add parent_id for nested category tree
 -- ============================================================
-ALTER TABLE categories ADD COLUMN IF NOT EXISTS `parent_id` int(11) DEFAULT NULL AFTER `id`;
+CALL `event_marketplace_add_column_if_missing`('categories', 'parent_id', '`parent_id` int(11) DEFAULT NULL AFTER `id`');
 
 -- ============================================================
 -- TABLE: services — add all columns used by the application
 -- ============================================================
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `short_description` varchar(500) DEFAULT NULL AFTER `description`;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `category_id` int(11) DEFAULT NULL AFTER `price`;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `subcategory_id` int(11) DEFAULT NULL AFTER `category_id`;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `third_category_id` int(11) DEFAULT NULL AFTER `subcategory_id`;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `latitude` decimal(10,8) DEFAULT NULL;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `longitude` decimal(11,8) DEFAULT NULL;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `deleted_at` datetime DEFAULT NULL;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `free_coverage_radius` int(11) DEFAULT NULL;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `paid_coverage_radius` int(11) DEFAULT NULL;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `travel_fee_per_km` decimal(10,2) DEFAULT NULL;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `cancellation_policy` text DEFAULT NULL;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `service_tags` text DEFAULT NULL;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `service_location` varchar(255) DEFAULT NULL;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `all_travel_included` tinyint(1) DEFAULT 0;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `no_travel_limit` tinyint(1) DEFAULT 0;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `event_types` text DEFAULT NULL;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `commission_percentage` decimal(5,2) DEFAULT NULL;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `license` varchar(255) DEFAULT NULL;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `attendance_thresholds` text DEFAULT NULL;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `max_pitch_fees` text DEFAULT NULL;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `status` varchar(20) DEFAULT 'active';
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `created_at` datetime DEFAULT CURRENT_TIMESTAMP;
-ALTER TABLE services ADD COLUMN IF NOT EXISTS `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP;
+CALL `event_marketplace_add_column_if_missing`('services', 'short_description', '`short_description` varchar(500) DEFAULT NULL AFTER `description`');
+CALL `event_marketplace_add_column_if_missing`('services', 'category_id', '`category_id` int(11) DEFAULT NULL AFTER `price`');
+CALL `event_marketplace_add_column_if_missing`('services', 'subcategory_id', '`subcategory_id` int(11) DEFAULT NULL AFTER `category_id`');
+CALL `event_marketplace_add_column_if_missing`('services', 'third_category_id', '`third_category_id` int(11) DEFAULT NULL AFTER `subcategory_id`');
+CALL `event_marketplace_add_column_if_missing`('services', 'latitude', '`latitude` decimal(10,8) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services', 'longitude', '`longitude` decimal(11,8) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services', 'deleted_at', '`deleted_at` datetime DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services', 'free_coverage_radius', '`free_coverage_radius` int(11) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services', 'paid_coverage_radius', '`paid_coverage_radius` int(11) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services', 'travel_fee_per_km', '`travel_fee_per_km` decimal(10,2) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services', 'cancellation_policy', '`cancellation_policy` text DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services', 'service_tags', '`service_tags` text DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services', 'service_location', '`service_location` varchar(255) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services', 'all_travel_included', '`all_travel_included` tinyint(1) DEFAULT 0');
+CALL `event_marketplace_add_column_if_missing`('services', 'no_travel_limit', '`no_travel_limit` tinyint(1) DEFAULT 0');
+CALL `event_marketplace_add_column_if_missing`('services', 'event_types', '`event_types` text DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services', 'commission_percentage', '`commission_percentage` decimal(5,2) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services', 'license', '`license` varchar(255) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services', 'attendance_thresholds', '`attendance_thresholds` text DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services', 'max_pitch_fees', '`max_pitch_fees` text DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services', 'status', '`status` varchar(20) DEFAULT ''active''');
+CALL `event_marketplace_add_column_if_missing`('services', 'created_at', '`created_at` datetime DEFAULT CURRENT_TIMESTAMP');
+CALL `event_marketplace_add_column_if_missing`('services', 'updated_at', '`updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP');
 
 -- ============================================================
 -- TABLE: events — add all columns for event creation flow
@@ -62,58 +93,58 @@ ALTER TABLE events ADD COLUMN IF NOT EXISTS `longitude` decimal(11,8) DEFAULT NU
 -- ============================================================
 -- TABLE: booking_items — add pricing and package columns
 -- ============================================================
-ALTER TABLE booking_items ADD COLUMN IF NOT EXISTS `package_name` varchar(255) DEFAULT NULL AFTER `quantity`;
-ALTER TABLE booking_items ADD COLUMN IF NOT EXISTS `guest_count` int(11) DEFAULT NULL AFTER `package_name`;
-ALTER TABLE booking_items ADD COLUMN IF NOT EXISTS `price` decimal(10,2) DEFAULT NULL AFTER `guest_count`;
-ALTER TABLE booking_items ADD COLUMN IF NOT EXISTS `created_at` datetime DEFAULT CURRENT_TIMESTAMP;
+CALL `event_marketplace_add_column_if_missing`('booking_items', 'package_name', '`package_name` varchar(255) DEFAULT NULL AFTER `quantity`');
+CALL `event_marketplace_add_column_if_missing`('booking_items', 'guest_count', '`guest_count` int(11) DEFAULT NULL AFTER `package_name`');
+CALL `event_marketplace_add_column_if_missing`('booking_items', 'price', '`price` decimal(10,2) DEFAULT NULL AFTER `guest_count`');
+CALL `event_marketplace_add_column_if_missing`('booking_items', 'created_at', '`created_at` datetime DEFAULT CURRENT_TIMESTAMP');
 
 -- ============================================================
 -- TABLE: payments — add payment type and description
 -- ============================================================
-ALTER TABLE payments ADD COLUMN IF NOT EXISTS `payment_type` varchar(50) DEFAULT 'deposit' AFTER `payment_method`;
-ALTER TABLE payments ADD COLUMN IF NOT EXISTS `description` varchar(255) DEFAULT NULL AFTER `payment_type`;
+CALL `event_marketplace_add_column_if_missing`('payments', 'payment_type', '`payment_type` varchar(50) DEFAULT ''deposit'' AFTER `payment_method`');
+CALL `event_marketplace_add_column_if_missing`('payments', 'description', '`description` varchar(255) DEFAULT NULL AFTER `payment_type`');
 
 -- ============================================================
 -- TABLE: services_private_event_pricing — add pricing_type
 -- ============================================================
-ALTER TABLE services_private_event_pricing ADD COLUMN IF NOT EXISTS `pricing_type` varchar(50) DEFAULT NULL AFTER `service_id`;
+CALL `event_marketplace_add_column_if_missing`('services_private_event_pricing', 'pricing_type', '`pricing_type` varchar(50) DEFAULT NULL AFTER `service_id`');
 
 -- ============================================================
 -- TABLE: services_guest_based_pricing — add required columns
 -- ============================================================
-ALTER TABLE services_guest_based_pricing ADD COLUMN IF NOT EXISTS `private_event_pricing_id` int(11) DEFAULT NULL AFTER `service_id`;
-ALTER TABLE services_guest_based_pricing ADD COLUMN IF NOT EXISTS `min_guest` int(11) DEFAULT NULL;
-ALTER TABLE services_guest_based_pricing ADD COLUMN IF NOT EXISTS `max_guest` int(11) DEFAULT NULL;
-ALTER TABLE services_guest_based_pricing ADD COLUMN IF NOT EXISTS `guest_price` decimal(10,2) DEFAULT NULL;
+CALL `event_marketplace_add_column_if_missing`('services_guest_based_pricing', 'private_event_pricing_id', '`private_event_pricing_id` int(11) DEFAULT NULL AFTER `service_id`');
+CALL `event_marketplace_add_column_if_missing`('services_guest_based_pricing', 'min_guest', '`min_guest` int(11) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services_guest_based_pricing', 'max_guest', '`max_guest` int(11) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services_guest_based_pricing', 'guest_price', '`guest_price` decimal(10,2) DEFAULT NULL');
 
 -- ============================================================
 -- TABLE: services_custom_duration_pricing — add required columns
 -- ============================================================
-ALTER TABLE services_custom_duration_pricing ADD COLUMN IF NOT EXISTS `private_event_pricing_id` int(11) DEFAULT NULL AFTER `service_id`;
-ALTER TABLE services_custom_duration_pricing ADD COLUMN IF NOT EXISTS `duration_type` varchar(20) DEFAULT NULL;
-ALTER TABLE services_custom_duration_pricing ADD COLUMN IF NOT EXISTS `duration` int(11) DEFAULT NULL;
+CALL `event_marketplace_add_column_if_missing`('services_custom_duration_pricing', 'private_event_pricing_id', '`private_event_pricing_id` int(11) DEFAULT NULL AFTER `service_id`');
+CALL `event_marketplace_add_column_if_missing`('services_custom_duration_pricing', 'duration_type', '`duration_type` varchar(20) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services_custom_duration_pricing', 'duration', '`duration` int(11) DEFAULT NULL');
 
 -- ============================================================
 -- TABLE: services_tiered_packages_pricing — add required columns
 -- ============================================================
-ALTER TABLE services_tiered_packages_pricing ADD COLUMN IF NOT EXISTS `private_event_pricing_id` int(11) DEFAULT NULL AFTER `service_id`;
-ALTER TABLE services_tiered_packages_pricing ADD COLUMN IF NOT EXISTS `package_description` text DEFAULT NULL;
-ALTER TABLE services_tiered_packages_pricing ADD COLUMN IF NOT EXISTS `package_price` decimal(10,2) DEFAULT NULL;
+CALL `event_marketplace_add_column_if_missing`('services_tiered_packages_pricing', 'private_event_pricing_id', '`private_event_pricing_id` int(11) DEFAULT NULL AFTER `service_id`');
+CALL `event_marketplace_add_column_if_missing`('services_tiered_packages_pricing', 'package_description', '`package_description` text DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services_tiered_packages_pricing', 'package_price', '`package_price` decimal(10,2) DEFAULT NULL');
 
 -- ============================================================
 -- TABLE: services_locations — add coverage and travel columns
 -- ============================================================
-ALTER TABLE services_locations ADD COLUMN IF NOT EXISTS `service_location` varchar(255) DEFAULT NULL AFTER `service_id`;
-ALTER TABLE services_locations ADD COLUMN IF NOT EXISTS `all_travel_included` tinyint(1) DEFAULT 0;
-ALTER TABLE services_locations ADD COLUMN IF NOT EXISTS `no_travel_limit` tinyint(1) DEFAULT 0;
-ALTER TABLE services_locations ADD COLUMN IF NOT EXISTS `free_coverage_radius` int(11) DEFAULT NULL;
-ALTER TABLE services_locations ADD COLUMN IF NOT EXISTS `paid_coverage_radius` int(11) DEFAULT NULL;
-ALTER TABLE services_locations ADD COLUMN IF NOT EXISTS `travel_fee_per_km` decimal(10,2) DEFAULT NULL;
+CALL `event_marketplace_add_column_if_missing`('services_locations', 'service_location', '`service_location` varchar(255) DEFAULT NULL AFTER `service_id`');
+CALL `event_marketplace_add_column_if_missing`('services_locations', 'all_travel_included', '`all_travel_included` tinyint(1) DEFAULT 0');
+CALL `event_marketplace_add_column_if_missing`('services_locations', 'no_travel_limit', '`no_travel_limit` tinyint(1) DEFAULT 0');
+CALL `event_marketplace_add_column_if_missing`('services_locations', 'free_coverage_radius', '`free_coverage_radius` int(11) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services_locations', 'paid_coverage_radius', '`paid_coverage_radius` int(11) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('services_locations', 'travel_fee_per_km', '`travel_fee_per_km` decimal(10,2) DEFAULT NULL');
 
 -- ============================================================
 -- TABLE: services_cancellation_policies — add cancellation_policy column
 -- ============================================================
-ALTER TABLE services_cancellation_policies ADD COLUMN IF NOT EXISTS `cancellation_policy` text DEFAULT NULL AFTER `policy`;
+CALL `event_marketplace_add_column_if_missing`('services_cancellation_policies', 'cancellation_policy', '`cancellation_policy` text DEFAULT NULL AFTER `policy`');
 
 -- ============================================================
 -- NEW TABLE: service_images
@@ -220,7 +251,7 @@ CREATE TABLE IF NOT EXISTS `event_basket_items` (
   KEY `service_id` (`service_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-ALTER TABLE event_basket_items ADD COLUMN IF NOT EXISTS `quote_breakdown` text DEFAULT NULL COMMENT 'JSON line items for estimated_total' AFTER `notes`;
+CALL `event_marketplace_add_column_if_missing`('event_basket_items', 'quote_breakdown', '`quote_breakdown` text DEFAULT NULL COMMENT ''JSON line items for estimated_total'' AFTER `notes`');
 
 -- ============================================================
 -- NEW TABLE: chat_rooms
@@ -380,7 +411,7 @@ CREATE TABLE IF NOT EXISTS `services_optional_extras` (
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-ALTER TABLE services_optional_extras ADD COLUMN IF NOT EXISTS `quantity` int(11) DEFAULT 1 AFTER `description`;
+CALL `event_marketplace_add_column_if_missing`('services_optional_extras', 'quantity', '`quantity` int(11) DEFAULT 1 AFTER `description`');
 
 -- ============================================================
 -- SEED: default categories (if empty)
@@ -430,17 +461,19 @@ CREATE TABLE IF NOT EXISTS `cms_pages` (
 -- ============================================================
 -- TABLE: chat_rooms — moderation flag
 -- ============================================================
-ALTER TABLE chat_rooms ADD COLUMN IF NOT EXISTS `flagged_for_review` tinyint(1) NOT NULL DEFAULT 0 AFTER `service_id`;
+CALL `event_marketplace_add_column_if_missing`('chat_rooms', 'flagged_for_review', '`flagged_for_review` tinyint(1) NOT NULL DEFAULT 0 AFTER `service_id`');
 
 -- ============================================================
 -- TABLE: chat_messages — profanity / language moderation
 -- ============================================================
-ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `original_message` text DEFAULT NULL AFTER `message`;
-ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `moderation_status` varchar(20) NOT NULL DEFAULT 'clean' AFTER `original_message`;
-ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `admin_note` text DEFAULT NULL AFTER `moderation_status`;
-ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `profanity_matches` varchar(500) DEFAULT NULL AFTER `admin_note`;
-ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `reviewed_by` int(11) DEFAULT NULL AFTER `profanity_matches`;
-ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `reviewed_at` datetime DEFAULT NULL AFTER `reviewed_by`;
+CALL `event_marketplace_add_column_if_missing`('chat_messages', 'original_message', '`original_message` text DEFAULT NULL AFTER `message`');
+CALL `event_marketplace_add_column_if_missing`('chat_messages', 'moderation_status', '`moderation_status` varchar(20) NOT NULL DEFAULT ''clean'' AFTER `original_message`');
+CALL `event_marketplace_add_column_if_missing`('chat_messages', 'admin_note', '`admin_note` text DEFAULT NULL AFTER `moderation_status`');
+CALL `event_marketplace_add_column_if_missing`('chat_messages', 'profanity_matches', '`profanity_matches` varchar(500) DEFAULT NULL AFTER `admin_note`');
+CALL `event_marketplace_add_column_if_missing`('chat_messages', 'reviewed_by', '`reviewed_by` int(11) DEFAULT NULL AFTER `profanity_matches`');
+CALL `event_marketplace_add_column_if_missing`('chat_messages', 'reviewed_at', '`reviewed_at` datetime DEFAULT NULL AFTER `reviewed_by`');
+
+DROP PROCEDURE IF EXISTS `event_marketplace_add_column_if_missing`;
 
 -- ============================================================
 -- CMS: default published homepage (editable in Admin → Pages)
