@@ -76,7 +76,7 @@ class Vendors extends BaseAdminController
     {
         $user = $this->requireVendor($id);
 
-        if ($this->request->getMethod() === 'post') {
+        if ($this->request->is('post')) {
             $rules = [
                 'name'     => 'required|min_length[2]|max_length[100]',
                 'username' => "required|min_length[2]|max_length[255]|is_unique[users.username,id,{$id}]",
