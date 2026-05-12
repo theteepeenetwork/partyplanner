@@ -22,6 +22,7 @@
 
         <?php foreach ($events as $event): ?>
             <form method="post" action="/event/add-to-basket/<?= $service['id'] ?>">
+                <?= csrf_field() ?>
                 <input type="hidden" name="event_id" value="<?= $event['id'] ?>">
                 <?php if (!empty($selectedOptions['pricing_option'])): ?>
                     <input type="hidden" name="pricing_option" value="<?= esc($selectedOptions['pricing_option']) ?>">

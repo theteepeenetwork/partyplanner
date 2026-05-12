@@ -1,5 +1,5 @@
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Service #<?= (int) $service['id'] ?></h1>
+<div class="admin-toolbar d-flex justify-content-between align-items-center flex-wrap">
+    <h1 class="admin-page-title mb-0">Service #<?= (int) $service['id'] ?></h1>
     <div class="btn-group">
         <a class="btn btn-outline-secondary" href="<?= site_url('/admin/services') ?>">Back</a>
         <a class="btn btn-outline-primary" href="<?= site_url('/admin/services/' . $service['id'] . '/edit') ?>">Edit</a>

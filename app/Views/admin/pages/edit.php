@@ -1,4 +1,7 @@
-<h1 class="h3 mb-3">Edit page: <?= esc($page['slug']) ?></h1>
+<header class="admin-page-header">
+    <h1 class="admin-page-title">Edit page: <?= esc($page['slug']) ?></h1>
+    <p class="admin-page-subtitle">HTML is allowed in the body field. Preview on the public site after publishing.</p>
+</header>
 <form method="post" action="<?= site_url('/admin/pages/edit/' . $page['slug']) ?>" class="card shadow-sm p-4">
     <?= csrf_field() ?>
     <div class="mb-3">

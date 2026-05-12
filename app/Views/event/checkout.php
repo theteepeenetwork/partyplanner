@@ -41,6 +41,7 @@
             <p class="text-muted small">Payment processing is simulated. No real payment will be taken.</p>
 
             <form method="post" action="/event/checkout/process/<?= $event['id'] ?>">
+                <?= csrf_field() ?>
                 <div class="mb-3">
                     <label class="form-label">Card Number</label>
                     <input type="text" class="form-control" value="4242 4242 4242 4242" disabled>

@@ -15,6 +15,7 @@
     <?php endif; ?>
 
     <form action="/register/vendor/create" method="post">
+        <?= csrf_field() ?>
         <div class="form-group mb-3">
             <label for="name">Business / Full Name:</label>
             <input type="text" class="form-control" id="name" name="name" value="<?= old('name') ?>" required>

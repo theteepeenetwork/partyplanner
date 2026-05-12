@@ -5,9 +5,12 @@
     <div class="container">
         <?= $this->include('dashboard/_vendor_tabs') ?>
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="mb-0">My Services</h4>
-            <a href="/service/create" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Add New Service</a>
+        <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-3 mb-4">
+            <div>
+                <h4 class="mb-2 mb-md-0">My Services</h4>
+                <p class="dash-page-lead mb-0">Every listing customers can book from your profile. Keep photos and pricing fresh to stay competitive.</p>
+            </div>
+            <a href="/service/create" class="btn btn-primary flex-shrink-0 align-self-stretch align-self-md-auto"><i class="fas fa-plus me-1"></i>Add New Service</a>
         </div>
 
         <?php if (session()->getFlashdata('success')): ?>
@@ -70,6 +73,7 @@
                             <div class="d-flex align-items-center justify-content-between mb-3 p-2 bg-light rounded">
                                 <span class="small fw-bold"><?= $isActive ? 'Live on marketplace' : 'Hidden from customers' ?></span>
                                 <form method="post" action="/service/toggle-status/<?= $service['id'] ?>" class="mb-0">
+                                    <?= csrf_field() ?>
                                     <div class="form-check form-switch mb-0">
                                         <input class="form-check-input" type="checkbox" role="switch"
                                                id="toggle-<?= $service['id'] ?>"
@@ -94,11 +98,13 @@
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <div class="dash-card text-center py-5">
-                <i class="fas fa-briefcase fa-3x text-muted mb-3"></i>
-                <h5>No services yet</h5>
-                <p class="text-muted">Create your first service listing to start receiving bookings.</p>
-                <a href="/service/create" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Create Your First Service</a>
+            <div class="dash-card text-center py-5 px-3">
+                <div class="dash-empty-state">
+                    <i class="fas fa-briefcase fa-3x text-muted mb-3 d-block" aria-hidden="true"></i>
+                    <h5 class="fw-semibold">No services yet</h5>
+                    <p class="text-muted mb-4">Tell customers what you offer, where you travel, and how pricing works. You can edit or hide a listing anytime before you go live.</p>
+                    <a href="/service/create" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Create your first service</a>
+                </div>
             </div>
         <?php endif; ?>
     </div>

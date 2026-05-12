@@ -466,6 +466,19 @@
     margin-left: 0.5rem;
 }
 
+/* ==================== Empty states ==================== */
+.dash-empty-state {
+    max-width: 28rem;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.dash-page-lead {
+    font-size: 0.95rem;
+    color: #6c757d;
+    max-width: 42rem;
+}
+
 /* ==================== Responsive ==================== */
 @media (max-width: 768px) {
     .stat-card {

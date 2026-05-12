@@ -403,6 +403,12 @@ ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 ALTER TABLE users MODIFY COLUMN `role` ENUM('customer','vendor','admin') NOT NULL;
 
 -- ============================================================
+-- TABLE: users — password reset (MVP: opaque token + expiry; HTTPS-only)
+-- ============================================================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS `password_reset_token` varchar(128) DEFAULT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS `password_reset_expires_at` datetime DEFAULT NULL;
+
+-- ============================================================
 -- TABLE: cms_pages — editable public pages
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `cms_pages` (
@@ -440,16 +446,6 @@ ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `reviewed_at` datetime DEFAUL
 INSERT INTO `cms_pages` (`slug`, `title`, `content`, `status`, `created_at`, `updated_at`) VALUES
 ('homepage', 'Welcome', '<p class="lead">Plan your celebration with trusted local vendors.</p><p><em>This block is editable in <strong>Admin → Pages → homepage</strong>.</em></p>', 'published', NOW(), NOW())
 ON DUPLICATE KEY UPDATE `title` = VALUES(`title`), `content` = VALUES(`content`), `status` = 'published', `updated_at` = NOW();
-
--- ============================================================
--- SEED: QA / smoke-test accounts (password: TestPass123!)
--- Same bcrypt as event_marketplace.sql; safe to re-run (updates row).
--- ============================================================
-INSERT INTO `users` (`id`, `name`, `username`, `email`, `password`, `role`) VALUES
-(1, 'Site Admin', 'admin', 'admin@example.test', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'admin'),
-(6, 'QA Customer', 'qa_customer', 'qa.customer@example.test', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'customer'),
-(7, 'QA Vendor', 'qa_vendor', 'qa.vendor@example.test', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'vendor')
-ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `username`=VALUES(`username`), `email`=VALUES(`email`), `password`=VALUES(`password`), `role`=VALUES(`role`);
 
 -- ============================================================
 -- Done! Your database is now up to date.

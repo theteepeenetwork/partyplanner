@@ -5,9 +5,12 @@
     <div class="container">
         <?= $this->include('dashboard/_customer_tabs') ?>
 
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h4 class="mb-0">My Events</h4>
-            <a href="/event/create" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Create New Event</a>
+        <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-start gap-3 mb-4">
+            <div>
+                <h4 class="mb-2">My Events</h4>
+                <p class="dash-page-lead mb-0">Keep dates, venues, and bookings organised per celebration. Nothing is shared publicly until you choose to show it.</p>
+            </div>
+            <a href="/event/create" class="btn btn-primary flex-shrink-0 align-self-stretch align-self-md-auto"><i class="fas fa-plus me-1"></i>Create New Event</a>
         </div>
 
         <?php if (!empty($events)): ?>
@@ -65,11 +68,16 @@
                 </div>
             <?php endforeach; ?>
         <?php else: ?>
-            <div class="dash-card text-center py-5">
-                <i class="fas fa-calendar-plus fa-3x text-muted mb-3"></i>
-                <h5>No events yet</h5>
-                <p class="text-muted">Create your first event to start planning and booking services.</p>
-                <a href="/event/create" class="btn btn-primary">Create Your First Event</a>
+            <div class="dash-card text-center py-5 px-3">
+                <div class="dash-empty-state">
+                    <i class="fas fa-calendar-plus fa-3x text-muted mb-3 d-block" aria-hidden="true"></i>
+                    <h5 class="fw-semibold">No events yet</h5>
+                    <p class="text-muted mb-4">Set up your first event to save the basics, then browse and shortlist services with confidence.</p>
+                    <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                        <a href="/event/create" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Create your first event</a>
+                        <a href="/browse-services" class="btn btn-outline-primary">Browse services</a>
+                    </div>
+                </div>
             </div>
         <?php endif; ?>
     </div>

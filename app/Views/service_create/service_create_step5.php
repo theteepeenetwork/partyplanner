@@ -6,6 +6,7 @@
 
 <main class="container mt-4">
     <form action="/service/step5" method="POST" enctype="multipart/form-data" id="publicEventForm" class="service-form">
+        <?= csrf_field() ?>
         <section>
             <h4>
                 Optional Extras

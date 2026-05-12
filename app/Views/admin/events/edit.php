@@ -1,4 +1,7 @@
-<h1 class="h3 mb-3">Edit event</h1>
+<header class="admin-page-header">
+    <h1 class="admin-page-title">Edit event</h1>
+    <p class="admin-page-subtitle">Adjust scheduling, venue, and notes for this party.</p>
+</header>
 <form method="post" action="<?= site_url('/admin/events/' . $event['id'] . '/edit') ?>" class="card shadow-sm p-4">
     <?= csrf_field() ?>
     <div class="row g-3">

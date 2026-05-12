@@ -1,5 +1,5 @@
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Conversation #<?= (int) $room['id'] ?></h1>
+<div class="admin-toolbar d-flex justify-content-between align-items-center flex-wrap">
+    <h1 class="admin-page-title mb-0">Conversation #<?= (int) $room['id'] ?></h1>
     <a class="btn btn-outline-secondary" href="<?= site_url('/admin/messages') ?>">Back</a>
 </div>
 <div class="row g-3 mb-3">
@@ -22,22 +22,22 @@
         </div></div>
     </div>
 </div>
-<div class="d-flex gap-2 mb-3">
+<div class="d-flex flex-wrap mb-3">
     <?php if (empty($room['flagged_for_review'])): ?>
-        <form method="post" action="<?= site_url('/admin/messages/' . $room['id'] . '/flag') ?>">
+        <form method="post" action="<?= site_url('/admin/messages/' . $room['id'] . '/flag') ?>" class="me-2 mb-2">
             <?= csrf_field() ?>
             <button class="btn btn-outline-warning btn-sm" type="submit">Flag conversation</button>
         </form>
     <?php else: ?>
-        <form method="post" action="<?= site_url('/admin/messages/' . $room['id'] . '/unflag') ?>">
+        <form method="post" action="<?= site_url('/admin/messages/' . $room['id'] . '/unflag') ?>" class="me-2 mb-2">
             <?= csrf_field() ?>
             <button class="btn btn-outline-secondary btn-sm" type="submit">Clear room flag</button>
         </form>
     <?php endif; ?>
-    <a class="btn btn-sm btn-outline-danger" href="<?= site_url('/admin/messages?moderation=pending') ?>">All pending language reviews</a>
+    <a class="btn btn-sm btn-outline-danger mb-2" href="<?= site_url('/admin/messages?moderation=pending') ?>">All pending language reviews</a>
 </div>
 <div class="card shadow-sm">
-    <div class="card-header bg-white fw-bold">Thread &amp; moderation</div>
+    <div class="card-header bg-white fw-semibold">Thread &amp; moderation</div>
     <div class="list-group list-group-flush">
         <?php foreach ($messages as $m): ?>
             <?php
@@ -45,8 +45,8 @@
             $pending = ($st === \App\Libraries\ChatModeration::STATUS_PENDING);
             ?>
             <div class="list-group-item">
-                <div class="d-flex justify-content-between align-items-start gap-3">
-                    <div class="flex-grow-1">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="flex-grow-1 me-3">
                         <div class="small text-muted"><?= esc($m['created_at'] ?? '') ?> — sender #<?= (int) ($m['sender_id'] ?? 0) ?></div>
                         <div class="mt-1"><?= nl2br(esc($m['message'] ?? '')) ?></div>
                         <?= view('partials/chat_moderation_meta', ['msg' => $m]) ?>

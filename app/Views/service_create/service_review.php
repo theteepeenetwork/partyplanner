@@ -49,6 +49,7 @@
     <?php endif; ?>
 
     <form action="/service/saveService" method="POST">
+        <?= csrf_field() ?>
         <h2>Review Your Service</h2>
         <div class="review-section form-section">
 
