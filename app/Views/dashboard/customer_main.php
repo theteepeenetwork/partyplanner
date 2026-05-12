@@ -8,7 +8,8 @@
 
         <!-- 1. Welcome Section -->
         <div class="mb-4">
-            <h3>Welcome back, <?= esc($user['name']) ?> 👋</h3>
+            <h3 class="mb-2">Welcome back, <?= esc($user['name']) ?> 👋</h3>
+            <p class="dash-page-lead mb-3">This is your private planning hub. Bookings, messages, and payment summaries stay in one place so you always know what is next.</p>
             <?php
             // Find next upcoming event
             $nextEvent = null;
@@ -34,9 +35,9 @@
                     <strong><?= $daysUntil ?> day<?= $daysUntil != 1 ? 's' : '' ?></strong>
                 </p>
             <?php elseif (empty($events)): ?>
-                <p class="text-muted">Start planning your event — create an event and browse services to get started!</p>
+                <p class="text-muted mb-0">Add a date and a few details first, then browse trusted vendors and request bookings. Nothing is final until you confirm with the vendor.</p>
             <?php else: ?>
-                <p class="text-muted">Here's an overview of your event planning progress</p>
+                <p class="text-muted mb-0">Here is a snapshot of your events, requests, and spend. Numbers update as vendors respond and you pay deposits.</p>
             <?php endif; ?>
         </div>
 
@@ -156,9 +157,12 @@
 
                 <!-- 2. Event Overview Cards -->
                 <div class="dash-card">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0"><i class="fas fa-calendar text-primary me-2"></i>My Events</h5>
-                        <a href="/event/create" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Create Event</a>
+                    <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-2 mb-3">
+                        <div>
+                            <h5 class="mb-0"><i class="fas fa-calendar text-primary me-2"></i>My Events</h5>
+                            <p class="text-muted small mb-0 mt-1">Each event holds your bookings and budget for that celebration.</p>
+                        </div>
+                        <a href="/event/create" class="btn btn-sm btn-primary flex-shrink-0"><i class="fas fa-plus me-1"></i>Create Event</a>
                     </div>
 
                     <?php if (!empty($events)): ?>
@@ -210,18 +214,22 @@
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-4">
-                            <i class="fas fa-calendar-plus fa-3x text-muted mb-3"></i>
-                            <h5>No events yet</h5>
-                            <p class="text-muted">Create your first event to start planning</p>
-                            <a href="/event/create" class="btn btn-primary">Create Your First Event</a>
+                        <div class="dash-empty-state text-center py-4 px-3">
+                            <i class="fas fa-calendar-plus fa-3x text-muted mb-3 d-block" aria-hidden="true"></i>
+                            <h5 class="fw-semibold">No events yet</h5>
+                            <p class="text-muted mb-4">Create an event to save your date, guest count, and venue—then add services and track vendor responses in one place.</p>
+                            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center align-items-stretch align-items-sm-center">
+                                <a href="/event/create" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Create your first event</a>
+                                <a href="/browse-services" class="btn btn-outline-primary">Browse services</a>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
 
                 <!-- 5. Planning Progress Tracker -->
                 <div class="dash-card">
-                    <h5><i class="fas fa-tasks text-success me-2"></i>Planning Progress</h5>
+                    <h5 class="mb-1"><i class="fas fa-tasks text-success me-2"></i>Planning Progress</h5>
+                    <p class="text-muted small mb-3">A simple checklist so big items like catering and photos do not slip through the cracks.</p>
 
                     <?php if (!empty($events)): ?>
                         <?php
@@ -273,7 +281,13 @@
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <p class="text-muted small mb-0">Create an event to track your planning progress.</p>
+                        <div class="dash-empty-state text-center py-3 px-2">
+                            <p class="text-muted small mb-3 mb-md-4">Start with one event; we will help you tick off the essentials as you book vendors.</p>
+                            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                                <a href="/event/create" class="btn btn-sm btn-primary">Create an event</a>
+                                <a href="/browse-services" class="btn btn-sm btn-outline-secondary">Browse services</a>
+                            </div>
+                        </div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -283,7 +297,8 @@
 
                 <!-- 6. Recommended Next Services -->
                 <div class="dash-card">
-                    <h5><i class="fas fa-lightbulb text-warning me-2"></i>Recommended Services</h5>
+                    <h5 class="mb-1"><i class="fas fa-lightbulb text-warning me-2"></i>Recommended Services</h5>
+                    <p class="text-muted small mb-3">Popular starting points from the marketplace—explore more categories anytime.</p>
 
                     <!-- TODO: Generate recommendations based on event type and missing service categories -->
                     <div class="attention-card border-info mb-2">
@@ -314,7 +329,8 @@
 
                 <!-- 8. Payment Snapshot -->
                 <div class="dash-card">
-                    <h5><i class="fas fa-credit-card text-primary me-2"></i>Payment Summary</h5>
+                    <h5 class="mb-1"><i class="fas fa-credit-card text-primary me-2"></i>Payment Summary</h5>
+                    <p class="text-muted small mb-3">Figures reflect recorded deposits and estimates. You will confirm balances with each vendor before the event.</p>
                     <div class="mb-2 d-flex justify-content-between">
                         <span class="text-muted small">Deposits Paid</span>
                         <!-- TODO: Pull real deposit amounts from payments table -->
@@ -339,18 +355,20 @@
 
                 <!-- 7. Favourites / Saved Services -->
                 <div class="dash-card">
-                    <h5><i class="fas fa-heart text-danger me-2"></i>Saved Services</h5>
+                    <h5 class="mb-1"><i class="fas fa-heart text-danger me-2"></i>Saved Services</h5>
+                    <p class="text-muted small mb-3">Shortlist vendors you love and come back when you are ready to book.</p>
                     <!-- TODO: Implement favourites/saved services functionality with a favourites table -->
-                    <div class="text-center py-3">
-                        <i class="fas fa-heart fa-2x text-muted mb-2"></i>
-                        <p class="text-muted small mb-2">No saved services yet</p>
-                        <a href="/browse-services" class="btn btn-sm btn-outline-primary">Browse Services</a>
+                    <div class="dash-empty-state text-center py-3 px-2">
+                        <i class="fas fa-heart fa-2x text-muted mb-2 d-block" aria-hidden="true"></i>
+                        <p class="text-muted small mb-3">Nothing saved yet. Tap the heart on a service page to keep it here.</p>
+                        <a href="/browse-services" class="btn btn-sm btn-primary">Browse services</a>
                     </div>
                 </div>
 
                 <!-- 9. Messages Preview -->
                 <div class="dash-card">
-                    <h5><i class="fas fa-comments text-info me-2"></i>Messages</h5>
+                    <h5 class="mb-1"><i class="fas fa-comments text-info me-2"></i>Messages</h5>
+                    <p class="text-muted small mb-3 d-none d-md-block">Questions and updates from vendors appear here after you request or confirm a booking.</p>
 
                     <?php if (!empty($recentMessages)): ?>
                         <?php foreach ($recentMessages as $msg): ?>
@@ -371,8 +389,13 @@
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-3">
-                            <p class="text-muted small mb-0">No messages yet. Vendors will message you after you book services.</p>
+                        <div class="dash-empty-state text-center py-3 px-2">
+                            <i class="fas fa-comments fa-2x text-muted mb-2 d-block d-md-none" aria-hidden="true"></i>
+                            <p class="text-muted small mb-3">No conversations yet. Message a vendor from a booking or service page once you have started planning.</p>
+                            <div class="d-flex flex-column gap-2">
+                                <a href="/browse-services" class="btn btn-sm btn-primary">Browse services</a>
+                                <a href="/profile/messages" class="btn btn-sm btn-outline-secondary">Open inbox</a>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>

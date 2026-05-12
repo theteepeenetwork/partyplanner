@@ -5,7 +5,14 @@
     <div class="container">
         <?= $user['role'] === 'vendor' ? $this->include('dashboard/_vendor_tabs') : $this->include('dashboard/_customer_tabs') ?>
 
-        <h4 class="mb-4">Messages</h4>
+        <div class="mb-4">
+            <h4 class="mb-2">Messages</h4>
+            <?php if (($user['role'] ?? '') === 'vendor'): ?>
+                <p class="dash-page-lead mb-0">One inbox for customer questions tied to your services. Prompt replies build trust and help secure bookings.</p>
+            <?php else: ?>
+                <p class="dash-page-lead mb-0">One inbox for every vendor conversation. Replies stay threaded by booking so context never gets lost.</p>
+            <?php endif; ?>
+        </div>
 
         <?php if (session()->getFlashdata('error')): ?>
             <div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div>
@@ -37,10 +44,23 @@
                 </a>
             <?php endforeach; ?>
         <?php else: ?>
-            <div class="dash-card text-center py-5">
-                <i class="fas fa-comments fa-3x text-muted mb-3"></i>
-                <h5>No messages yet</h5>
-                <p class="text-muted">When you book a service, you can message the vendor here. Vendors can reply from the same inbox.</p>
+            <div class="dash-card text-center py-5 px-3">
+                <div class="dash-empty-state">
+                    <i class="fas fa-comments fa-3x text-muted mb-3 d-block" aria-hidden="true"></i>
+                    <h5 class="fw-semibold">No messages yet</h5>
+                    <p class="text-muted mb-4"><?= ($user['role'] ?? '') === 'vendor'
+                        ? 'When customers message you about a booking, threads appear here. List a service and respond to requests to unlock conversations.'
+                        : 'After you request or confirm a booking, you and the vendor can chat here. Start by finding a service or checking an existing booking.' ?></p>
+                    <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                        <?php if (($user['role'] ?? '') === 'vendor'): ?>
+                            <a href="/service/create" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Add a service</a>
+                            <a href="/profile/bookings" class="btn btn-outline-secondary">Booking requests</a>
+                        <?php else: ?>
+                            <a href="/browse-services" class="btn btn-primary">Browse services</a>
+                            <a href="/profile/my-bookings" class="btn btn-outline-secondary">My bookings</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
             </div>
         <?php endif; ?>
     </div>

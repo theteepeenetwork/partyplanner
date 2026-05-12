@@ -5,7 +5,10 @@
     <div class="container">
         <?= $this->include('dashboard/_customer_tabs') ?>
 
-        <h4 class="mb-4">Payments</h4>
+        <div class="mb-4">
+            <h4 class="mb-2">Payments</h4>
+            <p class="dash-page-lead mb-0">A transparent record of deposits and balances. Figures update when payments succeed; confirm final amounts with your vendors before the big day.</p>
+        </div>
 
         <!-- Payment Summary Cards -->
         <div class="row g-3 mb-4">
@@ -34,7 +37,8 @@
 
         <!-- Payment History -->
         <div class="dash-card">
-            <h5 class="mb-3"><i class="fas fa-history text-info me-2"></i>Payment History</h5>
+            <h5 class="mb-1"><i class="fas fa-history text-info me-2"></i>Payment History</h5>
+            <p class="text-muted small mb-3">Completed transactions linked to your bookings appear below.</p>
 
             <?php if (!empty($payments)): ?>
                 <div class="table-responsive">
@@ -87,9 +91,16 @@
                     </table>
                 </div>
             <?php else: ?>
-                <div class="text-center py-4">
-                    <i class="fas fa-credit-card fa-2x text-muted mb-2"></i>
-                    <p class="text-muted">No payment history yet. Payments will appear here after you book services.</p>
+                <div class="text-center py-5 px-3">
+                    <div class="dash-empty-state">
+                        <i class="fas fa-receipt fa-3x text-muted mb-3 d-block" aria-hidden="true"></i>
+                        <h5 class="fw-semibold">No payments recorded yet</h5>
+                        <p class="text-muted mb-4">Once you book a service and pay a deposit or balance, it will be listed here for easy reference.</p>
+                        <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                            <a href="/browse-services" class="btn btn-primary">Browse services</a>
+                            <a href="/profile/my-bookings" class="btn btn-outline-secondary">View my bookings</a>
+                        </div>
+                    </div>
                 </div>
             <?php endif; ?>
         </div>

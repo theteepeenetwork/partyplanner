@@ -5,7 +5,10 @@
     <div class="container">
         <?= $this->include('dashboard/_customer_tabs') ?>
 
-        <h4 class="mb-4">My Bookings</h4>
+        <div class="mb-4">
+            <h4 class="mb-2">My Bookings</h4>
+            <p class="dash-page-lead mb-0">Every request and confirmation lives here. We surface status so you always know whether a vendor has accepted, needs payment, or has declined.</p>
+        </div>
 
         <?php if (!empty($bookingItems)): ?>
             <?php
@@ -79,11 +82,16 @@
                 </div>
             <?php endforeach; ?>
         <?php else: ?>
-            <div class="dash-card text-center py-5">
-                <i class="fas fa-shopping-bag fa-3x text-muted mb-3"></i>
-                <h5>No bookings yet</h5>
-                <p class="text-muted">Browse services and add them to your event to create bookings.</p>
-                <a href="/browse-services" class="btn btn-primary">Browse Services</a>
+            <div class="dash-card text-center py-5 px-3">
+                <div class="dash-empty-state">
+                    <i class="fas fa-shopping-bag fa-3x text-muted mb-3 d-block" aria-hidden="true"></i>
+                    <h5 class="fw-semibold">No bookings yet</h5>
+                    <p class="text-muted mb-4">Browse vendors, add services to an event, and send a booking request. Your thread and status updates will show up here.</p>
+                    <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                        <a href="/browse-services" class="btn btn-primary">Browse services</a>
+                        <a href="/event/create" class="btn btn-outline-primary"><i class="fas fa-plus me-1"></i>Create an event</a>
+                    </div>
+                </div>
             </div>
         <?php endif; ?>
     </div>

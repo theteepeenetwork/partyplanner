@@ -8,12 +8,15 @@
     <div class="container">
         <?= $this->include('dashboard/_vendor_tabs') ?>
 
-        <h4 class="mb-4">Calendar</h4>
+        <div class="mb-4">
+            <h4 class="mb-2">Calendar</h4>
+            <p class="dash-page-lead mb-0">See confirmed and pending bookings alongside your own availability. Colours match status so you can prep without digging through emails.</p>
+        </div>
 
         <div class="dash-card">
-            <div class="d-flex gap-3 mb-3 small">
-                <span><span class="badge bg-success">&nbsp;</span> Confirmed</span>
-                <span><span class="badge bg-warning">&nbsp;</span> Pending</span>
+            <div class="d-flex flex-wrap align-items-center gap-3 mb-3 small text-muted">
+                <span class="me-md-2"><span class="badge bg-success align-middle">&nbsp;</span> Confirmed</span>
+                <span><span class="badge bg-warning align-middle">&nbsp;</span> Pending</span>
             </div>
             <div id="vendor-calendar"></div>
         </div>
