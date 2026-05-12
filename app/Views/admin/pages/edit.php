@@ -10,9 +10,10 @@
     </div>
     <div class="mb-3">
         <label class="form-label">Status</label>
+        <?php $statusValue = old('status', $page['status'] ?? 'draft'); ?>
         <select name="status" class="form-select" style="max-width:220px">
             <?php foreach (['draft','published'] as $st): ?>
-                <option value="<?= esc($st) ?>" <?= ($page['status'] ?? '') === $st ? 'selected' : '' ?>><?= esc($st) ?></option>
+                <option value="<?= esc($st) ?>" <?= $statusValue === $st ? 'selected' : '' ?>><?= esc($st) ?></option>
             <?php endforeach; ?>
         </select>
     </div>
