@@ -442,6 +442,16 @@ INSERT INTO `cms_pages` (`slug`, `title`, `content`, `status`, `created_at`, `up
 ON DUPLICATE KEY UPDATE `title` = VALUES(`title`), `content` = VALUES(`content`), `status` = 'published', `updated_at` = NOW();
 
 -- ============================================================
+-- SEED: QA / smoke-test accounts (password: TestPass123!)
+-- Same bcrypt as event_marketplace.sql; safe to re-run (updates row).
+-- ============================================================
+INSERT INTO `users` (`id`, `name`, `username`, `email`, `password`, `role`) VALUES
+(1, 'Site Admin', 'admin', 'admin@example.test', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'admin'),
+(6, 'QA Customer', 'qa_customer', 'qa.customer@example.test', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'customer'),
+(7, 'QA Vendor', 'qa_vendor', 'qa.vendor@example.test', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'vendor')
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `username`=VALUES(`username`), `email`=VALUES(`email`), `password`=VALUES(`password`), `role`=VALUES(`role`);
+
+-- ============================================================
 -- Done! Your database is now up to date.
 -- ============================================================
 SELECT 'Database update complete!' AS status;

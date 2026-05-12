@@ -671,12 +671,15 @@ class Profile extends BaseController
             }
             $payments = array_merge($payments, $bookingPayments);
 
+            $itemsTotal = 0.0;
             foreach ($items as $item) {
-                $itemTotal = (float)($item['price'] ?? 0);
-                $paidForBooking = 0;
-                foreach ($bookingPayments as $bp) { $paidForBooking += (float)($bp['amount_paid'] ?? 0); }
-                $totalOutstanding += max(0, $itemTotal - $paidForBooking);
+                $itemsTotal += (float) ($item['price'] ?? 0);
             }
+            $paidForBooking = 0.0;
+            foreach ($bookingPayments as $bp) {
+                $paidForBooking += (float) ($bp['amount_paid'] ?? 0);
+            }
+            $totalOutstanding += max(0.0, $itemsTotal - $paidForBooking);
         }
 
         return view('dashboard/customer_payments', [
