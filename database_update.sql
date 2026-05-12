@@ -403,6 +403,12 @@ ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 ALTER TABLE users MODIFY COLUMN `role` ENUM('customer','vendor','admin') NOT NULL;
 
 -- ============================================================
+-- TABLE: users — password reset (MVP: opaque token + expiry; HTTPS-only)
+-- ============================================================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS `password_reset_token` varchar(128) DEFAULT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS `password_reset_expires_at` datetime DEFAULT NULL;
+
+-- ============================================================
 -- TABLE: cms_pages — editable public pages
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `cms_pages` (
@@ -433,6 +439,13 @@ ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `admin_note` text DEFAULT NUL
 ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `profanity_matches` varchar(500) DEFAULT NULL AFTER `admin_note`;
 ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `reviewed_by` int(11) DEFAULT NULL AFTER `profanity_matches`;
 ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `reviewed_at` datetime DEFAULT NULL AFTER `reviewed_by`;
+
+-- ============================================================
+-- CMS: default published homepage (editable in Admin → Pages)
+-- ============================================================
+INSERT INTO `cms_pages` (`slug`, `title`, `content`, `status`, `created_at`, `updated_at`) VALUES
+('homepage', 'Welcome', '<p class="lead">Plan your celebration with trusted local vendors.</p><p><em>This block is editable in <strong>Admin → Pages → homepage</strong>.</em></p>', 'published', NOW(), NOW())
+ON DUPLICATE KEY UPDATE `title` = VALUES(`title`), `content` = VALUES(`content`), `status` = 'published', `updated_at` = NOW();
 
 -- ============================================================
 -- Done! Your database is now up to date.

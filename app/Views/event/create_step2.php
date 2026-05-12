@@ -13,6 +13,7 @@
             <h5><i class="fas fa-map-marker-alt text-primary me-2"></i>Location Details</h5>
 
             <form method="post" action="/event/create/step2">
+                <?= csrf_field() ?>
                 <div class="mb-3">
                     <label for="venue_name" class="form-label">Venue Name <span class="text-muted">(optional)</span></label>
                     <input type="text" class="form-control" id="venue_name" name="venue_name"

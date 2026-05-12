@@ -1,5 +1,5 @@
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Event #<?= (int) $event['id'] ?></h1>
+<div class="admin-toolbar d-flex justify-content-between align-items-center flex-wrap">
+    <h1 class="admin-page-title mb-0">Event #<?= (int) $event['id'] ?></h1>
     <div class="btn-group">
         <a class="btn btn-outline-secondary" href="<?= site_url('/admin/events') ?>">Back</a>
         <a class="btn btn-outline-primary" href="<?= site_url('/admin/events/' . $event['id'] . '/edit') ?>">Edit</a>
@@ -17,10 +17,10 @@
         </div></div>
     </div>
     <div class="col-md-6">
-        <div class="card shadow-sm mb-3">
-            <div class="card-header bg-white fw-bold">Basket lines</div>
+        <div class="card shadow-sm admin-table-card mb-3">
+            <div class="card-header bg-white fw-semibold">Basket lines</div>
             <div class="table-responsive">
-                <table class="table table-sm mb-0">
+                <table class="table table-sm mb-0 align-middle">
                     <thead><tr><th>Service</th><th>Qty</th></tr></thead>
                     <tbody>
                     <?php foreach ($basket as $bi): ?>
@@ -34,10 +34,10 @@
                 </table>
             </div>
         </div>
-        <div class="card shadow-sm">
-            <div class="card-header bg-white fw-bold">Bookings</div>
+        <div class="card shadow-sm admin-table-card">
+            <div class="card-header bg-white fw-semibold">Bookings</div>
             <div class="table-responsive">
-                <table class="table table-sm mb-0">
+                <table class="table table-sm mb-0 align-middle">
                     <thead><tr><th>ID</th><th>Status</th></tr></thead>
                     <tbody>
                     <?php foreach ($bookings as $b): ?>

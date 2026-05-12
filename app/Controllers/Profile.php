@@ -26,6 +26,50 @@ class Profile extends BaseController
         return null;
     }
 
+    /**
+     * @return \CodeIgniter\HTTP\RedirectResponse|null
+     */
+    private function requireCustomer()
+    {
+        if ($r = $this->requireLogin()) {
+            return $r;
+        }
+        $user = $this->getUser();
+        if (!$user) {
+            return redirect()->to('/')->with('error', 'User not found.');
+        }
+        if (($user['role'] ?? '') === 'admin') {
+            return redirect()->to('/admin');
+        }
+        if (($user['role'] ?? '') !== 'customer') {
+            return redirect()->to('/profile')->with('error', 'That section is for customer accounts. Use your vendor dashboard tabs instead.');
+        }
+
+        return null;
+    }
+
+    /**
+     * @return \CodeIgniter\HTTP\RedirectResponse|null
+     */
+    private function requireVendor()
+    {
+        if ($r = $this->requireLogin()) {
+            return $r;
+        }
+        $user = $this->getUser();
+        if (!$user) {
+            return redirect()->to('/')->with('error', 'User not found.');
+        }
+        if (($user['role'] ?? '') === 'admin') {
+            return redirect()->to('/admin');
+        }
+        if (($user['role'] ?? '') !== 'vendor') {
+            return redirect()->to('/profile')->with('error', 'That section is for vendor accounts.');
+        }
+
+        return null;
+    }
+
     private function getUser()
     {
         $userId = session()->get('user_id');
@@ -42,6 +86,10 @@ class Profile extends BaseController
         if ($r = $this->requireLogin()) return $r;
         $user = $this->getUser();
         if (!$user) return redirect()->to('/')->with('error', 'User not found.');
+
+        if (($user['role'] ?? '') === 'admin') {
+            return redirect()->to('/admin');
+        }
 
         if ($user['role'] === 'vendor') {
             return $this->vendorMain($user);
@@ -198,7 +246,7 @@ class Profile extends BaseController
 
     public function services()
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireVendor()) return $r;
         $user = $this->getUser();
         $userId = $user['id'];
         $serviceModel = new ServiceModel();
@@ -225,7 +273,7 @@ class Profile extends BaseController
 
     public function vendorBookings()
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireVendor()) return $r;
         $user = $this->getUser();
         $userId = $user['id'];
         $serviceModel = new ServiceModel();
@@ -261,7 +309,7 @@ class Profile extends BaseController
 
     public function vendorCalendar()
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireVendor()) return $r;
         $user = $this->getUser();
 
         return view('dashboard/vendor_calendar', [
@@ -273,6 +321,11 @@ class Profile extends BaseController
     public function calendarData()
     {
         if (!session()->has('user_id')) return $this->response->setJSON([]);
+        $userModel = new UserModel();
+        $user = $userModel->find((int) session()->get('user_id'));
+        if (!$user || ($user['role'] ?? '') !== 'vendor') {
+            return $this->response->setJSON([]);
+        }
         $userId = session()->get('user_id');
         $serviceModel = new ServiceModel();
         $bookingItemModel = new BookingItemModel();
@@ -318,7 +371,7 @@ class Profile extends BaseController
 
     public function customerEvents()
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireCustomer()) return $r;
         $user = $this->getUser();
         $userId = $user['id'];
         $eventModel = new EventModel();
@@ -347,7 +400,7 @@ class Profile extends BaseController
 
     public function customerBookings()
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireCustomer()) return $r;
         $user = $this->getUser();
         $userId = $user['id'];
         $bookingModel = new BookingModel();
@@ -391,6 +444,12 @@ class Profile extends BaseController
     {
         if ($r = $this->requireLogin()) return $r;
         $user = $this->getUser();
+        if (!$user) {
+            return redirect()->to('/')->with('error', 'User not found.');
+        }
+        if (($user['role'] ?? '') === 'admin') {
+            return redirect()->to('/admin');
+        }
         $userId = $user['id'];
         $chatRoomModel = new ChatRoomModel();
         $chatMessageModel = new ChatMessageModel();
@@ -432,14 +491,10 @@ class Profile extends BaseController
      */
     public function startMessageForService($serviceId)
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireCustomer()) return $r;
         $user = $this->getUser();
         $userId = (int) $user['id'];
         $serviceId = (int) $serviceId;
-
-        if ($user['role'] === 'vendor') {
-            return redirect()->to('/profile/messages')->with('error', 'Open a conversation from your bookings to message a customer.');
-        }
 
         $serviceModel = new ServiceModel();
         $service = $serviceModel->find($serviceId);
@@ -467,11 +522,8 @@ class Profile extends BaseController
      */
     public function openThreadForBookingItem($bookingItemId)
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireVendor()) return $r;
         $user = $this->getUser();
-        if ($user['role'] !== 'vendor') {
-            return redirect()->to('/profile/messages')->with('error', 'Only vendors can use this link.');
-        }
 
         $vendorId = (int) $user['id'];
         $bookingItemModel = new BookingItemModel();
@@ -504,6 +556,12 @@ class Profile extends BaseController
     {
         if ($r = $this->requireLogin()) return $r;
         $user = $this->getUser();
+        if (!$user) {
+            return redirect()->to('/')->with('error', 'User not found.');
+        }
+        if (($user['role'] ?? '') === 'admin') {
+            return redirect()->to('/admin');
+        }
         $userId = $user['id'];
         $chatRoomModel = new ChatRoomModel();
         $chatMessageModel = new ChatMessageModel();
@@ -536,6 +594,13 @@ class Profile extends BaseController
     public function sendMessage()
     {
         if ($r = $this->requireLogin()) return $r;
+        $user = $this->getUser();
+        if (!$user) {
+            return redirect()->to('/')->with('error', 'User not found.');
+        }
+        if (($user['role'] ?? '') === 'admin') {
+            return redirect()->to('/admin');
+        }
         $userId = (int) session()->get('user_id');
         $chatMessageModel = new ChatMessageModel();
         $chatRoomModel = new ChatRoomModel();
@@ -577,7 +642,7 @@ class Profile extends BaseController
 
     public function customerPayments()
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireCustomer()) return $r;
         $user = $this->getUser();
         $userId = $user['id'];
         $bookingModel = new BookingModel();
@@ -625,7 +690,7 @@ class Profile extends BaseController
 
     public function customerFavourites()
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireCustomer()) return $r;
         $user = $this->getUser();
         $userId = $user['id'];
         $favouriteModel = new FavouriteModel();
@@ -662,7 +727,7 @@ class Profile extends BaseController
 
     public function removeFavourite($id)
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireCustomer()) return $r;
         $favouriteModel = new FavouriteModel();
         $fav = $favouriteModel->find($id);
         if ($fav && $fav['user_id'] == session()->get('user_id')) {
@@ -677,12 +742,20 @@ class Profile extends BaseController
 
     public function updateBookingStatus($bookingItemId)
     {
-        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
-            return redirect()->to('/')->with('error', 'Unauthorized.');
-        }
+        if ($r = $this->requireVendor()) return $r;
+        $user = $this->getUser();
+        $vendorId = (int) $user['id'];
+
         $bookingItemModel = new BookingItemModel();
-        $bookingItem = $bookingItemModel->find($bookingItemId);
-        if (!$bookingItem) return redirect()->to('/profile/bookings')->with('error', 'Booking not found.');
+        $bookingItem = $bookingItemModel
+            ->select('booking_items.*, services.vendor_id', false)
+            ->join('services', 'services.id = booking_items.service_id')
+            ->where('booking_items.id', (int) $bookingItemId)
+            ->first();
+
+        if (!$bookingItem || (int) ($bookingItem['vendor_id'] ?? 0) !== $vendorId) {
+            return redirect()->to('/profile/bookings')->with('error', 'Booking not found.');
+        }
 
         $newStatus = $this->request->getPost('status');
         if (!in_array($newStatus, ['pending', 'accepted', 'rejected', 'confirmed', 'cancelled'])) {

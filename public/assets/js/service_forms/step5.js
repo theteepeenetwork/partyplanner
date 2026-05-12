@@ -1,3 +1,8 @@
+function getCsrfToken() {
+    const meta = document.querySelector('meta[name="X-CSRF-TOKEN"]');
+    return meta ? meta.getAttribute('content') || '' : '';
+}
+
 const extrasContainer = document.getElementById('optionalExtrasContainer');
 let extraCount = 0;
 
@@ -109,7 +114,7 @@ function attachRemoveListeners() {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '<?= csrf_hash() ?>', // Include CSRF token
+                            'X-CSRF-TOKEN': getCsrfToken(),
                         },
                         body: JSON.stringify({ extra_name: extraName })
                     })
@@ -137,7 +142,7 @@ function attachRemoveListeners() {
                         method: 'POST',
                         headers: {
                             'Content-Type': 'application/json',
-                            'X-CSRF-TOKEN': '<?= csrf_hash() ?>', // Include CSRF token
+                            'X-CSRF-TOKEN': getCsrfToken(),
                         },
                         body: JSON.stringify({ extra_name: extraName })
                     })

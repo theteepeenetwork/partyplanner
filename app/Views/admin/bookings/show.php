@@ -1,5 +1,5 @@
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <h1 class="h3 mb-0">Booking #<?= (int) $booking['id'] ?></h1>
+<div class="admin-toolbar d-flex justify-content-between align-items-center flex-wrap">
+    <h1 class="admin-page-title mb-0">Booking #<?= (int) $booking['id'] ?></h1>
     <div class="btn-group">
         <a class="btn btn-outline-secondary" href="<?= site_url('/admin/bookings') ?>">Back</a>
         <a class="btn btn-outline-danger" href="<?= site_url('/admin/bookings/' . $booking['id'] . '/delete') ?>">Delete</a>
@@ -9,14 +9,14 @@
     <div class="col-md-4">
         <div class="card shadow-sm"><div class="card-body small">
             <h2 class="h6">Status</h2>
-            <form method="post" action="<?= site_url('/admin/bookings/' . $booking['id'] . '/status') ?>" class="d-flex gap-2">
+            <form method="post" action="<?= site_url('/admin/bookings/' . $booking['id'] . '/status') ?>" class="d-flex flex-wrap align-items-center">
                 <?= csrf_field() ?>
-                <select name="status" class="form-select form-select-sm">
+                <select name="status" class="form-select form-select-sm me-2 mb-2 mb-sm-0" style="min-width:9rem;">
                     <?php foreach (['pending','accepted','confirmed','declined','cancelled','completed'] as $st): ?>
                         <option value="<?= esc($st) ?>" <?= ($booking['status'] ?? '') === $st ? 'selected' : '' ?>><?= esc($st) ?></option>
                     <?php endforeach; ?>
                 </select>
-                <button class="btn btn-sm btn-primary" type="submit">Update</button>
+                <button class="btn btn-sm btn-primary mb-2 mb-sm-0" type="submit">Update</button>
             </form>
             <p class="mt-2 mb-0 text-muted">Payment intent: <?= esc($booking['payment_intent_id'] ?? '—') ?></p>
         </div></div>
@@ -38,10 +38,10 @@
         </div></div>
     </div>
 </div>
-<div class="card shadow-sm mb-3">
-    <div class="card-header bg-white fw-bold">Line items</div>
+<div class="card shadow-sm admin-table-card mb-3">
+    <div class="card-header bg-white fw-semibold">Line items</div>
     <div class="table-responsive">
-        <table class="table table-sm mb-0">
+        <table class="table table-sm mb-0 align-middle">
             <thead><tr><th>Service</th><th>Vendor</th><th>Qty</th><th>Item status</th><th>Times</th></tr></thead>
             <tbody>
             <?php foreach ($items as $it): ?>
@@ -57,10 +57,10 @@
         </table>
     </div>
 </div>
-<div class="card shadow-sm mb-3">
-    <div class="card-header bg-white fw-bold">Payments</div>
+<div class="card shadow-sm admin-table-card mb-3">
+    <div class="card-header bg-white fw-semibold">Payments</div>
     <div class="table-responsive">
-        <table class="table table-sm mb-0">
+        <table class="table table-sm mb-0 align-middle">
             <thead><tr><th>ID</th><th>Status</th><th>Amount</th><th>Currency</th><th>Type</th><th>When</th></tr></thead>
             <tbody>
             <?php foreach ($payments as $p): ?>
@@ -80,7 +80,7 @@
 </div>
 <?php if (!empty($chatRooms)): ?>
 <div class="card shadow-sm">
-    <div class="card-header bg-white fw-bold">Related chats</div>
+    <div class="card-header bg-white fw-semibold">Related chats</div>
     <div class="card-body small">
         <?php foreach ($chatRooms as $cr): ?>
             <a href="<?= site_url('/admin/messages/' . $cr['id']) ?>">Room #<?= (int) $cr['id'] ?></a><br>

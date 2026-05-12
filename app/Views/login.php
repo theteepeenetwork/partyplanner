@@ -6,14 +6,22 @@
 
     <?php if (session()->has('error')): ?>
         <div class="alert alert-danger">
-            <?= session('error') ?>
+            <?= esc(session('error')) ?>
         </div>
     <?php endif; ?>
+
+    <?php if (session()->has('success')): ?>
+        <div class="alert alert-success">
+            <?= esc(session('success')) ?>
+        </div>
+    <?php endif; ?>
+
     <section>
-        <form action="/login/attempt" method="post" class="service-form">
+        <form action="<?= site_url('login/attempt') ?>" method="post" class="service-form">
+            <?= csrf_field() ?>
             <div class="form-group">
                 <label for="login">Email:</label>
-                <input type="text" class="form-control" id="login" name="login" value="<?= old('login') ?>">
+                <input type="text" class="form-control" id="login" name="login" value="<?= esc(old('login') ?? '') ?>">
             </div>
             <div class="form-group">
                 <label for="password">Password:</label>
@@ -21,5 +29,8 @@
             </div>
             <button type="submit" class="btn btn-primary">Login</button>
         </form>
+        <p class="mt-3 mb-0"><a href="<?= site_url('forgot-password') ?>">Forgot password?</a></p>
+    </section>
 </main>
-</section>
+
+<?= $this->include('footer') ?>

@@ -1,4 +1,5 @@
 <form id="payment-form" method="POST">
+    <?= csrf_field() ?>
     <div id="card-element" style="margin-bottom: 20px;">
         <!-- Stripe Card Element will be inserted here -->
     </div>

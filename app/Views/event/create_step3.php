@@ -13,6 +13,7 @@
             <h5><i class="fas fa-sliders-h text-primary me-2"></i>Preferences</h5>
 
             <form method="post" action="/event/create/step3">
+                <?= csrf_field() ?>
                 <div class="mb-3">
                     <label class="form-label">Budget Range <span class="text-muted">(optional)</span></label>
                     <div class="row">
