@@ -19,8 +19,8 @@ class CartController extends BaseController
 {
     public function index()
     {
-        if (!session()->has('user_id')) {
-            return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount('/cart')) {
+            return $r;
         }
 
         $userId = session()->get('user_id');
@@ -30,7 +30,7 @@ class CartController extends BaseController
         $cartItems = $cartModel->where('user_id', $userId)->findAll();
 
         if (empty($cartItems)) {
-            return redirect()->to('/cart')->with('error', 'Your cart is empty.');
+            return redirect()->to('/browse-services')->with('info', 'Your cart is empty. Browse services to add items.');
         }
 
         // Fetch service details for each cart item and organize them by event
@@ -75,8 +75,8 @@ class CartController extends BaseController
 
     public function submitToVendors()
     {
-        if (!session()->has('user_id')) {
-            return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount('/cart')) {
+            return $r;
         }
 
         $userId = session()->get('user_id');
@@ -148,9 +148,8 @@ class CartController extends BaseController
 
     public function add($serviceId)
     {
-        if (!session()->has('user_id')) {
-            session()->setFlashdata('redirect_after_login', current_url());
-            return redirect()->to('/login')->with('error', 'You must be logged in to add services.');
+        if ($r = $this->requireCustomerAccount()) {
+            return $r;
         }
 
         $userId = session()->get('user_id');
@@ -202,8 +201,8 @@ class CartController extends BaseController
 
     public function submit()
     {
-        if (!session()->has('user_id')) {
-            return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount('/cart')) {
+            return $r;
         }
 
         $userId = session()->get('user_id');
@@ -335,8 +334,8 @@ class CartController extends BaseController
 
     public function processPayment()
     {
-        if (!session()->has('user_id')) {
-            return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount('/cart')) {
+            return $r;
         }
 
         $userId = session()->get('user_id');
@@ -482,9 +481,8 @@ class CartController extends BaseController
 
     public function remove($cartItemId)
     {
-        // Ensure user is logged in
-        if (!session()->has('user_id')) {
-            return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount('/cart')) {
+            return $r;
         }
 
         $cartModel = new CartModel();

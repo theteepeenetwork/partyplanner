@@ -4,6 +4,8 @@ namespace App\Controllers;
 
 use CodeIgniter\Controller;
 use App\Models\CartModel;
+use App\Models\UserModel;
+use CodeIgniter\HTTP\RedirectResponse;
 use CodeIgniter\HTTP\CLIRequest;
 use CodeIgniter\HTTP\IncomingRequest;
 use CodeIgniter\HTTP\RequestInterface;
@@ -70,5 +72,40 @@ abstract class BaseController extends Controller
 
         // Preload models
         $this->cartModel = new CartModel();
+    }
+
+    /**
+     * Customer-only booking/event/cart flows. Uses the database role so promotions or fixes apply without a stale session.
+     *
+     * @param string|null $redirectAfterLogin Stored in session for post-login return (e.g. "/event/create").
+     */
+    protected function requireCustomerAccount(?string $redirectAfterLogin = null): ?RedirectResponse
+    {
+        if (! session()->has('user_id')) {
+            if ($redirectAfterLogin !== null) {
+                session()->set('redirect_after_login', $redirectAfterLogin);
+            }
+
+            return redirect()->to('/login')->with('error', 'Please log in to continue.');
+        }
+
+        $user = (new UserModel())->find((int) session()->get('user_id'));
+        if (! $user) {
+            return redirect()->to('/')->with('error', 'User not found.');
+        }
+
+        $role = strtolower(trim((string) ($user['role'] ?? '')));
+        if ($role === 'admin') {
+            return redirect()->to('/admin');
+        }
+        if ($role !== 'customer') {
+            return redirect()->to('/profile')->with('error', 'That area is for customer accounts. Vendors manage services and bookings from the vendor dashboard.');
+        }
+
+        if (session()->get('role') !== $user['role']) {
+            session()->set('role', $user['role']);
+        }
+
+        return null;
     }
 }
