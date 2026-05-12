@@ -403,6 +403,12 @@ ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
 ALTER TABLE users MODIFY COLUMN `role` ENUM('customer','vendor','admin') NOT NULL;
 
 -- ============================================================
+-- TABLE: users — password reset (MVP: opaque token + expiry; HTTPS-only)
+-- ============================================================
+ALTER TABLE users ADD COLUMN IF NOT EXISTS `password_reset_token` varchar(128) DEFAULT NULL;
+ALTER TABLE users ADD COLUMN IF NOT EXISTS `password_reset_expires_at` datetime DEFAULT NULL;
+
+-- ============================================================
 -- TABLE: cms_pages — editable public pages
 -- ============================================================
 CREATE TABLE IF NOT EXISTS `cms_pages` (

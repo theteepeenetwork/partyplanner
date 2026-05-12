@@ -18,6 +18,11 @@ $routes->get('/login', 'Login::index');
 $routes->post('/login/attempt', 'Login::attempt');
 $routes->get('/logout', 'Login::logout');
 
+$routes->get('/forgot-password', 'ForgotPassword::index');
+$routes->post('/forgot-password', 'ForgotPassword::send');
+$routes->get('/reset-password', 'ResetPassword::index');
+$routes->post('/reset-password', 'ResetPassword::submit');
+
 // Profile / Account Routes
 $routes->get('/profile', 'Profile::index');
 $routes->get('/profile/main', 'Profile::index');

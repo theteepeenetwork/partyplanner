@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `email` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
   `role` enum('customer','vendor','admin') NOT NULL,
+  `password_reset_token` varchar(128) DEFAULT NULL,
+  `password_reset_expires_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `email` (`email`)
