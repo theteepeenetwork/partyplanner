@@ -1,37 +1,18 @@
--- phpMyAdmin SQL Dump
--- Comprehensive 3-level event marketplace categories
--- Generated May 12, 2026
-
-SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
-START TRANSACTION;
-SET time_zone = "+00:00";
-
-/*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
-/*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
-/*!40101 SET @OLD_COLLATION_CONNECTION=@@COLLATION_CONNECTION */;
-/*!40101 SET NAMES utf8mb4 */;
-
+-- Comprehensive 3-level category seed for event_marketplace
+-- Source taxonomy from phpMyAdmin export (May 12, 2026). Safe on existing DBs.
 --
--- Database: `event_marketplace`
+-- Level 1: parent_id IS NULL | Level 2: parent is root | Level 3: parent is level 2
+-- Canonical copies: event_marketplace.sql + database_update.sql (keep in sync).
 --
+SET NAMES utf8mb4;
 
--- --------------------------------------------------------
-
---
--- Table structure for table `categories`
---
-
-DROP TABLE IF EXISTS `categories`;
-CREATE TABLE `categories` (
-  `id` int(11) NOT NULL,
+CREATE TABLE IF NOT EXISTS `categories` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `parent_id` int(11) DEFAULT NULL,
-  `name` varchar(255) NOT NULL
+  `name` varchar(255) NOT NULL,
+  PRIMARY KEY (`id`),
+  KEY `idx_categories_parent_id` (`parent_id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
---
--- Dumping data for table `categories`
--- Structure: Level 1 = broad category, Level 2 = service type, Level 3 = specific service
---
 
 INSERT INTO `categories` (`id`, `parent_id`, `name`) VALUES
 (1, NULL, 'Catering & Drinks'),
@@ -569,23 +550,7 @@ INSERT INTO `categories` (`id`, `parent_id`, `name`) VALUES
 (1439, 169, 'Custom requests'),
 (1440, 169, 'Unusual suppliers'),
 (1441, 169, 'Multi-service packages'),
-(1442, 169, 'Not listed elsewhere');
+(1442, 169, 'Not listed elsewhere')
+ON DUPLICATE KEY UPDATE `parent_id`=VALUES(`parent_id`), `name`=VALUES(`name`);
 
---
--- Indexes for dumped tables
---
-ALTER TABLE `categories`
-  ADD PRIMARY KEY (`id`),
-  ADD KEY `idx_categories_parent_id` (`parent_id`);
-
---
--- AUTO_INCREMENT for dumped tables
---
-ALTER TABLE `categories`
-  MODIFY `id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=1443;
-
-COMMIT;
-
-/*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
-/*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
-/*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
+ALTER TABLE `categories` AUTO_INCREMENT=1443;
