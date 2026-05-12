@@ -70,26 +70,26 @@ CALL `event_marketplace_add_column_if_missing`('services', 'updated_at', '`updat
 -- ============================================================
 -- TABLE: events — add all columns for event creation flow
 -- ============================================================
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `user_id` int(11) DEFAULT NULL AFTER `id`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `description` text DEFAULT NULL AFTER `title`;
+CALL `event_marketplace_add_column_if_missing`('events', 'user_id', '`user_id` int(11) DEFAULT NULL AFTER `id`');
+CALL `event_marketplace_add_column_if_missing`('events', 'description', '`description` text DEFAULT NULL AFTER `title`');
 -- Legacy schemas may lack `category`; `event_type` uses AFTER `category` so add this first.
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `category` varchar(255) DEFAULT NULL;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `event_type` varchar(100) DEFAULT NULL AFTER `category`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `guest_count` int(11) DEFAULT NULL AFTER `event_type`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `venue_name` varchar(255) DEFAULT NULL AFTER `location`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `postcode` varchar(20) DEFAULT NULL AFTER `venue_name`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `town_city` varchar(255) DEFAULT NULL AFTER `postcode`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `indoor_outdoor` varchar(20) DEFAULT NULL AFTER `town_city`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `budget_min` decimal(10,2) DEFAULT NULL AFTER `indoor_outdoor`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `budget_max` decimal(10,2) DEFAULT NULL AFTER `budget_min`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `style_theme` varchar(255) DEFAULT NULL AFTER `budget_max`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `notes` text DEFAULT NULL AFTER `style_theme`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `status` varchar(20) DEFAULT 'active' AFTER `notes`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `created_at` datetime DEFAULT CURRENT_TIMESTAMP;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `event_setting` varchar(20) NOT NULL DEFAULT 'private' COMMENT 'public vs private pricing path' AFTER `guest_count`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `organiser_pitch_fee` decimal(10,2) DEFAULT NULL COMMENT 'Actual pitch/stand fee for public events' AFTER `event_setting`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `latitude` decimal(10,8) DEFAULT NULL AFTER `town_city`;
-ALTER TABLE events ADD COLUMN IF NOT EXISTS `longitude` decimal(11,8) DEFAULT NULL AFTER `latitude`;
+CALL `event_marketplace_add_column_if_missing`('events', 'category', '`category` varchar(255) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('events', 'event_type', '`event_type` varchar(100) DEFAULT NULL AFTER `category`');
+CALL `event_marketplace_add_column_if_missing`('events', 'guest_count', '`guest_count` int(11) DEFAULT NULL AFTER `event_type`');
+CALL `event_marketplace_add_column_if_missing`('events', 'venue_name', '`venue_name` varchar(255) DEFAULT NULL AFTER `location`');
+CALL `event_marketplace_add_column_if_missing`('events', 'postcode', '`postcode` varchar(20) DEFAULT NULL AFTER `venue_name`');
+CALL `event_marketplace_add_column_if_missing`('events', 'town_city', '`town_city` varchar(255) DEFAULT NULL AFTER `postcode`');
+CALL `event_marketplace_add_column_if_missing`('events', 'indoor_outdoor', '`indoor_outdoor` varchar(20) DEFAULT NULL AFTER `town_city`');
+CALL `event_marketplace_add_column_if_missing`('events', 'budget_min', '`budget_min` decimal(10,2) DEFAULT NULL AFTER `indoor_outdoor`');
+CALL `event_marketplace_add_column_if_missing`('events', 'budget_max', '`budget_max` decimal(10,2) DEFAULT NULL AFTER `budget_min`');
+CALL `event_marketplace_add_column_if_missing`('events', 'style_theme', '`style_theme` varchar(255) DEFAULT NULL AFTER `budget_max`');
+CALL `event_marketplace_add_column_if_missing`('events', 'notes', '`notes` text DEFAULT NULL AFTER `style_theme`');
+CALL `event_marketplace_add_column_if_missing`('events', 'status', '`status` varchar(20) DEFAULT ''active'' AFTER `notes`');
+CALL `event_marketplace_add_column_if_missing`('events', 'created_at', '`created_at` datetime DEFAULT CURRENT_TIMESTAMP');
+CALL `event_marketplace_add_column_if_missing`('events', 'event_setting', '`event_setting` varchar(20) NOT NULL DEFAULT ''private'' COMMENT ''public vs private pricing path'' AFTER `guest_count`');
+CALL `event_marketplace_add_column_if_missing`('events', 'organiser_pitch_fee', '`organiser_pitch_fee` decimal(10,2) DEFAULT NULL COMMENT ''Actual pitch/stand fee for public events'' AFTER `event_setting`');
+CALL `event_marketplace_add_column_if_missing`('events', 'latitude', '`latitude` decimal(10,8) DEFAULT NULL AFTER `town_city`');
+CALL `event_marketplace_add_column_if_missing`('events', 'longitude', '`longitude` decimal(11,8) DEFAULT NULL AFTER `latitude`');
 
 -- ============================================================
 -- TABLE: booking_items — add pricing and package columns
@@ -439,8 +439,8 @@ ALTER TABLE users MODIFY COLUMN `role` ENUM('customer','vendor','admin') NOT NUL
 -- ============================================================
 -- TABLE: users — password reset (MVP: opaque token + expiry; HTTPS-only)
 -- ============================================================
-ALTER TABLE users ADD COLUMN IF NOT EXISTS `password_reset_token` varchar(128) DEFAULT NULL;
-ALTER TABLE users ADD COLUMN IF NOT EXISTS `password_reset_expires_at` datetime DEFAULT NULL;
+CALL `event_marketplace_add_column_if_missing`('users', 'password_reset_token', '`password_reset_token` varchar(128) DEFAULT NULL');
+CALL `event_marketplace_add_column_if_missing`('users', 'password_reset_expires_at', '`password_reset_expires_at` datetime DEFAULT NULL');
 
 -- ============================================================
 -- TABLE: cms_pages — editable public pages
