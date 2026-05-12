@@ -15,6 +15,7 @@
     <?php endif; ?>
 
     <form action="/register/create" method="post">
+        <?= csrf_field() ?>
         <div class="form-group mb-3">
             <label for="username">Username:</label>
             <input type="text" class="form-control" id="username" name="username" value="<?= old('username') ?>" required>

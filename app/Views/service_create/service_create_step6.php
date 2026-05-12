@@ -6,6 +6,7 @@
 
 <main class="container mt-4">
     <form action="/service/step6" method="POST" enctype="multipart/form-data" id="publicEventForm">
+        <?= csrf_field() ?>
         <section>
             <h4>Cancellation Policy</h4>
             <div class="form-group">

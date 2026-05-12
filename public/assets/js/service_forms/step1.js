@@ -3,6 +3,11 @@
 /**********************Step 1********************** */
 /************************************************** */
 
+function getCsrfToken() {
+    const meta = document.querySelector('meta[name="X-CSRF-TOKEN"]');
+    return meta ? meta.getAttribute('content') || '' : '';
+}
+
 $(document).ready(function () {
 
 
@@ -100,7 +105,7 @@ document.addEventListener('DOMContentLoaded', function () {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'X-CSRF-TOKEN': '<?= csrf_hash() ?>', // CSRF token for CodeIgniter
+                    'X-CSRF-TOKEN': getCsrfToken(),
                 },
             })
                 .then(response => response.json())

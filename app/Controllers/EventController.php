@@ -29,9 +29,8 @@ class EventController extends BaseController
 
     public function create()
     {
-        if (!session()->has('user_id')) {
-            session()->set('redirect_after_login', '/event/create');
-            return redirect()->to('/login')->with('error', 'Please login to create an event.');
+        if ($r = $this->requireCustomerAccount('/event/create')) {
+            return $r;
         }
 
         return redirect()->to('/event/create/step1');
@@ -39,9 +38,8 @@ class EventController extends BaseController
 
     public function createStep1()
     {
-        if (!session()->has('user_id')) {
-            session()->set('redirect_after_login', '/event/create');
-            return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount('/event/create/step1')) {
+            return $r;
         }
 
         if ($this->request->getMethod() === 'POST') {
@@ -77,7 +75,9 @@ class EventController extends BaseController
 
     public function createStep2()
     {
-        if (!session()->has('user_id')) return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount('/event/create/step2')) {
+            return $r;
+        }
         if (!session()->has('event_step1')) return redirect()->to('/event/create/step1');
 
         if ($this->request->getMethod() === 'POST') {
@@ -102,7 +102,9 @@ class EventController extends BaseController
 
     public function createStep3()
     {
-        if (!session()->has('user_id')) return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount('/event/create/step3')) {
+            return $r;
+        }
         if (!session()->has('event_step1')) return redirect()->to('/event/create/step1');
 
         if ($this->request->getMethod() === 'POST') {
@@ -122,7 +124,9 @@ class EventController extends BaseController
 
     public function createReview()
     {
-        if (!session()->has('user_id')) return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount('/event/create/review')) {
+            return $r;
+        }
         if (!session()->has('event_step1')) return redirect()->to('/event/create/step1');
 
         $step1 = session()->get('event_step1');
@@ -138,7 +142,9 @@ class EventController extends BaseController
 
     public function store()
     {
-        if (!session()->has('user_id')) return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount('/event/create/review')) {
+            return $r;
+        }
         if (!session()->has('event_step1')) return redirect()->to('/event/create/step1');
 
         $step1 = session()->get('event_step1');
@@ -170,7 +176,6 @@ class EventController extends BaseController
             'organiser_pitch_fee' => $pitchFee,
             'latitude' => $geo['latitude'] ?? null,
             'longitude' => $geo['longitude'] ?? null,
-            'category' => $step1['event_type'],
             'location' => $location ?: null,
             'venue_name' => $step2['venue_name'] ?? null,
             'postcode' => $step2['postcode'] ?? null,
@@ -210,7 +215,9 @@ class EventController extends BaseController
     {
         $serviceModel = new ServiceModel();
         $service = $serviceModel->find($serviceId);
-        if (!$service) return redirect()->to('/browse-services')->with('error', 'Service not found.');
+        if (!$service) {
+            return redirect()->to('/browse-services')->with('error', 'Service not found.');
+        }
 
         // Capture selected options from the service view form
         $selectedOptions = [
@@ -219,11 +226,15 @@ class EventController extends BaseController
             'extras' => $this->request->getGet('extras') ?? $this->request->getPost('extras'),
         ];
 
-        // Check: is user logged in?
-        if (!session()->has('user_id')) {
+        if (! session()->has('user_id')) {
             session()->set('pending_add_to_event', $selectedOptions);
             session()->set('redirect_after_login', '/event/add-to-event/' . $serviceId);
+
             return redirect()->to('/login')->with('error', 'Please login to add services to your event.');
+        }
+
+        if ($r = $this->requireCustomerAccount()) {
+            return $r;
         }
 
         // Check: does user have events?
@@ -259,7 +270,9 @@ class EventController extends BaseController
 
     public function addToBasket($serviceId)
     {
-        if (!session()->has('user_id')) return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount('/event/add-to-basket/' . $serviceId)) {
+            return $r;
+        }
 
         $eventId = $this->request->getGet('event_id') ?? $this->request->getPost('event_id');
         if (!$eventId) return redirect()->to('/browse-services')->with('error', 'Please select an event.');
@@ -433,7 +446,9 @@ class EventController extends BaseController
 
     public function basket($eventId)
     {
-        if (!session()->has('user_id')) return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount('/event/basket/' . $eventId)) {
+            return $r;
+        }
 
         $userId = session()->get('user_id');
         $eventModel = new EventModel();
@@ -474,7 +489,9 @@ class EventController extends BaseController
 
     public function removeFromBasket($itemId)
     {
-        if (!session()->has('user_id')) return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount()) {
+            return $r;
+        }
 
         $basketModel = new EventBasketItemModel();
         $item = $basketModel->find($itemId);
@@ -493,7 +510,9 @@ class EventController extends BaseController
 
     public function checkout($eventId)
     {
-        if (!session()->has('user_id')) return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount('/event/checkout/' . $eventId)) {
+            return $r;
+        }
 
         $userId = session()->get('user_id');
         $eventModel = new EventModel();
@@ -529,7 +548,9 @@ class EventController extends BaseController
 
     public function processCheckout($eventId)
     {
-        if (!session()->has('user_id')) return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount('/event/checkout/' . $eventId)) {
+            return $r;
+        }
 
         $userId = session()->get('user_id');
         $eventModel = new EventModel();
@@ -598,7 +619,9 @@ class EventController extends BaseController
 
     public function checkoutSuccess($bookingId)
     {
-        if (!session()->has('user_id')) return redirect()->to('/login');
+        if ($r = $this->requireCustomerAccount()) {
+            return $r;
+        }
 
         $bookingModel = new BookingModel();
         $bookingItemModel = new BookingItemModel();

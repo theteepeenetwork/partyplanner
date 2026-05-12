@@ -18,6 +18,11 @@ $routes->get('/login', 'Login::index');
 $routes->post('/login/attempt', 'Login::attempt');
 $routes->get('/logout', 'Login::logout');
 
+$routes->get('/forgot-password', 'ForgotPassword::index');
+$routes->post('/forgot-password', 'ForgotPassword::send');
+$routes->get('/reset-password', 'ResetPassword::index');
+$routes->post('/reset-password', 'ResetPassword::submit');
+
 // Profile / Account Routes
 $routes->get('/profile', 'Profile::index');
 $routes->get('/profile/main', 'Profile::index');
@@ -48,6 +53,8 @@ $routes->get('/profile/favourites/remove/(:num)', 'Profile::removeFavourite/$1')
 // Browse Services (public)
 $routes->get('/browse-services', 'Service_Controller::browse');
 $routes->get('/services', 'Service_Controller::browse');
+// Hero / legacy search form posts to `/search` with `category` (and optional `q`)
+$routes->get('search', 'Service_Controller::search');
 
 // Service Routes
 $routes->get('test', 'Service_Controller::test');

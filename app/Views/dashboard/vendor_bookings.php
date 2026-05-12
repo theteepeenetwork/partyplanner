@@ -67,10 +67,12 @@
                             <div class="col-md-4 text-md-end mt-3 mt-md-0">
                                 <a href="<?= base_url('profile/messages/by-booking/' . (int) $item['id']) ?>" class="btn btn-sm btn-outline-primary mb-2 d-block d-md-inline-block">Message customer</a>
                                 <form method="POST" action="/profile/update-booking-status/<?= $item['id'] ?>" class="d-inline">
+                                    <?= csrf_field() ?>
                                     <input type="hidden" name="status" value="accepted">
                                     <button type="submit" class="btn btn-sm btn-success me-1"><i class="fas fa-check me-1"></i>Accept</button>
                                 </form>
                                 <form method="POST" action="/profile/update-booking-status/<?= $item['id'] ?>" class="d-inline">
+                                    <?= csrf_field() ?>
                                     <input type="hidden" name="status" value="rejected">
                                     <button type="submit" class="btn btn-sm btn-danger"><i class="fas fa-times me-1"></i>Decline</button>
                                 </form>

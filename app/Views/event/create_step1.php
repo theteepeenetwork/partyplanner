@@ -25,6 +25,7 @@
             <h5><i class="fas fa-calendar-alt text-primary me-2"></i>Event Basics</h5>
 
             <form method="post" action="/event/create/step1">
+                <?= csrf_field() ?>
                 <div class="mb-3">
                     <label for="title" class="form-label">Event Name <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="title" name="title"

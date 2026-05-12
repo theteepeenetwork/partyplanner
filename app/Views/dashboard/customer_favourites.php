@@ -5,7 +5,10 @@
     <div class="container">
         <?= $this->include('dashboard/_customer_tabs') ?>
 
-        <h4 class="mb-4">My Favourites</h4>
+        <div class="mb-4">
+            <h4 class="mb-2">My Favourites</h4>
+            <p class="dash-page-lead mb-0">Your shortlist of services from the marketplace. Open any card to read details, compare pricing, or move forward with a booking.</p>
+        </div>
 
         <?php if (session()->getFlashdata('success')): ?>
             <div class="alert alert-success"><?= session()->getFlashdata('success') ?></div>
@@ -54,11 +57,16 @@
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <div class="dash-card text-center py-5">
-                <i class="fas fa-heart fa-3x text-muted mb-3"></i>
-                <h5>No favourites yet</h5>
-                <p class="text-muted">Save services you like while browsing to find them here later.</p>
-                <a href="/browse-services" class="btn btn-primary">Browse Services</a>
+            <div class="dash-card text-center py-5 px-3">
+                <div class="dash-empty-state">
+                    <i class="fas fa-heart fa-3x text-muted mb-3 d-block" aria-hidden="true"></i>
+                    <h5 class="fw-semibold">No favourites yet</h5>
+                    <p class="text-muted mb-4">Browse the marketplace and save services you are considering. They will appear here for quick access anytime.</p>
+                    <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                        <a href="/browse-services" class="btn btn-primary">Browse services</a>
+                        <a href="/event/create" class="btn btn-outline-primary"><i class="fas fa-plus me-1"></i>Create an event</a>
+                    </div>
+                </div>
             </div>
         <?php endif; ?>
     </div>

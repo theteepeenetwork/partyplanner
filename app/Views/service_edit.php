@@ -21,6 +21,7 @@
         <?php endif; ?>
 
         <form action="/service/edit/<?= esc($service['id']) ?>" method="POST" enctype="multipart/form-data">
+            <?= csrf_field() ?>
 
             <!-- SECTION 1: Basic Information -->
             <div class="dash-card mb-4">
@@ -263,6 +264,7 @@
                     <p class="text-muted small mb-0">Permanently delete this service and all associated data.</p>
                 </div>
                 <form action="/service/delete/<?= $service['id'] ?>" method="POST" onsubmit="return confirm('Are you sure? This cannot be undone.');">
+                    <?= csrf_field() ?>
                     <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash me-1"></i>Delete Service</button>
                 </form>
             </div>

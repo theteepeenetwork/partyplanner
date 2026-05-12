@@ -6,10 +6,13 @@
 
         <?= $this->include('dashboard/_vendor_tabs') ?>
 
+        <?= $this->include('dashboard/_flash_alerts') ?>
+
         <!-- 1. Greeting / Header -->
         <div class="mb-4">
-            <h3>Welcome back, <?= esc($user['name']) ?> 👋</h3>
-            <p class="text-muted">Here's what needs your attention today</p>
+            <h3 class="mb-2">Welcome back, <?= esc($user['name']) ?> 👋</h3>
+            <p class="dash-page-lead mb-2">Your vendor command centre—pending requests, calendar, and payouts stay organised so customers know they are in good hands.</p>
+            <p class="text-muted small mb-0">Focus on what needs action today; everything else is a tap away in the tabs above.</p>
         </div>
 
         <!-- 2. Stats Cards -->
@@ -148,9 +151,12 @@
 
                 <!-- 4. Upcoming Bookings Preview -->
                 <div class="dash-card">
-                    <div class="d-flex justify-content-between align-items-center mb-3">
-                        <h5 class="mb-0"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcoming Bookings</h5>
-                        <a href="/profile/bookings" class="btn btn-sm btn-outline-primary">View All</a>
+                    <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-2 mb-3">
+                        <div>
+                            <h5 class="mb-0"><i class="fas fa-calendar-alt text-primary me-2"></i>Upcoming Bookings</h5>
+                            <p class="text-muted small mb-0 mt-1">Confirmed work on your calendar at a glance. Tap an event for full customer details.</p>
+                        </div>
+                        <a href="/profile/bookings" class="btn btn-sm btn-outline-primary flex-shrink-0">View All</a>
                     </div>
 
                     <?php if (!empty($upcomingBookingsList)): ?>
@@ -176,15 +182,22 @@
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <div class="text-center py-3">
-                            <p class="text-muted mb-0">No upcoming bookings yet.</p>
+                        <div class="dash-empty-state text-center py-4 px-3">
+                            <i class="fas fa-calendar-check fa-3x text-muted mb-3 d-block" aria-hidden="true"></i>
+                            <h6 class="fw-semibold">No upcoming bookings yet</h6>
+                            <p class="text-muted small mb-4">When customers confirm dates with you, they will display here and on your calendar. Polished listings get booked faster.</p>
+                            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
+                                <a href="/service/create" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Add a service</a>
+                                <a href="/browse-services" class="btn btn-sm btn-outline-secondary">See how listings look</a>
+                            </div>
                         </div>
                     <?php endif; ?>
                 </div>
 
                 <!-- 5. Quick Actions -->
                 <div class="dash-card">
-                    <h5><i class="fas fa-bolt text-warning me-2"></i>Quick Actions</h5>
+                    <h5 class="mb-1"><i class="fas fa-bolt text-warning me-2"></i>Quick Actions</h5>
+                    <p class="text-muted small mb-3 d-none d-md-block">Shortcuts to the tasks vendors complete most often.</p>
                     <div class="row g-2">
                         <div class="col-6 col-md-4 col-lg">
                             <a href="/service/create" class="quick-action-btn">
@@ -226,7 +239,8 @@
 
                 <!-- 6. Service Health Checklist -->
                 <div class="dash-card">
-                    <h5><i class="fas fa-heartbeat text-danger me-2"></i>Service Health</h5>
+                    <h5 class="mb-1"><i class="fas fa-heartbeat text-danger me-2"></i>Service Health</h5>
+                    <p class="text-muted small mb-3">Complete profiles with photos and clear policies convert more enquiries into paid bookings.</p>
 
                     <?php if (!empty($serviceHealthItems)): ?>
                         <?php foreach ($serviceHealthItems as $svc): ?>
@@ -259,7 +273,10 @@
                             </div>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <p class="text-muted small mb-0">Create a service to see its health status here.</p>
+                        <div class="dash-empty-state text-center py-3 px-2">
+                            <p class="text-muted small mb-3 mb-md-4">Publish at least one service to unlock completion checks for descriptions, imagery, pricing, and policies.</p>
+                            <a href="/service/create" class="btn btn-sm btn-primary"><i class="fas fa-plus me-1"></i>Add your first service</a>
+                        </div>
                     <?php endif; ?>
                 </div>
 

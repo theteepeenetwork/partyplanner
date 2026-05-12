@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS `users` (
   `email` varchar(255) NOT NULL,
   `password` varchar(255) NOT NULL,
   `role` enum('customer','vendor','admin') NOT NULL,
+  `password_reset_token` varchar(128) DEFAULT NULL,
+  `password_reset_expires_at` datetime DEFAULT NULL,
   PRIMARY KEY (`id`),
   UNIQUE KEY `username` (`username`),
   UNIQUE KEY `email` (`email`)
@@ -36,6 +38,11 @@ INSERT INTO `users` (`id`, `name`, `username`, `email`, `password`, `role`) VALU
 (3, 'Mark Pearson', 'm.pearson1', 'markyj@zoho.com', '$2y$10$OKp.uCxz/4jW3FbMxjpiEesYTJkx4pHBoSlGsZQ3CEstqgHpJU/DK', 'vendor'),
 (4, 'mark90', 'mark90', 'markjpearson@me.com', '$2y$10$FeGW7V5CBkb9suZ2jQdqEevA/2y0iakVRfkVDY3BGEQ42GkzXvy0q', 'customer')
 ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
+
+INSERT INTO `users` (`id`, `name`, `username`, `email`, `password`, `role`) VALUES
+(1, 'Site Admin', 'admin', 'admin@example.test', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'admin'),
+(6, 'QA Customer', 'qa_customer', 'qa.customer@example.test', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'customer')
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `username`=VALUES(`username`), `email`=VALUES(`email`), `password`=VALUES(`password`), `role`=VALUES(`role`);
 
 -- --------------------------------------------------------
 -- Table: categories
@@ -112,12 +119,13 @@ CREATE TABLE IF NOT EXISTS `services` (
   CONSTRAINT `services_ibfk_1` FOREIGN KEY (`vendor_id`) REFERENCES `users` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
-INSERT INTO `services` (`id`, `vendor_id`, `title`, `description`, `image`, `price`, `status`) VALUES
-(2, 3, 'Sweetie Sweet Cart', 'Indulge your sweet tooth at the Sweetie Cart Candy Stall, a whimsical haven for candy lovers of all ages!', '1716936655_2a9474e339e1b2141db3.jpg', 150.00, 'active'),
-(3, 3, 'Sweetie Sweet Cart', 'Indulge your sweet tooth at the Sweetie Cart Candy Stall, a whimsical haven for candy lovers of all ages!', '1716936809_ea5338b2e4ba5823d2f9.jpg', 150.00, 'active'),
-(4, 3, 'Mr Beatys Burgers', 'BurgerBurgerBurgerBurgerBurgerBurgerBurger', '1716937372_8e6a7964ed534149d3cb.jpeg', 240.00, 'active'),
-(5, 3, 'Dinky Donuts', 'Delight in the irresistible aroma and melt-in-your-mouth goodness of Dinky Donuts!', '1716937744_df87fb10763e1b292fb8.jpeg', 90.00, 'active')
-ON DUPLICATE KEY UPDATE `title`=VALUES(`title`);
+INSERT INTO `services` (`id`, `vendor_id`, `title`, `description`, `image`, `price`, `status`, `cancellation_policy`) VALUES
+(2, 3, 'Sweetie Sweet Cart', 'Indulge your sweet tooth at the Sweetie Cart Candy Stall, a whimsical haven for candy lovers of all ages!', '1716936655_2a9474e339e1b2141db3.jpg', 150.00, 'active', 'Cancel up to 14 days before for a full refund of your deposit.'),
+(3, 3, 'Sweetie Sweet Cart', 'Indulge your sweet tooth at the Sweetie Cart Candy Stall, a whimsical haven for candy lovers of all ages!', '1716936809_ea5338b2e4ba5823d2f9.jpg', 150.00, 'active', 'Cancel up to 14 days before for a full refund of your deposit.'),
+(4, 3, 'Mr Beatys Burgers', 'BurgerBurgerBurgerBurgerBurgerBurgerBurger', '1716937372_8e6a7964ed534149d3cb.jpeg', 240.00, 'active', '48 hours notice required for deposit refund.'),
+(5, 3, 'Dinky Donuts', 'Delight in the irresistible aroma and melt-in-your-mouth goodness of Dinky Donuts!', '1716937744_df87fb10763e1b292fb8.jpeg', 90.00, 'active', 'Cancel up to 7 days before for a full refund.'),
+(90, 3, '(Inactive QA) Vintage photobooth', 'Seeded inactive listing for vendor dashboard QA (services tab + filters).', NULL, 320.00, 'inactive', 'Full refund up to 30 days before the event.')
+ON DUPLICATE KEY UPDATE `title`=VALUES(`title`), `status`=VALUES(`status`), `cancellation_policy`=VALUES(`cancellation_policy`);
 
 -- --------------------------------------------------------
 -- Table: service_images
@@ -133,6 +141,13 @@ CREATE TABLE IF NOT EXISTS `service_images` (
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+INSERT INTO `service_images` (`id`, `service_id`, `image_path`, `thumbnail_path`, `is_primary`) VALUES
+(2, 2, 'uploads/services/1716936655_2a9474e339e1b2141db3.jpg', 'uploads/services/thumb_1716936655_2a9474e339e1b2141db3.jpg', 1),
+(3, 3, 'uploads/services/1716936809_ea5338b2e4ba5823d2f9.jpg', 'uploads/services/thumb_1716936809_ea5338b2e4ba5823d2f9.jpg', 1),
+(4, 4, 'uploads/services/1716937372_8e6a7964ed534149d3cb.jpeg', 'uploads/services/thumb_1716937372_8e6a7964ed534149d3cb.jpeg', 1),
+(5, 5, 'uploads/services/1716937744_df87fb10763e1b292fb8.jpeg', 'uploads/services/thumb_1716937744_df87fb10763e1b292fb8.jpeg', 1)
+ON DUPLICATE KEY UPDATE `image_path`=VALUES(`image_path`), `thumbnail_path`=VALUES(`thumbnail_path`), `is_primary`=VALUES(`is_primary`);
 
 -- --------------------------------------------------------
 -- Table: events
@@ -515,6 +530,41 @@ CREATE TABLE IF NOT EXISTS `services_optional_extras` (
   `description` text DEFAULT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- --------------------------------------------------------
+-- QA / demo data (events, bookings, messaging, favourites)
+-- Idempotent via ON DUPLICATE KEY UPDATE on primary keys.
+-- Test accounts: username admin or qa_customer — password: TestPass123!
+-- --------------------------------------------------------
+
+INSERT INTO `events` (`id`, `user_id`, `title`, `description`, `date`, `location`, `event_type`, `guest_count`, `status`) VALUES
+(501, 6, 'QA Sample Wedding', 'Seeded private event for dashboard and booking QA.', '2026-09-15', 'Manchester Town Hall', 'Wedding', 80, 'active')
+ON DUPLICATE KEY UPDATE `title`=VALUES(`title`), `description`=VALUES(`description`), `date`=VALUES(`date`), `location`=VALUES(`location`);
+
+INSERT INTO `bookings` (`id`, `user_id`, `event_id`, `status`) VALUES
+(501, 6, 501, 'pending')
+ON DUPLICATE KEY UPDATE `user_id`=VALUES(`user_id`), `event_id`=VALUES(`event_id`), `status`=VALUES(`status`);
+
+INSERT INTO `booking_items` (`id`, `booking_id`, `service_id`, `quantity`, `price`, `status`) VALUES
+(501, 501, 2, 1, 150.00, 'pending'),
+(502, 501, 5, 1, 90.00, 'accepted')
+ON DUPLICATE KEY UPDATE `price`=VALUES(`price`), `status`=VALUES(`status`);
+
+INSERT INTO `payments` (`id`, `booking_id`, `payment_status`, `amount_paid`, `description`, `payment_type`) VALUES
+(501, 501, 'succeeded', 75.00, 'QA seed deposit', 'deposit')
+ON DUPLICATE KEY UPDATE `payment_status`=VALUES(`payment_status`), `amount_paid`=VALUES(`amount_paid`);
+
+INSERT INTO `favourites` (`user_id`, `service_id`) VALUES (6, 4)
+ON DUPLICATE KEY UPDATE `user_id`=VALUES(`user_id`);
+
+INSERT INTO `chat_rooms` (`id`, `vendor_id`, `customer_id`, `service_id`) VALUES
+(501, 3, 6, 2)
+ON DUPLICATE KEY UPDATE `vendor_id`=VALUES(`vendor_id`), `customer_id`=VALUES(`customer_id`), `service_id`=VALUES(`service_id`);
+
+INSERT INTO `chat_messages` (`id`, `chat_room_id`, `sender_id`, `receiver_id`, `message`, `is_read`, `moderation_status`) VALUES
+(501, 501, 6, 3, 'Hi — confirming our sweet cart for the wedding. Thanks!', 0, 'clean'),
+(502, 501, 3, 6, 'Thanks, we will confirm closer to the date.', 1, 'clean')
+ON DUPLICATE KEY UPDATE `message`=VALUES(`message`), `is_read`=VALUES(`is_read`);
 
 COMMIT;
 

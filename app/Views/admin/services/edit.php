@@ -1,4 +1,7 @@
-<h1 class="h3 mb-3">Edit service</h1>
+<header class="admin-page-header">
+    <h1 class="admin-page-title">Edit service</h1>
+    <p class="admin-page-subtitle">Change listing copy, price, status, or category.</p>
+</header>
 <form method="post" action="<?= site_url('/admin/services/' . $service['id'] . '/edit') ?>" class="card shadow-sm p-4">
     <?= csrf_field() ?>
     <div class="row g-3">
