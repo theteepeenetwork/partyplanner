@@ -71,6 +71,7 @@ CALL `event_marketplace_add_column_if_missing`('services', 'updated_at', '`updat
 -- TABLE: events — add all columns for event creation flow
 -- ============================================================
 ALTER TABLE events ADD COLUMN IF NOT EXISTS `user_id` int(11) DEFAULT NULL AFTER `id`;
+ALTER TABLE events ADD COLUMN IF NOT EXISTS `description` text DEFAULT NULL AFTER `title`;
 -- Legacy schemas may lack `category`; `event_type` uses AFTER `category` so add this first.
 ALTER TABLE events ADD COLUMN IF NOT EXISTS `category` varchar(255) DEFAULT NULL;
 ALTER TABLE events ADD COLUMN IF NOT EXISTS `event_type` varchar(100) DEFAULT NULL AFTER `category`;

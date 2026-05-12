@@ -536,6 +536,8 @@ CREATE TABLE IF NOT EXISTS `services_optional_extras` (
 -- Idempotent via ON DUPLICATE KEY UPDATE on primary keys.
 -- Test accounts (password TestPass123!): admin, qa_customer, m.pearson1 (vendor), mark90 (customer)
 -- --------------------------------------------------------
+-- Older `events` tables may lack columns the app and seeds expect (`CREATE TABLE IF NOT EXISTS` does not upgrade them).
+ALTER TABLE `events` ADD COLUMN IF NOT EXISTS `description` text DEFAULT NULL;
 
 INSERT INTO `events` (`id`, `user_id`, `title`, `description`, `date`, `location`, `event_type`, `guest_count`, `status`) VALUES
 (501, 6, 'QA Sample Wedding', 'Seeded private event for dashboard and booking QA.', '2026-09-15', 'Manchester Town Hall', 'Wedding', 80, 'active')
