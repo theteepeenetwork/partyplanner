@@ -42,7 +42,7 @@ class Profile extends BaseController
             return redirect()->to('/admin');
         }
         if (($user['role'] ?? '') !== 'customer') {
-            return redirect()->to('/profile')->with('error', 'That section is for customer accounts. Use your vendor dashboard tabs instead.');
+            return redirect()->to('/profile')->with('error', 'This area is only available to customer accounts. Vendors should use the Services and Bookings tabs in the dashboard.');
         }
 
         return null;
@@ -64,7 +64,7 @@ class Profile extends BaseController
             return redirect()->to('/admin');
         }
         if (($user['role'] ?? '') !== 'vendor') {
-            return redirect()->to('/profile')->with('error', 'That section is for vendor accounts.');
+            return redirect()->to('/profile')->with('error', 'This area is only available to vendor accounts.');
         }
 
         return null;
@@ -773,6 +773,12 @@ class Profile extends BaseController
     {
         if ($r = $this->requireLogin()) return $r;
         $user = $this->getUser();
+        if (!$user) {
+            return redirect()->to('/')->with('error', 'User not found.');
+        }
+        if (($user['role'] ?? '') === 'admin') {
+            return redirect()->to('/admin');
+        }
 
         if ($this->request->getMethod() === 'POST') {
             $userModel = new UserModel();
