@@ -48,6 +48,8 @@ $routes->get('/profile/favourites/remove/(:num)', 'Profile::removeFavourite/$1')
 // Browse Services (public)
 $routes->get('/browse-services', 'Service_Controller::browse');
 $routes->get('/services', 'Service_Controller::browse');
+// Hero / legacy search form posts to `/search` with `category` (and optional `q`)
+$routes->get('search', 'Service_Controller::search');
 
 // Service Routes
 $routes->get('test', 'Service_Controller::test');

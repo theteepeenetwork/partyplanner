@@ -238,6 +238,7 @@ class Service_Controller extends BaseController
 
         $q = $this->request->getGet('q');
         $cuisine = $this->request->getGet('cuisine');
+        $category = $this->request->getGet('category');
 
         $params = [];
         if ($q !== null && $q !== '') {
@@ -245,6 +246,9 @@ class Service_Controller extends BaseController
         }
         if ($cuisine !== null && $cuisine !== '') {
             $params['category'] = $cuisine;
+        }
+        if ($category !== null && $category !== '') {
+            $params['category'] = $category;
         }
 
         $url = '/browse-services';

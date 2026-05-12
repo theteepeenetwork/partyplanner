@@ -435,6 +435,13 @@ ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `reviewed_by` int(11) DEFAULT
 ALTER TABLE chat_messages ADD COLUMN IF NOT EXISTS `reviewed_at` datetime DEFAULT NULL AFTER `reviewed_by`;
 
 -- ============================================================
+-- CMS: default published homepage (editable in Admin → Pages)
+-- ============================================================
+INSERT INTO `cms_pages` (`slug`, `title`, `content`, `status`, `created_at`, `updated_at`) VALUES
+('homepage', 'Welcome', '<p class="lead">Plan your celebration with trusted local vendors.</p><p><em>This block is editable in <strong>Admin → Pages → homepage</strong>.</em></p>', 'published', NOW(), NOW())
+ON DUPLICATE KEY UPDATE `title` = VALUES(`title`), `content` = VALUES(`content`), `status` = 'published', `updated_at` = NOW();
+
+-- ============================================================
 -- Done! Your database is now up to date.
 -- ============================================================
 SELECT 'Database update complete!' AS status;
