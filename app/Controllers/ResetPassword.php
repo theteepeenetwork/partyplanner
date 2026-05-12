@@ -28,6 +28,13 @@ class ResetPassword extends BaseController
             );
         }
 
+        if (empty($user['password_reset_expires_at'])) {
+            return redirect()->to('/forgot-password')->with(
+                'error',
+                'This password reset link is invalid or has expired. Please request a new one.'
+            );
+        }
+
         $expires = Time::parse($user['password_reset_expires_at']);
         if ($expires->isBefore(Time::now())) {
             return redirect()->to('/forgot-password')->with(
