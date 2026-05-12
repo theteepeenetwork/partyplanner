@@ -1,4 +1,7 @@
-<h1 class="h3 mb-3">Edit customer</h1>
+<header class="admin-page-header">
+    <h1 class="admin-page-title">Edit customer</h1>
+    <p class="admin-page-subtitle">Update account details. Changes apply the next time the user signs in.</p>
+</header>
 <form method="post" action="<?= site_url('/admin/customers/' . $user['id'] . '/edit') ?>" class="card shadow-sm p-4" style="max-width:640px">
     <?= csrf_field() ?>
     <div class="mb-3">
