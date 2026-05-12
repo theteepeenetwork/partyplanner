@@ -48,7 +48,7 @@
         <nav class="navbar navbar-expand-lg fixed-top shadow-sm">
             <div class="container">
                 <!-- Logo -->
-                <a class="navbar-brand text-uppercase logo" href="/">
+                <a class="navbar-brand text-uppercase logo" href="<?= site_url('/') ?>">
                     <span class="logo-line">For <span style="color: var(--accent-orange);">Your</span></span>
                     <span class="logo-line" style="color: var(--primary-blue-light);">Events</span>
                 </a>
@@ -65,11 +65,11 @@
                     <ul class="navbar-nav ms-auto">
                         <!-- Browse Services -->
                         <li class="nav-item">
-                            <a class="nav-link text-end" href="/browse-services">Browse Services</a>
+                            <a class="nav-link text-end" href="<?= site_url('browse-services') ?>">Browse Services</a>
                         </li>
                         <!-- How It Works -->
                         <li class="nav-item">
-                            <a class="nav-link text-end" href="/how-it-works">How It Works</a>
+                            <a class="nav-link text-end" href="<?= site_url('how-it-works') ?>">How It Works</a>
                         </li>
 
                         <?php if (session()->has('user_id')): ?>
@@ -80,27 +80,27 @@
                                     My Account
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
-                                    <li><a class="dropdown-item" href="/profile">My Profile</a></li>
+                                    <li><a class="dropdown-item" href="<?= site_url('profile') ?>">My Profile</a></li>
                                     <?php if (session()->get('role') === 'customer'): ?>
-                                        <li><a class="dropdown-item" href="/cart">My Cart</a></li>
-                                        <li><a class="dropdown-item" href="/event/create">Create Event</a></li>
+                                        <li><a class="dropdown-item" href="<?= site_url('cart') ?>">My Cart</a></li>
+                                        <li><a class="dropdown-item" href="<?= site_url('event/create') ?>">Create Event</a></li>
                                     <?php elseif (session()->get('role') === 'vendor'): ?>
-                                        <li><a class="dropdown-item" href="/profile/services">My Services</a></li>
-                                        <li><a class="dropdown-item" href="/profile/bookings">Bookings</a></li>
+                                        <li><a class="dropdown-item" href="<?= site_url('profile/services') ?>">My Services</a></li>
+                                        <li><a class="dropdown-item" href="<?= site_url('profile/bookings') ?>">Bookings</a></li>
                                     <?php elseif (session()->get('role') === 'admin'): ?>
-                                        <li><a class="dropdown-item" href="/admin">Admin</a></li>
+                                        <li><a class="dropdown-item" href="<?= site_url('admin') ?>">Admin</a></li>
                                     <?php endif; ?>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                                    <li><a class="dropdown-item" href="<?= site_url('logout') ?>">Logout</a></li>
                                 </ul>
                             </li>
                         <?php else: ?>
                             <!-- Not logged-in: Login + Register -->
                             <li class="nav-item">
-                                <a class="nav-link text-end" href="/login">Login</a>
+                                <a class="nav-link text-end" href="<?= site_url('login') ?>">Login</a>
                             </li>
                             <li class="nav-item">
-                                <a class="btn btn-gradient ms-2" href="/register">Register</a>
+                                <a class="btn btn-gradient ms-2" href="<?= site_url('register') ?>">Register</a>
                             </li>
                         <?php endif; ?>
                     </ul>

@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Libraries\ChatModeration;
+use App\Libraries\PublicCmsNavHealth;
 use App\Models\BookingModel;
 use App\Models\ServiceModel;
 use App\Models\UserModel;
@@ -46,6 +47,8 @@ class Dashboard extends BaseAdminController
         $flaggedRooms     = $db->table('chat_rooms')->where('flagged_for_review', 1)->countAllResults();
         $pendingLanguage  = $db->table('chat_messages')->where('moderation_status', ChatModeration::STATUS_PENDING)->countAllResults();
 
+        $cmsNavIssues = PublicCmsNavHealth::navIssues();
+
         return $this->layout('admin/dashboard_home', [
             'title'            => 'Admin dashboard',
             'activeNav'        => 'dashboard',
@@ -56,6 +59,7 @@ class Dashboard extends BaseAdminController
             'inactiveServices' => $inactiveServices,
             'flaggedRooms'     => $flaggedRooms,
             'pendingLanguage'  => $pendingLanguage,
+            'cmsNavIssues'     => $cmsNavIssues,
         ]);
     }
 }

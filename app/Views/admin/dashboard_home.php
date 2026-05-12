@@ -2,6 +2,26 @@
     <h1 class="admin-page-title">Dashboard</h1>
     <p class="admin-page-subtitle">Overview of marketplace activity, queues that need attention, and quick navigation.</p>
 </header>
+
+<?php if (!empty($cmsNavIssues)): ?>
+    <div class="alert alert-danger border-0 shadow-sm mb-4" role="alert">
+        <div class="fw-semibold mb-2"><i class="fas fa-link-slash me-2"></i>Public navigation would show broken pages (404 or missing CMS)</div>
+        <p class="small mb-2">These URLs are linked from the site header or footer and are served from <strong>Admin → Pages</strong> (<code>cms_pages</code>). Each needs a <strong>published</strong> row.</p>
+        <ul class="small mb-3 ps-3">
+            <?php foreach ($cmsNavIssues as $issue): ?>
+                <?php if (($issue['type'] ?? '') === 'table_missing'): ?>
+                    <li>The <code>cms_pages</code> table is missing. Import <code class="user-select-all">database_update.sql</code> into MySQL, then reload.</li>
+                <?php elseif (($issue['type'] ?? '') === 'missing'): ?>
+                    <li><strong><?= esc($issue['label']) ?></strong> — no row for slug <code><?= esc($issue['slug']) ?></code>. Public URL: <a href="<?= esc($issue['public_url']) ?>" target="_blank" rel="noopener noreferrer"><?= esc($issue['public_url']) ?></a> (404). Re-import <code class="user-select-all">database_update.sql</code> or create the page in Admin → Pages.</li>
+                <?php else: ?>
+                    <li><strong><?= esc($issue['label']) ?></strong> — slug <code><?= esc($issue['slug']) ?></code> is <span class="badge bg-secondary"><?= esc($issue['status'] ?? '') ?></span> (not published). <a href="<?= esc($issue['edit_url'] ?? '') ?>">Edit and publish</a> · <a href="<?= esc($issue['public_url']) ?>" target="_blank" rel="noopener noreferrer">Preview URL</a></li>
+                <?php endif; ?>
+            <?php endforeach; ?>
+        </ul>
+        <a class="btn btn-sm btn-light" href="<?= site_url('/admin/pages') ?>">Open Public pages</a>
+    </div>
+<?php endif; ?>
+
 <div class="row g-3 mb-4">
     <div class="col-6 col-md-3">
         <div class="card shadow-sm h-100"><div class="card-body">
