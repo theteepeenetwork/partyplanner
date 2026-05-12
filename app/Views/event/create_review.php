@@ -50,6 +50,7 @@
             </div>
 
             <form method="post" action="/event/store">
+                <?= csrf_field() ?>
                 <div class="d-flex justify-content-between">
                     <a href="/event/create/step3" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Back</a>
                     <button type="submit" class="btn btn-success btn-lg"><i class="fas fa-check me-1"></i>Create Event</button>

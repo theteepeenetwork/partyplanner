@@ -73,6 +73,7 @@
                             <div class="d-flex align-items-center justify-content-between mb-3 p-2 bg-light rounded">
                                 <span class="small fw-bold"><?= $isActive ? 'Live on marketplace' : 'Hidden from customers' ?></span>
                                 <form method="post" action="/service/toggle-status/<?= $service['id'] ?>" class="mb-0">
+                                    <?= csrf_field() ?>
                                     <div class="form-check form-switch mb-0">
                                         <input class="form-check-input" type="checkbox" role="switch"
                                                id="toggle-<?= $service['id'] ?>"

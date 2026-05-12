@@ -11,6 +11,7 @@
     <?php endif; ?>
     <section>
         <form action="/login/attempt" method="post" class="service-form">
+            <?= csrf_field() ?>
             <div class="form-group">
                 <label for="login">Email:</label>
                 <input type="text" class="form-control" id="login" name="login" value="<?= old('login') ?>">
