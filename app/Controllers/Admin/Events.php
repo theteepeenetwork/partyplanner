@@ -112,7 +112,7 @@ class Events extends BaseAdminController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        if ($this->request->getMethod() === 'post') {
+        if ($this->request->is('post')) {
             $rules = [
                 'title' => 'required|min_length[2]|max_length[255]',
             ];

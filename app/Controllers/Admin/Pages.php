@@ -52,7 +52,7 @@ class Pages extends BaseAdminController
             throw PageNotFoundException::forPageNotFound();
         }
 
-        if ($this->request->getMethod() === 'post') {
+        if ($this->request->is('post')) {
             $rules = [
                 'title'            => 'required|min_length[2]|max_length[255]',
                 'content'          => 'permit_empty',
@@ -64,13 +64,35 @@ class Pages extends BaseAdminController
                 return redirect()->back()->withInput()->with('error', implode(' ', $this->validator->getErrors()));
             }
 
-            $model->update($page['id'], [
+            $data = [
                 'title'            => $this->request->getPost('title'),
                 'content'          => $this->request->getPost('content'),
                 'meta_title'       => $this->request->getPost('meta_title'),
                 'meta_description' => $this->request->getPost('meta_description'),
                 'status'           => $this->request->getPost('status'),
-            ]);
+            ];
+
+            $saveModel = new CmsPageModel();
+
+            try {
+                $saved = $saveModel->update((int) $page['id'], $data);
+            } catch (\Throwable $e) {
+                log_message('error', 'Admin CMS page save exception for id {id}: {message}', [
+                    'id'      => $page['id'],
+                    'message' => $e->getMessage(),
+                ]);
+
+                return redirect()->back()->withInput()->with('error', 'The page could not be saved. Please try again.');
+            }
+
+            if (! $saved) {
+                log_message('error', 'Admin CMS page update returned false for id {id}. Errors: {errors}', [
+                    'id'     => $page['id'],
+                    'errors' => json_encode($saveModel->errors()),
+                ]);
+
+                return redirect()->back()->withInput()->with('error', 'The page could not be saved. Please try again.');
+            }
 
             return redirect()->to('/admin/pages')->with('success', 'Page saved.');
         }
