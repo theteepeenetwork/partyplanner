@@ -22,22 +22,23 @@
             <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
                 <h5 class="text-dark">For Vendors</h5>
                 <p class="text-muted">Are you an event service provider? List your services on our platform.</p>
+                <p class="mb-2"><a href="/vendor-info" class="text-primary">How selling works</a></p>
                 <a href="/register/vendor" class="btn btn-outline-primary btn-sm">Become a Vendor</a>
             </div>
 
             <div class="col-lg-3 col-md-12 mb-4 mb-md-0">
                 <h5 class="text-dark">Follow Us</h5>
                 <p class="text-muted">Stay connected with us on social media:</p>
-                <a href="https://www.facebook.com/YourPage" target="_blank" class="text-primary me-3">
+                <a href="https://www.facebook.com/YourPage" target="_blank" rel="noopener noreferrer" class="text-primary me-3">
                     <i class="bi bi-facebook" style="font-size: 1.5rem;"></i>
                 </a>
-                <a href="https://www.twitter.com/YourPage" target="_blank" class="text-primary me-3">
+                <a href="https://www.twitter.com/YourPage" target="_blank" rel="noopener noreferrer" class="text-primary me-3">
                     <i class="bi bi-twitter" style="font-size: 1.5rem;"></i>
                 </a>
-                <a href="https://www.instagram.com/YourPage" target="_blank" class="text-primary me-3">
+                <a href="https://www.instagram.com/YourPage" target="_blank" rel="noopener noreferrer" class="text-primary me-3">
                     <i class="bi bi-instagram" style="font-size: 1.5rem;"></i>
                 </a>
-                <a href="https://www.linkedin.com/company/YourPage" target="_blank" class="text-primary">
+                <a href="https://www.linkedin.com/company/YourPage" target="_blank" rel="noopener noreferrer" class="text-primary">
                     <i class="bi bi-linkedin" style="font-size: 1.5rem;"></i>
                 </a>
             </div>

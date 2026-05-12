@@ -51,8 +51,8 @@ class ChatController extends Controller
         $chatRoomModel = new ChatRoomModel();
         $chatRoomId = $chatRoomModel->ensureRoom($vendorId, $customerId, (int) $serviceId);
 
-        // Redirect to the chat view with the appropriate chat room ID
-        return redirect()->to("/chat/view/$chatRoomId");
+        // Same inbox UI as the dashboard (avoids a separate legacy chat page).
+        return redirect()->to('/profile/messages/' . $chatRoomId);
     }
 
     public function viewChat($chatRoomId)
@@ -68,19 +68,18 @@ class ChatController extends Controller
             return redirect()->to('/profile/messages')->with('error', 'Conversation not found.');
         }
 
-        $chatMessageModel = new ChatMessageModel();
-        $messages = $chatMessageModel->where('chat_room_id', $chatRoomId)
-                                     ->orderBy('created_at', 'ASC')
-                                     ->findAll();
-
-        return view('chat_view', ['messages' => $messages, 'chatRoomId' => $chatRoomId]);
+        return redirect()->to('/profile/messages/' . (int) $chatRoomId);
     }
 
     public function sendMessage()
     {
+        $senderId = (int) session()->get('user_id');
+        if (!$senderId) {
+            return redirect()->to('/login')->with('error', 'Please log in to continue.');
+        }
+
         $chatRoomId = (int) $this->request->getPost('chat_room_id');
         $message = $this->request->getPost('message');
-        $senderId = (int) session()->get('user_id');
 
         // Fetch chat room details to determine the receiver
         $chatRoomModel = new ChatRoomModel();
@@ -117,10 +116,11 @@ class ChatController extends Controller
             'is_read'      => false,
         ], $moderation->moderationFieldsForInsert((string) $message));
 
+        $chatMessageModel = new ChatMessageModel();
         $chatMessageModel->insert($row);
         ChatModeration::refreshRoomModerationFlag($chatRoomId);
 
-        $response = redirect()->to("/chat/view/$chatRoomId");
+        $response = redirect()->to('/profile/messages/' . $chatRoomId);
         if (($row['moderation_status'] ?? '') === ChatModeration::STATUS_PENDING) {
             $response = $response->with(
                 'moderation_warning',

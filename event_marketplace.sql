@@ -35,9 +35,9 @@ CREATE TABLE IF NOT EXISTS `users` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 INSERT INTO `users` (`id`, `name`, `username`, `email`, `password`, `role`) VALUES
-(3, 'Mark Pearson', 'm.pearson1', 'markyj@zoho.com', '$2y$10$OKp.uCxz/4jW3FbMxjpiEesYTJkx4pHBoSlGsZQ3CEstqgHpJU/DK', 'vendor'),
-(4, 'mark90', 'mark90', 'markjpearson@me.com', '$2y$10$FeGW7V5CBkb9suZ2jQdqEevA/2y0iakVRfkVDY3BGEQ42GkzXvy0q', 'customer')
-ON DUPLICATE KEY UPDATE `name`=VALUES(`name`);
+(3, 'Mark Pearson', 'm.pearson1', 'markyj@zoho.com', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'vendor'),
+(4, 'mark90', 'mark90', 'markjpearson@me.com', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'customer')
+ON DUPLICATE KEY UPDATE `name`=VALUES(`name`), `password`=VALUES(`password`), `role`=VALUES(`role`);
 
 INSERT INTO `users` (`id`, `name`, `username`, `email`, `password`, `role`) VALUES
 (1, 'Site Admin', 'admin', 'admin@example.test', '$2y$10$i7T5IbGkzDuPTrHvstBG5OeaFHRTbHdMDGloA8N049zWjZIoEc8Ze', 'admin'),
@@ -534,7 +534,7 @@ CREATE TABLE IF NOT EXISTS `services_optional_extras` (
 -- --------------------------------------------------------
 -- QA / demo data (events, bookings, messaging, favourites)
 -- Idempotent via ON DUPLICATE KEY UPDATE on primary keys.
--- Test accounts: username admin or qa_customer — password: TestPass123!
+-- Test accounts (password TestPass123!): admin, qa_customer, m.pearson1 (vendor), mark90 (customer)
 -- --------------------------------------------------------
 
 INSERT INTO `events` (`id`, `user_id`, `title`, `description`, `date`, `location`, `event_type`, `guest_count`, `status`) VALUES
