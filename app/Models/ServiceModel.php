@@ -34,12 +34,7 @@ class ServiceModel extends Model
         'max_pitch_fees',
         'created_at',
         'updated_at',
-        'service_location',
-        'no_travel_limit',
-        'all_travel_included',
-        'service_tags',
         'status'
-
     ];
 
     // Function to retrieve service with images, prioritizing the primary image

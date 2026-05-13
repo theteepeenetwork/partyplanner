@@ -22,7 +22,6 @@
                     <div class="stat-icon bg-warning-light mx-auto">
                         <i class="fas fa-clock"></i>
                     </div>
-                    <!-- TODO: Replace with dynamic count from booking_items where status='pending' for vendor's services -->
                     <div class="stat-value"><?= esc($pendingBookings) ?></div>
                     <div class="stat-label">Pending Requests</div>
                 </div>
@@ -32,7 +31,6 @@
                     <div class="stat-icon bg-success-light mx-auto">
                         <i class="fas fa-calendar-check"></i>
                     </div>
-                    <!-- TODO: Replace with dynamic count from accepted booking_items for vendor's services -->
                     <div class="stat-value"><?= esc($upcomingBookings) ?></div>
                     <div class="stat-label">Upcoming Bookings</div>
                 </div>
@@ -42,8 +40,7 @@
                     <div class="stat-icon bg-primary-light mx-auto">
                         <i class="fas fa-pound-sign"></i>
                     </div>
-                    <!-- TODO: Calculate from payments table for current month where vendor's services were booked -->
-                    <div class="stat-value">£0</div>
+                    <div class="stat-value">£<?= number_format($earningsThisMonth, 2) ?></div>
                     <div class="stat-label">Earnings This Month</div>
                 </div>
             </div>
@@ -109,7 +106,6 @@
                                 <p class="attention-desc"><?= $unreadMessages ?> unread message<?= $unreadMessages > 1 ? 's' : '' ?> from customers</p>
                             </div>
                             <div class="attention-action">
-                                <!-- TODO: Link to messages page when built -->
                                 <a href="/profile/messages" class="btn btn-sm btn-outline-info">View</a>
                             </div>
                         </div>
@@ -206,7 +202,6 @@
                             </a>
                         </div>
                         <div class="col-6 col-md-4 col-lg">
-                            <!-- TODO: Link to availability management page -->
                             <a href="/profile/calendar" class="quick-action-btn">
                                 <div class="action-icon bg-info-light"><i class="fas fa-calendar-day"></i></div>
                                 <span class="action-label">Update Availability</span>
@@ -293,26 +288,58 @@
                                     for <?= esc($item['service_title'] ?? 'a service') ?>
                                 </span>
                                 <span class="activity-time">
-                                    <!-- TODO: Use actual created_at timestamp -->
-                                    Recent
+                                    <?php
+                                    $createdAt = $item['item_created_at'] ?? $item['created_at'] ?? null;
+                                    if ($createdAt) {
+                                        $ts = new DateTime($createdAt);
+                                        $now = new DateTime();
+                                        $diff = $now->diff($ts);
+                                        if ($diff->days >= 1) {
+                                            echo $ts->format('d M');
+                                        } elseif ($diff->h >= 1) {
+                                            echo $diff->h . 'h ago';
+                                        } elseif ($diff->i >= 1) {
+                                            echo $diff->i . 'm ago';
+                                        } else {
+                                            echo 'Just now';
+                                        }
+                                    }
+                                    ?>
                                 </span>
                             </div>
                         <?php endforeach; ?>
-                    <?php endif; ?>
-
-                    <?php if (empty($pendingBookingsList) && $unreadMessages == 0): ?>
-                        <!-- Placeholder activity when no real data exists -->
-                        <div class="activity-item">
-                            <div class="activity-dot bg-info"></div>
-                            <span class="activity-text">Welcome to your vendor dashboard!</span>
-                            <span class="activity-time">Just now</span>
+                    <?php elseif (!empty($upcomingBookingsList)): ?>
+                        <?php foreach (array_slice($upcomingBookingsList, 0, 4) as $item): ?>
+                            <div class="activity-item">
+                                <div class="activity-dot bg-success"></div>
+                                <span class="activity-text">
+                                    Booking confirmed: <strong><?= esc($item['customer_name'] ?? 'Customer') ?></strong>
+                                    for <?= esc($item['service_title'] ?? 'a service') ?>
+                                </span>
+                                <span class="activity-time">
+                                    <?php
+                                    $createdAt = $item['item_created_at'] ?? $item['created_at'] ?? null;
+                                    if ($createdAt) {
+                                        $ts = new DateTime($createdAt);
+                                        $now = new DateTime();
+                                        $diff = $now->diff($ts);
+                                        if ($diff->days >= 1) {
+                                            echo $ts->format('d M');
+                                        } elseif ($diff->h >= 1) {
+                                            echo $diff->h . 'h ago';
+                                        } else {
+                                            echo 'Today';
+                                        }
+                                    }
+                                    ?>
+                                </span>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <div class="text-center py-3">
+                            <i class="fas fa-clock text-muted fa-2x mb-2 d-block"></i>
+                            <p class="text-muted small mb-0">No recent activity yet. When customers request bookings they'll appear here.</p>
                         </div>
-                        <div class="activity-item">
-                            <div class="activity-dot bg-success"></div>
-                            <span class="activity-text">Your account is set up and ready to go</span>
-                            <span class="activity-time">Today</span>
-                        </div>
-                        <!-- TODO: Connect to real activity log (booking requests, quote accepts, service views, reviews) -->
                     <?php endif; ?>
                 </div>
             </div>

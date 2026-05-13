@@ -194,16 +194,6 @@
 
 
 
-    <!-- Testimonials Section -->
-    <section class="testimonials py-5">
-        <div class="container">
-            <h2 class="text-center mb-4">What Our Customers Say</h2>
-            <div class="row">
-
-            </div>
-        </div>
-    </section>
-
     <!-- Call-to-Action Section -->
     <section class="cta-section text-white py-5" style="background-color: #2c3e50;">
         <div class="container text-center">

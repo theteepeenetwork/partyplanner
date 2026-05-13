@@ -404,3 +404,48 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 
+
+
+// --- Fulfillment type show/hide ---
+(function () {
+    const radios = document.querySelectorAll('[name="fulfillment_type"]');
+    const locationSection = document.getElementById('location-section');
+    const postalSection = document.getElementById('postal-section');
+    const locationHeading = document.getElementById('location-section-heading');
+    const serviceLocationInput = document.getElementById('service_location');
+
+    function applyFulfillment() {
+        const val = document.querySelector('[name="fulfillment_type"]:checked')?.value ?? 'in_person';
+        const showLocation = val !== 'postal';
+        const showPostal = val !== 'in_person';
+
+        locationSection.style.display = showLocation ? '' : 'none';
+        postalSection.style.display = showPostal ? '' : 'none';
+
+        if (locationHeading) {
+            locationHeading.textContent = val === 'both'
+                ? 'In-Person Location & Travel Coverage'
+                : 'Location & Travel Coverage';
+        }
+
+        // Location fields only required when attending in person
+        if (serviceLocationInput) {
+            serviceLocationInput.required = showLocation;
+        }
+    }
+
+    // Restore from session data
+    if (step4Data.fulfillment_type) {
+        const radio = document.querySelector(`[name="fulfillment_type"][value="${step4Data.fulfillment_type}"]`);
+        if (radio) radio.checked = true;
+    }
+    const postalFeeInput = document.getElementById('postal_fee');
+    const freePostageAboveInput = document.getElementById('free_postage_above');
+    const leadTimeInput = document.getElementById('delivery_lead_time_days');
+    if (postalFeeInput && step4Data.postal_fee != null) postalFeeInput.value = step4Data.postal_fee;
+    if (freePostageAboveInput && step4Data.free_postage_above != null) freePostageAboveInput.value = step4Data.free_postage_above;
+    if (leadTimeInput && step4Data.delivery_lead_time_days != null) leadTimeInput.value = step4Data.delivery_lead_time_days;
+
+    radios.forEach(r => r.addEventListener('change', applyFulfillment));
+    applyFulfillment();
+})();

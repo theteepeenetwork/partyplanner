@@ -53,6 +53,30 @@
                             <p class="service-price mt-2">From £<?= number_format((float) $service['price'], 2) ?></p>
                         <?php endif; ?>
 
+                        <!-- Fulfillment / delivery info -->
+                        <?php
+                        $fulfillmentType = $location['fulfillment_type'] ?? 'in_person';
+                        if ($fulfillmentType === 'postal' || $fulfillmentType === 'both'):
+                        ?>
+                        <div class="mb-3 p-3 bg-light rounded border">
+                            <p class="mb-1 fw-semibold"><i class="fas fa-box me-1 text-primary"></i>
+                                <?= $fulfillmentType === 'both' ? 'Available to post or attend in person' : 'Posted / delivered to you' ?>
+                            </p>
+                            <?php if (isset($location['postal_fee'])): ?>
+                                <?php $postalFee = (float) $location['postal_fee']; ?>
+                                <p class="mb-1 small text-muted">
+                                    Postage: <?= $postalFee === 0.0 ? 'Free' : '£' . number_format($postalFee, 2) ?>
+                                    <?php if (!empty($location['free_postage_above'])): ?>
+                                        (free on orders over £<?= number_format((float) $location['free_postage_above'], 2) ?>)
+                                    <?php endif; ?>
+                                </p>
+                            <?php endif; ?>
+                            <?php if (!empty($location['delivery_lead_time_days'])): ?>
+                                <p class="mb-0 small text-muted">Typical dispatch: <?= (int) $location['delivery_lead_time_days'] ?> working day<?= $location['delivery_lead_time_days'] == 1 ? '' : 's' ?></p>
+                            <?php endif; ?>
+                        </div>
+                        <?php endif; ?>
+
                         <!-- Pricing Options -->
                         <div class="pricing-options">
                             <?php $hasPricing = $showGuest || $showDuration || $showPackages; ?>
@@ -105,14 +129,46 @@
                                 <!-- Optional Extras -->
                                 <?php if (!empty($optional_extras)): ?>
                                     <div class="form-group">
-                                        <label>Optional Extras:</label>
-                                        <?php foreach ($optional_extras as $extra): ?>
-                                            <div class="form-check">
-                                                <input class="form-check-input" type="checkbox" id="extra_<?= esc($extra['id']) ?>"
-                                                    name="extras[]" value="<?= esc($extra['id']) ?>">
-                                                <label class="form-check-label" for="extra_<?= esc($extra['id']) ?>">
-                                                    <?= esc($extra['name']) ?>: £<?= esc($extra['price']) ?>
-                                                </label>
+                                        <label class="fw-semibold">Optional Extras:</label>
+                                        <?php foreach ($optional_extras as $extra):
+                                            $isPerItem = ($extra['pricing_type'] ?? 'flat') === 'per_item';
+                                            $unitLabel = esc($extra['unit_label'] ?? 'per item');
+                                        ?>
+                                            <div class="mb-2">
+                                                <div class="form-check">
+                                                    <input class="form-check-input extra-checkbox" type="checkbox"
+                                                        id="extra_<?= esc($extra['id']) ?>"
+                                                        name="extras[]" value="<?= esc($extra['id']) ?>"
+                                                        <?= $isPerItem ? 'data-per-item="1"' : '' ?>>
+                                                    <label class="form-check-label" for="extra_<?= esc($extra['id']) ?>">
+                                                        <strong><?= esc($extra['name']) ?></strong>
+                                                        — £<?= number_format((float) $extra['price'], 2) ?>
+                                                        <?= $isPerItem ? esc($unitLabel) : '' ?>
+                                                    </label>
+                                                </div>
+                                                <?php if (!empty($extra['description'])): ?>
+                                                    <p class="text-muted small mb-1 ms-4"><?= esc($extra['description']) ?></p>
+                                                <?php endif; ?>
+                                                <?php if ($isPerItem): ?>
+                                                    <div class="extra-qty-wrap ms-4 mt-1" id="qty_wrap_<?= esc($extra['id']) ?>" style="display:none">
+                                                        <div class="d-flex align-items-center gap-2">
+                                                            <label class="form-label mb-0 small text-muted">Quantity:</label>
+                                                            <input type="number" class="form-control form-control-sm"
+                                                                style="width:90px"
+                                                                name="extra_qty[<?= esc($extra['id']) ?>]"
+                                                                value="<?= (int) ($extra['min_quantity'] ?? 1) ?>"
+                                                                min="<?= (int) ($extra['min_quantity'] ?? 1) ?>"
+                                                                <?= !empty($extra['max_quantity']) ? 'max="' . (int) $extra['max_quantity'] . '"' : '' ?>>
+                                                            <?php if (!empty($extra['min_quantity']) || !empty($extra['max_quantity'])): ?>
+                                                                <span class="text-muted small">
+                                                                    <?= !empty($extra['min_quantity']) ? 'Min: ' . (int) $extra['min_quantity'] : '' ?>
+                                                                    <?= (!empty($extra['min_quantity']) && !empty($extra['max_quantity'])) ? ' &middot; ' : '' ?>
+                                                                    <?= !empty($extra['max_quantity']) ? 'Max: ' . (int) $extra['max_quantity'] : '' ?>
+                                                                </span>
+                                                            <?php endif; ?>
+                                                        </div>
+                                                    </div>
+                                                <?php endif; ?>
                                             </div>
                                         <?php endforeach; ?>
                                     </div>
@@ -163,3 +219,17 @@
 </main>
 
 <?= $this->include('footer') ?>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.extra-checkbox[data-per-item="1"]').forEach(function (checkbox) {
+        const extraId = checkbox.value;
+        const qtyWrap = document.getElementById('qty_wrap_' + extraId);
+        if (!qtyWrap) return;
+
+        checkbox.addEventListener('change', function () {
+            qtyWrap.style.display = this.checked ? '' : 'none';
+        });
+    });
+});
+</script>

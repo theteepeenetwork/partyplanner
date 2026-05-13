@@ -126,20 +126,24 @@ class CartController extends BaseController
             $service = $serviceModel->find($item['service_id']);
             $event = $eventModel->find($item['event_id']);
 
+            if (!$service || !$event) {
+                continue;
+            }
+
             if (!isset($events[$item['event_id']])) {
                 $events[$item['event_id']] = [
                     'title' => $event['title'],
-                    'date' => $event['date'],
+                    'date'  => $event['date'],
                     'services' => []
                 ];
             }
 
             $events[$item['event_id']]['services'][] = [
-                'id' => $service['id'],
-                'title' => $service['title'],
-                'price' => $service['price'],
+                'id'         => $service['id'],
+                'title'      => $service['title'],
+                'price'      => $service['price'],
                 'start_time' => $item['start_time'],
-                'end_time' => $item['end_time']
+                'end_time'   => $item['end_time']
             ];
         }
 
@@ -193,8 +197,7 @@ class CartController extends BaseController
             ]);
         }
 
-        // Update cart item count in session
-        //$this->updateCartCount();
+        $this->updateCartCount();
 
         return redirect()->back()->with('success', 'Service added to cart!');
     }
@@ -278,8 +281,8 @@ class CartController extends BaseController
         try {
             // Create a Payment Intent
             $paymentIntent = \Stripe\PaymentIntent::create([
-                'amount' => $amount,  // The amount in cents/pence
-                'currency' => 'usd',  // Set currency
+                'amount' => $amount,
+                'currency' => 'gbp',
                 'payment_method_types' => ['card'],
             ]);
 
@@ -299,14 +302,15 @@ class CartController extends BaseController
         }
     }
 
-    private function calculateCartTotal($cartItems)
+    private function calculateCartTotal($cartItems): int
     {
-        $total = 15;
+        $serviceModel = new ServiceModel();
+        $total = 0.0;
         foreach ($cartItems as $item) {
-            $total += $item[''];  // Assume price is in dollars or major currency unit
+            $service = $serviceModel->find($item['service_id']);
+            $total += (float) ($service['price'] ?? 0);
         }
-
-        return $total * 100;  // Convert to cents or pence (Stripe requires amounts in the smallest currency unit)
+        return (int) round($total * 100); // pence
     }
 
     private function createStripePaymentIntent($amount)
@@ -447,36 +451,16 @@ class CartController extends BaseController
 
 
 
-    private function getVendorIdFromServices($serviceIds)
-    {
-        $serviceModel = new \App\Models\ServiceModel();
-        $service = $serviceModel->find($serviceIds[0]);
-        return $service['vendor_id'];
-    }
-
-
     private function updateCartCount()
     {
         $userId = session()->get('user_id');
         if (!$userId) {
-            return; // User not logged in
+            return;
         }
 
         $cartModel = new CartModel();
         $cartCount = $cartModel->where('user_id', $userId)->countAllResults();
         session()->set('cart_count', $cartCount);
-    }
-
-    private function calculateTotal($userId)
-    {
-        $cartModel = new CartModel();
-        $totalQuery = $cartModel->select('services.price as total')
-            ->join('services', 'services.id = carts.service_id')
-            ->where('user_id', $userId)
-            ->get();
-
-        $result = $totalQuery->getRow();
-        return $result ? $result->total : 0; // Return total or 0 if null
     }
 
     public function remove($cartItemId)

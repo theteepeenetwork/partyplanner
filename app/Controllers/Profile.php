@@ -104,6 +104,7 @@ class Profile extends BaseController
         $serviceImageModel = new ServiceImageModel();
         $bookingItemModel = new BookingItemModel();
         $chatMessageModel = new ChatMessageModel();
+        $paymentsModel = new PaymentsModel();
 
         $activeServices = $serviceModel->where('vendor_id', $userId)->where('status', 'active')->where('deleted_at', null)->findAll();
         $vendorServiceIds = array_column($activeServices, 'id');
@@ -112,13 +113,14 @@ class Profile extends BaseController
         $upcomingBookings = 0;
         $upcomingBookingsList = [];
         $pendingBookingsList = [];
+        $earningsThisMonth = 0.0;
 
         if (!empty($vendorServiceIds)) {
             $pendingBookings = $bookingItemModel->whereIn('service_id', $vendorServiceIds)->where('status', 'pending')->countAllResults();
             $upcomingBookings = $bookingItemModel->whereIn('service_id', $vendorServiceIds)->where('status', 'accepted')->countAllResults();
 
             $upcomingBookingsList = $bookingItemModel
-                ->select('booking_items.*, bookings.event_id, bookings.user_id, events.title as event_title, events.`date` as event_date, events.location, events.event_type, services.title as service_title, users.name as customer_name', false)
+                ->select('booking_items.*, bookings.event_id, bookings.user_id, events.title as event_title, events.`date` as event_date, events.location, events.event_type, services.title as service_title, users.name as customer_name, booking_items.created_at as item_created_at', false)
                 ->join('bookings', 'bookings.id = booking_items.booking_id')
                 ->join('events', 'events.id = bookings.event_id')
                 ->join('services', 'services.id = booking_items.service_id')
@@ -128,7 +130,7 @@ class Profile extends BaseController
                 ->orderBy('events.`date`', 'ASC', false)->limit(5)->findAll();
 
             $pendingBookingsList = $bookingItemModel
-                ->select('booking_items.*, bookings.event_id, bookings.user_id, events.title as event_title, events.`date` as event_date, events.location, events.event_type, services.title as service_title, users.name as customer_name', false)
+                ->select('booking_items.*, bookings.event_id, bookings.user_id, events.title as event_title, events.`date` as event_date, events.location, events.event_type, services.title as service_title, users.name as customer_name, booking_items.created_at as item_created_at', false)
                 ->join('bookings', 'bookings.id = booking_items.booking_id')
                 ->join('events', 'events.id = bookings.event_id')
                 ->join('services', 'services.id = booking_items.service_id')
@@ -136,6 +138,20 @@ class Profile extends BaseController
                 ->whereIn('booking_items.service_id', $vendorServiceIds)
                 ->where('booking_items.status', 'pending')
                 ->orderBy('events.`date`', 'ASC', false)->limit(5)->findAll();
+
+            // Calculate earnings this month: payments received for bookings of vendor's services
+            $monthStart = date('Y-m-01 00:00:00');
+            $monthEnd   = date('Y-m-t 23:59:59');
+            $db = \Config\Database::connect();
+            $earningsRow = $db->table('payments')
+                ->select('SUM(payments.amount_paid) as total')
+                ->join('booking_items', 'booking_items.booking_id = payments.booking_id')
+                ->whereIn('booking_items.service_id', $vendorServiceIds)
+                ->where('payments.payment_status', 'succeeded')
+                ->where('payments.created_at >=', $monthStart)
+                ->where('payments.created_at <=', $monthEnd)
+                ->get()->getRowArray();
+            $earningsThisMonth = (float) ($earningsRow['total'] ?? 0);
         }
 
         $unreadMessages = $chatMessageModel->where('receiver_id', $userId)->where('is_read', 0)->countAllResults();
@@ -164,6 +180,7 @@ class Profile extends BaseController
             'unreadMessages' => $unreadMessages,
             'servicesMissingImages' => $servicesMissingImages,
             'serviceHealthItems' => $serviceHealthItems,
+            'earningsThisMonth' => $earningsThisMonth,
             'currentTab' => 'main',
         ]);
     }
@@ -183,7 +200,7 @@ class Profile extends BaseController
         $events = $eventModel->where('user_id', $userId)->findAll();
         $enrichedEvents = [];
         $totalPendingRequests = 0; $totalAccepted = 0; $totalDeclined = 0;
-        $totalConfirmed = 0; $totalAwaitingPayment = 0; $totalSpend = 0; $depositsPaid = 0;
+        $totalConfirmed = 0; $totalAwaitingPayment = 0; $totalSpend = 0.0; $depositsPaid = 0.0;
 
         foreach ($events as $event) {
             $bookings = $bookingModel->where('event_id', $event['id'])->findAll();
@@ -200,10 +217,13 @@ class Profile extends BaseController
                     $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
                     $payment = $paymentsModel->where('booking_id', $booking['id'])->first();
                     $item['payment_status'] = $payment ? $payment['payment_status'] : 'not paid';
+                    $itemPrice = (float)($item['price'] ?? $item['service_price'] ?? 0);
                     if ($payment && $payment['payment_status'] === 'succeeded') {
                         $depositsPaid += (float)($payment['amount_paid'] ?? 0);
+                    } elseif (in_array($item['status'], ['accepted', 'confirmed'], true)) {
+                        // Accepted/confirmed but not yet paid — counts as awaiting payment
+                        $totalAwaitingPayment++;
                     }
-                    $itemPrice = (float)($item['price'] ?? $item['service_price'] ?? 0);
                     $eventCost += $itemPrice;
                     switch ($item['status']) {
                         case 'pending': $totalPendingRequests++; break;

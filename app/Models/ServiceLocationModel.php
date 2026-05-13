@@ -10,6 +10,7 @@ class ServiceLocationModel extends Model
     protected $primaryKey = 'id';
     protected $allowedFields = [
         'service_id',
+        'fulfillment_type',
         'service_location',
         'latitude',
         'longitude',
@@ -18,5 +19,8 @@ class ServiceLocationModel extends Model
         'free_coverage_radius',
         'paid_coverage_radius',
         'travel_fee_per_km',
+        'postal_fee',
+        'free_postage_above',
+        'delivery_lead_time_days',
     ];
 }

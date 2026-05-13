@@ -12,7 +12,6 @@ use App\Models\ServiceTimeBlockModel;  // Add this line
 use App\Models\ServiceAvailabilityModel;
 use App\Models\ServicePublicEventModel;
 use App\Models\BookingItemModel;
-use App\Models\OptionalExtraModel;
 use App\Models\ServiceTagsModel;
 use App\Models\TagsModel;
 use App\Models\ServiceEventTypeModel;
@@ -875,66 +874,71 @@ class Service_Controller extends BaseController
 
         // Check if the request method is POST
         if ($this->request->getMethod() === 'POST') {
-            // Define validation rules
+            $fulfillmentType = $this->request->getPost('fulfillment_type') ?? 'in_person';
+            if (!in_array($fulfillmentType, ['in_person', 'postal', 'both'], true)) {
+                $fulfillmentType = 'in_person';
+            }
+
+            $requiresLocation = ($fulfillmentType !== 'postal');
+
+            // Build validation rules conditionally
             $rules = [
-                'service_location' => 'required',
-                'latitude' => 'required|decimal',
-                'longitude' => 'required|decimal',
                 'free_coverage_radius' => 'permit_empty|integer|greater_than_equal_to[0]',
                 'paid_coverage_radius' => 'permit_empty|integer|greater_than_equal_to[0]',
-                'travel_fee_per_km' => 'permit_empty|decimal|greater_than_equal_to[0]',
+                'travel_fee_per_km'    => 'permit_empty|decimal|greater_than_equal_to[0]',
+                'postal_fee'           => 'permit_empty|decimal|greater_than_equal_to[0]',
             ];
+            if ($requiresLocation) {
+                $rules['service_location'] = 'required';
+                $rules['latitude']         = 'required|decimal';
+                $rules['longitude']        = 'required|decimal';
+            }
 
-            // Validate form data
             if (!$this->validate($rules)) {
                 return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
             }
 
-            // Retrieve form inputs
-            $allTravelIncluded = $this->request->getPost('all_travel_included') ? true : false;
-            $noTravelLimit = $this->request->getPost('no_travel_limit') ? true : false;
+            $allTravelIncluded  = (bool) $this->request->getPost('all_travel_included');
+            $noTravelLimit      = (bool) $this->request->getPost('no_travel_limit');
             $freeCoverageRadius = $this->request->getPost('free_coverage_radius');
             $paidCoverageRadius = $this->request->getPost('paid_coverage_radius');
-            $travelFeePerKm = $this->request->getPost('travel_fee_per_km');
+            $travelFeePerKm     = $this->request->getPost('travel_fee_per_km');
 
-            // Validate combinations
-            if ($allTravelIncluded && $noTravelLimit) {
-                // If both options are selected, no other inputs should have values
-                if (!empty($freeCoverageRadius) || !empty($paidCoverageRadius) || !empty($travelFeePerKm)) {
-                    return redirect()->back()->withInput()->with('error', 'When both "All Travel Included" and "No Travel Limit" are selected, no additional inputs are allowed.');
-                }
-            } elseif ($allTravelIncluded) {
-                // If "All Travel Included" is selected, no paid coverage radius or travel fee per km is allowed
-                if (!empty($paidCoverageRadius) || !empty($travelFeePerKm)) {
-                    return redirect()->back()->withInput()->with('error', 'When "All Travel Included" is selected, paid coverage radius and travel fee per km must be empty.');
-                }
-            } elseif ($noTravelLimit) {
-                // If "No Travel Limit" is selected, paid coverage radius must be empty
-                if (!empty($paidCoverageRadius)) {
-                    return redirect()->back()->withInput()->with('error', 'When "No Travel Limit" is selected, paid coverage radius must be empty.');
-                }
-                // Travel fee per km is required
-                if (empty($travelFeePerKm)) {
-                    return redirect()->back()->withInput()->with('error', '"No Travel Limit" requires a travel fee per km.');
-                }
-            } else {
-                // If neither option is selected, ensure valid free and paid coverage radii
-
-                if ($freeCoverageRadius >= $paidCoverageRadius) {
-                    //return redirect()->back()->withInput()->with('error', 'Paid coverage radius must be greater than the free coverage radius.');
+            if ($requiresLocation) {
+                if ($allTravelIncluded && $noTravelLimit) {
+                    if (!empty($freeCoverageRadius) || !empty($paidCoverageRadius) || !empty($travelFeePerKm)) {
+                        return redirect()->back()->withInput()->with('error', 'When both "All Travel Included" and "No Travel Limit" are selected, no additional inputs are allowed.');
+                    }
+                } elseif ($allTravelIncluded) {
+                    if (!empty($paidCoverageRadius) || !empty($travelFeePerKm)) {
+                        return redirect()->back()->withInput()->with('error', 'When "All Travel Included" is selected, paid coverage radius and travel fee per km must be empty.');
+                    }
+                } elseif ($noTravelLimit) {
+                    if (!empty($paidCoverageRadius)) {
+                        return redirect()->back()->withInput()->with('error', 'When "No Travel Limit" is selected, paid coverage radius must be empty.');
+                    }
+                    if (empty($travelFeePerKm)) {
+                        return redirect()->back()->withInput()->with('error', '"No Travel Limit" requires a travel fee per km.');
+                    }
                 }
             }
 
-            // Save validated data to the session
+            $freePostageAbove = $this->request->getPost('free_postage_above');
+            $deliveryLeadTime = $this->request->getPost('delivery_lead_time_days');
+
             $step4Data = [
-                'service_location' => $this->request->getPost('service_location'),
-                'latitude' => $this->request->getPost('latitude'),
-                'longitude' => $this->request->getPost('longitude'),
-                'all_travel_included' => $allTravelIncluded ? 1 : 0,
-                'no_travel_limit' => $noTravelLimit ? 1 : 0,
-                'free_coverage_radius' => $freeCoverageRadius,
-                'paid_coverage_radius' => $paidCoverageRadius,
-                'travel_fee_per_km' => $travelFeePerKm,
+                'fulfillment_type'        => $fulfillmentType,
+                'service_location'        => $this->request->getPost('service_location'),
+                'latitude'                => $this->request->getPost('latitude'),
+                'longitude'               => $this->request->getPost('longitude'),
+                'all_travel_included'     => $allTravelIncluded ? 1 : 0,
+                'no_travel_limit'         => $noTravelLimit ? 1 : 0,
+                'free_coverage_radius'    => $freeCoverageRadius,
+                'paid_coverage_radius'    => $paidCoverageRadius,
+                'travel_fee_per_km'       => $travelFeePerKm,
+                'postal_fee'              => $this->request->getPost('postal_fee') !== '' ? $this->request->getPost('postal_fee') : null,
+                'free_postage_above'      => ($freePostageAbove !== '' && $freePostageAbove !== null) ? $freePostageAbove : null,
+                'delivery_lead_time_days' => ($deliveryLeadTime !== '' && $deliveryLeadTime !== null) ? (int) $deliveryLeadTime : null,
             ];
             session()->set('step4_data', $step4Data);
 
@@ -964,37 +968,44 @@ class Service_Controller extends BaseController
 
         // Check if the request method is POST
         if ($this->request->getMethod() === 'POST') {
-            // Retrieve optional extras data from POST
-            $extraNames = $this->request->getPost('extra_name');
-            $extraPrices = $this->request->getPost('extra_price');
-            $extraDescriptions = $this->request->getPost('extra_description');
-            $extraQuantity = $this->request->getPost('extra_quantity');
+            $extraNames        = $this->request->getPost('extra_name') ?? [];
+            $extraPrices       = $this->request->getPost('extra_price') ?? [];
+            $extraDescriptions = $this->request->getPost('extra_description') ?? [];
+            $extraPricingTypes = $this->request->getPost('extra_pricing_type') ?? [];
+            $extraUnitLabels   = $this->request->getPost('extra_unit_label') ?? [];
+            $extraMinQtys      = $this->request->getPost('extra_min_quantity') ?? [];
+            $extraMaxQtys      = $this->request->getPost('extra_max_quantity') ?? [];
 
-            // Validation
-            if (is_array($extraNames) && is_array($extraPrices) && is_array($extraDescriptions)) {
-                foreach ($extraNames as $index => $extraName) {
-                    // Ensure name, description, and price are provided
-                    if (empty(trim($extraName)) || empty(trim($extraDescriptions[$index])) || empty(trim($extraPrices[$index]))) {
-                        //return redirect()->back()->withInput()->with('error', 'All optional extras, their descriptions, and prices must be filled out.');
-                    }
-
-                    // Ensure price is a valid number
-                    if (!is_numeric($extraPrices[$index]) || $extraPrices[$index] < 0) {
-                        //return redirect()->back()->withInput()->with('error', 'Prices must be valid positive numbers.');
-                    }
-                }
-            } else {
+            if (!is_array($extraNames)) {
                 return redirect()->back()->withInput()->with('error', 'Invalid input format for optional extras.');
             }
 
-            // Save optional extras to session
             $optionalExtras = [];
             foreach ($extraNames as $index => $extraName) {
+                $name = trim((string) ($extraName ?? ''));
+                if ($name === '') {
+                    continue;
+                }
+
+                $pricingType = in_array($extraPricingTypes[$index] ?? '', ['flat', 'per_item'], true)
+                    ? $extraPricingTypes[$index]
+                    : 'flat';
+
+                $minQty = ($pricingType === 'per_item' && !empty($extraMinQtys[$index]))
+                    ? max(1, (int) $extraMinQtys[$index])
+                    : null;
+                $maxQty = ($pricingType === 'per_item' && !empty($extraMaxQtys[$index]))
+                    ? max(1, (int) $extraMaxQtys[$index])
+                    : null;
+
                 $optionalExtras[] = [
-                    'name' => trim($extraName),
-                    'description' => trim($extraDescriptions[$index]),
-                    'price' => (float) trim($extraPrices[$index]),
-                    'quantity' => trim($extraQuantity[$index]),
+                    'name'         => $name,
+                    'description'  => trim((string) ($extraDescriptions[$index] ?? '')),
+                    'price'        => (float) ($extraPrices[$index] ?? 0),
+                    'pricing_type' => $pricingType,
+                    'unit_label'   => trim((string) ($extraUnitLabels[$index] ?? '')) ?: null,
+                    'min_quantity' => $minQty,
+                    'max_quantity' => $maxQty,
                 ];
             }
 
@@ -1436,15 +1447,19 @@ class Service_Controller extends BaseController
                 $serviceLocationModel = new ServiceLocationModel();
 
                 $locationId = $serviceLocationModel->insert([
-                    'service_id' => $serviceId,
-                    'service_location' => $step4Data['service_location'],
-                    'latitude' => $step4Data['latitude'],
-                    'longitude' => $step4Data['longitude'],
-                    'all_travel_included' => !empty($step4Data['all_travel_included']) ? 1 : 0,
-                    'no_travel_limit' => !empty($step4Data['no_travel_limit']) ? 1 : 0,
-                    'free_coverage_radius' => $step4Data['free_coverage_radius'],
-                    'paid_coverage_radius' => $step4Data['paid_coverage_radius'],
-                    'travel_fee_per_km' => $step4Data['travel_fee_per_km'],
+                    'service_id'              => $serviceId,
+                    'fulfillment_type'        => $step4Data['fulfillment_type'] ?? 'in_person',
+                    'service_location'        => $step4Data['service_location'] ?? null,
+                    'latitude'                => $step4Data['latitude'] ?? null,
+                    'longitude'               => $step4Data['longitude'] ?? null,
+                    'all_travel_included'     => !empty($step4Data['all_travel_included']) ? 1 : 0,
+                    'no_travel_limit'         => !empty($step4Data['no_travel_limit']) ? 1 : 0,
+                    'free_coverage_radius'    => $step4Data['free_coverage_radius'] ?? null,
+                    'paid_coverage_radius'    => $step4Data['paid_coverage_radius'] ?? null,
+                    'travel_fee_per_km'       => $step4Data['travel_fee_per_km'] ?? null,
+                    'postal_fee'              => $step4Data['postal_fee'] ?? null,
+                    'free_postage_above'      => $step4Data['free_postage_above'] ?? null,
+                    'delivery_lead_time_days' => $step4Data['delivery_lead_time_days'] ?? null,
                 ]);
 
                 if (!$locationId) {
@@ -1462,11 +1477,18 @@ class Service_Controller extends BaseController
 
                     foreach ($optionalExtras as $index => $extra) {
                         if (!empty($extra['name']) && isset($extra['price'])) {
+                            $pricingType = in_array($extra['pricing_type'] ?? '', ['flat', 'per_item'], true)
+                                ? $extra['pricing_type']
+                                : 'flat';
                             $res = $optionalExtrasModel->insert([
-                                'service_id' => $serviceId,
-                                'name' => trim($extra['name']),
+                                'service_id'  => $serviceId,
+                                'name'        => trim($extra['name']),
                                 'description' => trim($extra['description'] ?? ''),
-                                'price' => (float) trim($extra['price']),
+                                'price'       => (float) $extra['price'],
+                                'pricing_type' => $pricingType,
+                                'unit_label'  => $extra['unit_label'] ?? null,
+                                'min_quantity' => $extra['min_quantity'] ?? null,
+                                'max_quantity' => $extra['max_quantity'] ?? null,
                             ]);
 
                             if (!$res) {
@@ -1853,19 +1875,20 @@ class Service_Controller extends BaseController
     }
     private function saveOptionalExtras($serviceId, $extraNames, $extraPrices)
     {
-        $optionalExtraModel = new OptionalExtraModel();
+        $optionalExtrasModel = new ServiceOptionalExtrasModel();
+        $optionalExtrasModel->where('service_id', $serviceId)->delete();
 
-        // Prepare the data
-        $extras = [];
         foreach ($extraNames as $index => $name) {
-            $extras[] = [
-                'name' => $name,
-                'price' => $extraPrices[$index]
-            ];
+            $name = trim((string) ($name ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $optionalExtrasModel->insert([
+                'service_id' => $serviceId,
+                'name'       => $name,
+                'price'      => (float) ($extraPrices[$index] ?? 0),
+            ]);
         }
-
-        // Save the extras to the database
-        return $optionalExtraModel->saveExtras($serviceId, $extras);
     }
     public function update($id = null)
     {
@@ -1980,18 +2003,28 @@ class Service_Controller extends BaseController
 
             // Update optional extras — delete all and re-insert
             $optionalExtrasModel->where('service_id', $id)->delete();
-            $extraNames = $this->request->getPost('extra_name') ?? [];
-            $extraPrices = $this->request->getPost('extra_price') ?? [];
-            $extraDescs = $this->request->getPost('extra_description') ?? [];
+            $extraNames        = $this->request->getPost('extra_name') ?? [];
+            $extraPrices       = $this->request->getPost('extra_price') ?? [];
+            $extraDescs        = $this->request->getPost('extra_description') ?? [];
+            $extraPricingTypes = $this->request->getPost('extra_pricing_type') ?? [];
+            $extraUnitLabels   = $this->request->getPost('extra_unit_label') ?? [];
+            $extraMinQtys      = $this->request->getPost('extra_min_quantity') ?? [];
+            $extraMaxQtys      = $this->request->getPost('extra_max_quantity') ?? [];
             foreach ($extraNames as $i => $name) {
-                if (!empty(trim($name))) {
-                    $optionalExtrasModel->insert([
-                        'service_id' => $id,
-                        'name' => trim($name),
-                        'price' => (float)($extraPrices[$i] ?? 0),
-                        'description' => trim($extraDescs[$i] ?? ''),
-                    ]);
-                }
+                $name = trim((string) ($name ?? ''));
+                if ($name === '') continue;
+                $pricingType = in_array($extraPricingTypes[$i] ?? '', ['flat', 'per_item'], true)
+                    ? $extraPricingTypes[$i] : 'flat';
+                $optionalExtrasModel->insert([
+                    'service_id'   => $id,
+                    'name'         => $name,
+                    'price'        => (float) ($extraPrices[$i] ?? 0),
+                    'description'  => trim($extraDescs[$i] ?? ''),
+                    'pricing_type' => $pricingType,
+                    'unit_label'   => trim($extraUnitLabels[$i] ?? '') ?: null,
+                    'min_quantity' => ($pricingType === 'per_item' && !empty($extraMinQtys[$i])) ? max(1, (int) $extraMinQtys[$i]) : null,
+                    'max_quantity' => ($pricingType === 'per_item' && !empty($extraMaxQtys[$i])) ? max(1, (int) $extraMaxQtys[$i]) : null,
+                ]);
             }
 
             $db->transComplete();
