@@ -483,16 +483,36 @@
                                     <th>Optional Extra</th>
                                     <th>Description</th>
                                     <th>Price (£)</th>
-                                    <th>Quantity</th>
+                                    <th>Pricing</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 <?php foreach ($serviceData['step5'] as $extra): ?>
+                                    <?php
+                                    $pricingDetail = '';
+                                    if (array_key_exists('quantity', $extra) && $extra['quantity'] !== '' && $extra['quantity'] !== null) {
+                                        $pricingDetail = (string) $extra['quantity'];
+                                    } elseif (($extra['pricing_type'] ?? 'flat') === 'per_item') {
+                                        $unit = trim((string) ($extra['unit_label'] ?? '')) ?: 'item';
+                                        $min = $extra['min_quantity'] ?? null;
+                                        $max = $extra['max_quantity'] ?? null;
+                                        $pricingDetail = 'Per ' . $unit;
+                                        if ($min !== null && $max !== null) {
+                                            $pricingDetail .= ' — quantities ' . (int) $min . ' to ' . (int) $max;
+                                        } elseif ($min !== null) {
+                                            $pricingDetail .= ' — minimum ' . (int) $min;
+                                        } elseif ($max !== null) {
+                                            $pricingDetail .= ' — maximum ' . (int) $max;
+                                        }
+                                    } else {
+                                        $pricingDetail = 'Flat fee';
+                                    }
+                                    ?>
                                     <tr>
                                         <td><?= esc($extra['name']) ?></td>
                                         <td><?= esc($extra['description']) ?></td>
                                         <td><?= '£' . number_format((float) $extra['price'], 2, '.', '') ?></td>
-                                        <td><?= esc($extra['quantity']) ?></td>
+                                        <td><?= esc($pricingDetail) ?></td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
