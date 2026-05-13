@@ -47,7 +47,7 @@
 
                             <div class="d-flex gap-1 flex-wrap">
                                 <a href="/service/view/<?= $fav['service']['id'] ?>" class="btn btn-sm btn-outline-primary">View</a>
-                                <a href="/browse-services" class="btn btn-sm btn-outline-success">Add to Event</a>
+                                <a href="/service/view/<?= $fav['service']['id'] ?>" class="btn btn-sm btn-outline-success">Add to Event</a>
                                 <a href="/profile/favourites/remove/<?= $fav['favourite_id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove from favourites?');">
                                     <i class="fas fa-heart-broken"></i>
                                 </a>

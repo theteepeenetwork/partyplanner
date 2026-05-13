@@ -11,9 +11,13 @@ use DateTime;
  
 class BookingController extends Controller
 {
-    // Method to display a month-to-view calendar with bookings 
+    // Method to display a month-to-view calendar with bookings
     public function calendarView($year = null, $month = null)
     {
+        if (!session()->has('user_id')) {
+            return redirect()->to('/login');
+        }
+
         $serviceModel = new ServiceModel();
         $bookingItemModel = new BookingItemModel();
 
@@ -57,7 +61,6 @@ class BookingController extends Controller
         $bookingModel = new BookingModel();
         $bookingItemModel = new BookingItemModel();
         $eventModel = new EventModel();
-        $serviceAvailabilityModel = new ServiceAvailabilityModel();
 
         $serviceId = $this->request->getPost('service_id');
         $eventId = $this->request->getPost('event_id');
@@ -101,31 +104,12 @@ class BookingController extends Controller
         return redirect()->to('/service/view/' . $serviceId)->with('success', 'Service booked successfully!');
     }
 
-    public function getBookingsByMonth($year, $month)
-    {
-        $builder = $this->db->table('bookings')
-            ->select('bookings.*, events.title as event_title, events.`date` as event_date, booking_items.start_time, booking_items.end_time, services.title as service_title', false)
-            ->join('booking_items', 'booking_items.booking_id = bookings.id')
-            ->join('events', 'events.id = bookings.event_id')
-            ->join('services', 'services.id = booking_items.service_id')
-            ->where('YEAR(events.`date`)', $year, false)
-            ->where('MONTH(events.`date`)', $month, false)
-            ->get();
-
-        $results = [];
-        foreach ($builder->getResultArray() as $row) {
-            $date = $row['event_date'];
-            if (!isset($results[$date])) {
-                $results[$date] = [];
-            }
-            $results[$date][] = $row;
-        }
-
-        return $results;
-    }
-
     public function calendarData($year, $month)
     {
+        if (!session()->has('user_id')) {
+            return $this->response->setStatusCode(401)->setJSON(['error' => 'Unauthorised']);
+        }
+
         $bookingModel = new BookingModel();
         $bookingItemModel = new BookingItemModel();
 
@@ -185,6 +169,37 @@ class BookingController extends Controller
         return $this->response->setJSON($response);
     }
 
+
+    public function paymentSuccess(int $bookingId)
+    {
+        if (!session()->has('user_id')) {
+            return redirect()->to('/login');
+        }
+
+        $bookingModel = new BookingModel();
+        $booking = $bookingModel->find($bookingId);
+
+        if (!$booking || (int) $booking['user_id'] !== (int) session()->get('user_id')) {
+            return redirect()->to('/profile/my-bookings')->with('error', 'Booking not found.');
+        }
+
+        $bookingItemModel = new BookingItemModel();
+        $items = $bookingItemModel
+            ->select('booking_items.*, services.title as service_title, services.vendor_id, users.name as vendor_name')
+            ->join('services', 'services.id = booking_items.service_id')
+            ->join('users', 'users.id = services.vendor_id')
+            ->where('booking_id', $bookingId)
+            ->findAll();
+
+        $eventModel = new EventModel();
+        $event = $eventModel->find($booking['event_id']);
+
+        return view('event/checkout_success', [
+            'booking'  => $booking,
+            'items'    => $items,
+            'event'    => $event,
+        ]);
+    }
 
     // Other methods related to booking management...
 }

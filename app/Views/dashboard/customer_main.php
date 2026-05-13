@@ -62,7 +62,6 @@
             <div class="col-6 col-md">
                 <div class="stat-card">
                     <div class="stat-icon bg-info-light mx-auto"><i class="fas fa-pound-sign"></i></div>
-                    <!-- TODO: Calculate awaiting payment from payments table -->
                     <div class="stat-value"><?= $totalAwaitingPayment ?></div>
                     <div class="stat-label">Awaiting Payment</div>
                 </div>
@@ -101,8 +100,20 @@
                                 <p class="attention-desc"><?= $totalAccepted ?> booking<?= $totalAccepted > 1 ? 's have' : ' has' ?> been accepted — review and confirm</p>
                             </div>
                             <div class="attention-action">
-                                <!-- TODO: Link to bookings management -->
-                                <a href="/profile" class="btn btn-sm btn-outline-success">Review</a>
+                                <a href="/profile/my-bookings" class="btn btn-sm btn-outline-success">Review</a>
+                            </div>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($totalAwaitingPayment > 0): $hasAttention = true; ?>
+                        <div class="attention-card border-warning">
+                            <div class="attention-icon bg-warning-light"><i class="fas fa-credit-card"></i></div>
+                            <div class="attention-content">
+                                <div class="attention-title">Payment Required</div>
+                                <p class="attention-desc"><?= $totalAwaitingPayment ?> booking<?= $totalAwaitingPayment > 1 ? 's are' : ' is' ?> accepted and awaiting payment</p>
+                            </div>
+                            <div class="attention-action">
+                                <a href="/profile/my-bookings" class="btn btn-sm btn-outline-warning">Pay Now</a>
                             </div>
                         </div>
                     <?php endif; ?>
@@ -145,9 +156,6 @@
                             </div>
                         </div>
                     <?php endif; ?>
-
-                    <!-- TODO: Add attention items for: deposit/payment needed, booking awaiting confirmation,
-                         quote expiring soon, balance due soon, missing event details -->
 
                     <?php if (!$hasAttention): ?>
                         <div class="text-center py-3">
@@ -195,10 +203,8 @@
                                         </div>
                                     </div>
                                     <div class="col-md-4 text-md-end mt-2 mt-md-0">
-                                        <!-- TODO: Link to individual event view page -->
-                                        <a href="/browse-services" class="btn btn-sm btn-outline-primary me-1">Add Services</a>
-                                        <!-- TODO: Link to event management page -->
-                                        <a href="/profile" class="btn btn-sm btn-primary">View Event</a>
+                                        <a href="/browse-services?event_id=<?= esc($event['id']) ?>" class="btn btn-sm btn-outline-primary me-1">Add Services</a>
+                                        <a href="/profile/events" class="btn btn-sm btn-primary">View Events</a>
                                     </div>
                                 </div>
 
@@ -248,31 +254,40 @@
                             }
                         }
 
-                        // Define key service categories for event planning
+                        // Key planning categories mapped to DB root category IDs
                         $planningCategories = [
-                            ['icon' => 'fa-utensils', 'label' => 'Catering'],
-                            ['icon' => 'fa-camera', 'label' => 'Photography'],
-                            ['icon' => 'fa-music', 'label' => 'Entertainment'],
-                            ['icon' => 'fa-car', 'label' => 'Transport'],
-                            ['icon' => 'fa-paint-brush', 'label' => 'Decorations'],
-                            ['icon' => 'fa-spa', 'label' => 'Hair & Makeup'],
-                            ['icon' => 'fa-birthday-cake', 'label' => 'Cakes & Desserts'],
-                            ['icon' => 'fa-envelope', 'label' => 'Stationery'],
+                            ['icon' => 'fa-utensils',      'label' => 'Catering',          'cat_ids' => [1]],
+                            ['icon' => 'fa-camera',        'label' => 'Photography',        'cat_ids' => [3]],
+                            ['icon' => 'fa-music',         'label' => 'Entertainment',      'cat_ids' => [4, 5]],
+                            ['icon' => 'fa-car',           'label' => 'Transport',          'cat_ids' => [12]],
+                            ['icon' => 'fa-paint-brush',   'label' => 'Decorations',        'cat_ids' => [7]],
+                            ['icon' => 'fa-spa',           'label' => 'Hair & Makeup',      'cat_ids' => [13]],
+                            ['icon' => 'fa-birthday-cake', 'label' => 'Cakes & Desserts',   'cat_ids' => [2]],
+                            ['icon' => 'fa-envelope',      'label' => 'Stationery',         'cat_ids' => [14]],
                         ];
 
-                        $bookedCount = 0;
-                        foreach ($events as $evt) {
-                            $bookedCount += $evt['servicesBooked'];
+                        $coveredCount = 0;
+                        foreach ($planningCategories as &$cat) {
+                            $cat['is_booked'] = false;
+                            foreach ($events as $evt) {
+                                foreach ($evt['bookingItems'] as $bi) {
+                                    if (!empty($bi['category_id']) && in_array((int)$bi['category_id'], $cat['cat_ids'], true)) {
+                                        $cat['is_booked'] = true;
+                                        break 2;
+                                    }
+                                }
+                            }
+                            if ($cat['is_booked']) $coveredCount++;
                         }
+                        unset($cat);
                         ?>
                         <p class="text-muted small mb-3">
-                            <?= $bookedCount ?>/<?= count($planningCategories) ?> key service categories covered
+                            <?= $coveredCount ?>/<?= count($planningCategories) ?> key service categories covered
                         </p>
 
-                        <?php foreach ($planningCategories as $idx => $cat): ?>
+                        <?php foreach ($planningCategories as $cat): ?>
                             <?php
-                            // TODO: Match categories by name/id from real booking data instead of placeholder status
-                            $isBooked = $idx < $bookedCount;
+                            $isBooked = $cat['is_booked'];
                             $statusClass = $isBooked ? 'booked' : 'not-started';
                             $statusIcon = $isBooked ? 'fa-check' : 'fa-circle';
                             $statusLabel = $isBooked ? 'Booked' : 'Not started';
@@ -338,17 +353,10 @@
                     <p class="text-muted small mb-3">Figures reflect recorded deposits and estimates. You will confirm balances with each vendor before the event.</p>
                     <div class="mb-2 d-flex justify-content-between">
                         <span class="text-muted small">Deposits Paid</span>
-                        <!-- TODO: Pull real deposit amounts from payments table -->
                         <span class="fw-bold">£<?= number_format($depositsPaid, 2) ?></span>
                     </div>
                     <div class="mb-2 d-flex justify-content-between">
-                        <span class="text-muted small">Outstanding Deposits</span>
-                        <!-- TODO: Calculate outstanding deposits -->
-                        <span class="fw-bold">£0.00</span>
-                    </div>
-                    <div class="mb-2 d-flex justify-content-between">
                         <span class="text-muted small">Remaining Balance</span>
-                        <!-- TODO: Calculate remaining balance from total cost minus payments -->
                         <span class="fw-bold">£<?= number_format(max(0, $totalSpend - $depositsPaid), 2) ?></span>
                     </div>
                     <hr>
@@ -362,11 +370,13 @@
                 <div class="dash-card">
                     <h5 class="mb-1"><i class="fas fa-heart text-danger me-2"></i>Saved Services</h5>
                     <p class="text-muted small mb-3">Shortlist vendors you love and come back when you are ready to book.</p>
-                    <!-- TODO: Implement favourites/saved services functionality with a favourites table -->
                     <div class="dash-empty-state text-center py-3 px-2">
                         <i class="fas fa-heart fa-2x text-muted mb-2 d-block" aria-hidden="true"></i>
-                        <p class="text-muted small mb-3">Nothing saved yet. Tap the heart on a service page to keep it here.</p>
-                        <a href="/browse-services" class="btn btn-sm btn-primary">Browse services</a>
+                        <p class="text-muted small mb-3">Nothing saved yet. Tap the heart on a service page to add it to your favourites.</p>
+                        <div class="d-flex flex-column gap-2">
+                            <a href="/browse-services" class="btn btn-sm btn-primary">Browse services</a>
+                            <a href="/profile/favourites" class="btn btn-sm btn-outline-secondary">View favourites</a>
+                        </div>
                     </div>
                 </div>
 
@@ -409,19 +419,29 @@
                 <div class="dash-card">
                     <h5><i class="fas fa-bell text-info me-2"></i>Recent Activity</h5>
 
-                    <!-- TODO: Connect to real activity log tracking user actions -->
                     <?php if (!empty($events)): ?>
                         <?php foreach (array_slice($events, 0, 3) as $evt): ?>
                             <div class="activity-item">
                                 <div class="activity-dot bg-primary"></div>
                                 <span class="activity-text">Event "<strong><?= esc($evt['title']) ?></strong>" created</span>
-                                <span class="activity-time">Recent</span>
+                                <span class="activity-time">
+                                    <?php
+                                    if (!empty($evt['created_at'])) {
+                                        $ts = new DateTime($evt['created_at']);
+                                        $now = new DateTime();
+                                        $diff = $now->diff($ts);
+                                        echo $diff->days >= 1 ? $ts->format('d M') : ($diff->h >= 1 ? $diff->h . 'h ago' : 'Today');
+                                    }
+                                    ?>
+                                </span>
                             </div>
                             <?php if ($evt['servicesBooked'] > 0): ?>
                                 <div class="activity-item">
                                     <div class="activity-dot bg-success"></div>
                                     <span class="activity-text"><?= $evt['servicesBooked'] ?> service<?= $evt['servicesBooked'] > 1 ? 's' : '' ?> booked for <?= esc($evt['title']) ?></span>
-                                    <span class="activity-time">Recent</span>
+                                    <span class="activity-time">
+                                        <?php echo !empty($evt['created_at']) ? (new DateTime($evt['created_at']))->format('d M') : ''; ?>
+                                    </span>
                                 </div>
                             <?php endif; ?>
                         <?php endforeach; ?>

@@ -29,7 +29,7 @@
                             <div class="message-content flex-grow-1">
                                 <div class="d-flex justify-content-between">
                                     <div class="message-sender"><?= esc($room['peer_name'] ?? $room['vendor_name']) ?></div>
-                                    <span class="message-time"><?= date('d M H:i', strtotime($room['last_message_time'])) ?></span>
+                                    <span class="message-time"><?= $room['last_message_time'] ? date('d M H:i', strtotime($room['last_message_time'])) : '' ?></span>
                                 </div>
                                 <?php if (!empty($room['service_name'])): ?>
                                     <div class="small text-primary"><?= esc($room['service_name']) ?></div>

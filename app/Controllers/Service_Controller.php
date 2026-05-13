@@ -12,7 +12,6 @@ use App\Models\ServiceTimeBlockModel;  // Add this line
 use App\Models\ServiceAvailabilityModel;
 use App\Models\ServicePublicEventModel;
 use App\Models\BookingItemModel;
-use App\Models\OptionalExtraModel;
 use App\Models\ServiceTagsModel;
 use App\Models\TagsModel;
 use App\Models\ServiceEventTypeModel;
@@ -1853,19 +1852,20 @@ class Service_Controller extends BaseController
     }
     private function saveOptionalExtras($serviceId, $extraNames, $extraPrices)
     {
-        $optionalExtraModel = new OptionalExtraModel();
+        $optionalExtrasModel = new ServiceOptionalExtrasModel();
+        $optionalExtrasModel->where('service_id', $serviceId)->delete();
 
-        // Prepare the data
-        $extras = [];
         foreach ($extraNames as $index => $name) {
-            $extras[] = [
-                'name' => $name,
-                'price' => $extraPrices[$index]
-            ];
+            $name = trim((string) ($name ?? ''));
+            if ($name === '') {
+                continue;
+            }
+            $optionalExtrasModel->insert([
+                'service_id' => $serviceId,
+                'name'       => $name,
+                'price'      => (float) ($extraPrices[$index] ?? 0),
+            ]);
         }
-
-        // Save the extras to the database
-        return $optionalExtraModel->saveExtras($serviceId, $extras);
     }
     public function update($id = null)
     {

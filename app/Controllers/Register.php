@@ -13,31 +13,37 @@ class Register extends BaseController
     {
         $userModel = new UserModel();
 
-        // Validation rules for form fields
         $rules = [
-            'username' => 'required|min_length[3]|max_length[255]|is_unique[users.username]',
-            'email'    => 'required|valid_email|is_unique[users.email]',
-            'password' => 'required|min_length[8]',
-            'confirm_password' => 'required|matches[password]'
+            'name'             => 'required|min_length[2]|max_length[100]',
+            'username'         => 'required|min_length[3]|max_length[255]|is_unique[users.username]',
+            'email'            => 'required|valid_email|is_unique[users.email]',
+            'password'         => 'required|min_length[8]',
+            'confirm_password' => 'required|matches[password]',
         ];
-    
+
         if (!$this->validate($rules)) {
-            // Validation failed, return to form with errors
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
-        // Validation passed, insert user into database
         $data = [
-            'name' => $this->request->getVar('name'),
+            'name'     => $this->request->getVar('name'),
             'username' => $this->request->getVar('username'),
-            'email' => $this->request->getVar('email'),
+            'email'    => $this->request->getVar('email'),
             'password' => password_hash($this->request->getVar('password'), PASSWORD_DEFAULT),
-            'role' => 'customer',
+            'role'     => 'customer',
         ];
 
-        $userModel->save($data); // Use the $userModel object to save
+        $userModel->save($data);
+        $newUser = $userModel->find($userModel->getInsertID());
 
-        return redirect()->to('/register/success')->with('success', 'Registration successful! You can now login.');
+        // Auto-login after registration
+        session()->set([
+            'user_id'  => $newUser['id'],
+            'username' => $newUser['username'],
+            'role'     => $newUser['role'],
+        ]);
+
+        return redirect()->to('/profile')->with('success', 'Welcome! Your account is ready. Start by creating your first event.');
     }
     
     public function success()
@@ -60,27 +66,36 @@ class Register extends BaseController
         $userModel = new UserModel();
 
         $rules = [
-            'username' => 'required|min_length[3]|max_length[255]|is_unique[users.username]',
-            'email'    => 'required|valid_email|is_unique[users.email]',
-            'password' => 'required|min_length[8]',
-            'confirm_password' => 'required|matches[password]'
+            'name'             => 'required|min_length[2]|max_length[100]',
+            'username'         => 'required|min_length[3]|max_length[255]|is_unique[users.username]',
+            'email'            => 'required|valid_email|is_unique[users.email]',
+            'password'         => 'required|min_length[8]',
+            'confirm_password' => 'required|matches[password]',
         ];
-    
+
         if (!$this->validate($rules)) {
             return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
         }
 
         $data = [
-            'name' => $this->request->getVar('name'),
+            'name'     => $this->request->getVar('name'),
             'username' => $this->request->getVar('username'),
-            'email' => $this->request->getVar('email'),
+            'email'    => $this->request->getVar('email'),
             'password' => password_hash($this->request->getVar('password'), PASSWORD_DEFAULT),
-            'role' => 'vendor',
+            'role'     => 'vendor',
         ];
 
         $userModel->save($data);
+        $newUser = $userModel->find($userModel->getInsertID());
 
-        return redirect()->to('/register/vendor/success')->with('success', 'Your vendor application has been submitted! You can now login.');
+        // Auto-login after registration
+        session()->set([
+            'user_id'  => $newUser['id'],
+            'username' => $newUser['username'],
+            'role'     => $newUser['role'],
+        ]);
+
+        return redirect()->to('/profile')->with('success', 'Welcome! Your vendor account is set up. Start by creating your first service listing.');
     }
 
     public function vendorSuccess()

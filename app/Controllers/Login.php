@@ -32,10 +32,10 @@ class Login extends BaseController
             }
 
             if ($user['role'] === 'admin') {
-                return redirect()->to('/admin')->with('success', 'Welcome back, ' . $user['username']);
+                return redirect()->to('/admin')->with('success', 'Welcome back, ' . $user['name']);
             }
 
-            return redirect()->to('/')->with('success', 'Welcome back, ' . $user['username']);
+            return redirect()->to('/profile')->with('success', 'Welcome back, ' . $user['name']);
         } else {
             // Authentication failed
             return redirect()->back()->withInput()->with('error', 'Invalid login credentials.');

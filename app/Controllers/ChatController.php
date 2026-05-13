@@ -134,6 +134,10 @@ class ChatController extends Controller
     public function checkNewMessages()
     {
         $userId = session()->get('user_id');
+        if (!$userId) {
+            return $this->response->setStatusCode(401)->setJSON(['newMessages' => 0]);
+        }
+
         $chatMessageModel = new ChatMessageModel();
         $newMessages = $chatMessageModel->where('receiver_id', $userId)->where('is_read', false)->countAllResults();
 

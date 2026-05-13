@@ -57,10 +57,8 @@ $routes->get('/services', 'Service_Controller::browse');
 $routes->get('search', 'Service_Controller::search');
 
 // Service Routes
-$routes->get('test', 'Service_Controller::test');
 $routes->get('service/view/(:num)', 'Service_Controller::view/$1');
 $routes->get('/service', 'Service_Controller::index');
-$routes->get('service/destroy/(:num)', 'Service_Controller::destroy/$1');
 $routes->post('/service/remove-optional-extra', 'Service_Controller::removeOptionalExtra');
 
 $routes->post('/service/delete-image/(:any)', 'Service_Controller::deleteImage/$1');
@@ -81,11 +79,8 @@ $routes->match(['GET', 'POST'], '/service/saveService', 'Service_Controller::sav
 
 $routes->get('/service/success', 'Service_Controller::success');
 
-$routes->get('/service/view/(:num)', 'Service_Controller::view/$1');
 $routes->match(['GET', 'POST'], '/service/edit/(:num)', 'Service_Controller::update/$1');
-$routes->get('/service/search', 'Service_Controller::search');
 $routes->post('/service/update/(:num)', 'Service_Controller::update/$1');
-//$routes->post('/service/delete-image/(:num)', 'Service_Controller::deleteImage/$1');
 $routes->post('/service/set-primary-image/(:num)', 'Service_Controller::setPrimaryImage/$1');
 
 $routes->post('service/book', 'Service_Controller::bookService');

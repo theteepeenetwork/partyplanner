@@ -45,53 +45,9 @@ class BookingModel extends Model
         return $bookingItemModel->where('booking_id', $bookingId)->findAll();
     }
 
-    // Count booking items for a specific event 
-    public function countBookingItems($eventId)
+    public function countBookingItems(int $bookingId): int
     {
         $bookingItemModel = new BookingItemModel();
-        return $bookingItemModel->where('booking_id', $eventId)->countAllResults();
-    }
-
-    public function getBookingsByMonth($year, $month)
-    {
-        $builder = $this->db->table('bookings')
-            ->select('bookings.*, events.title as event_title, events.`date` as event_date, booking_items.start_time, booking_items.end_time, services.title as service_title', false)
-            ->join('booking_items', 'booking_items.booking_id = bookings.id')
-            ->join('events', 'events.id = bookings.event_id')
-            ->join('services', 'services.id = booking_items.service_id')
-            ->where('YEAR(events.`date`)', $year, false)
-            ->where('MONTH(events.`date`)', $month, false)
-            ->get();
-
-        $results = [];
-        foreach ($builder->getResultArray() as $row) {
-            $date = $row['event_date'];
-            if (!isset($results[$date])) {
-                $results[$date] = [];
-            }
-            $results[$date][] = $row;
-        }
-
-        return $results;
+        return $bookingItemModel->where('booking_id', $bookingId)->countAllResults();
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-/*namespace App\Models;
-
-use CodeIgniter\Model;
-
-class BookingItemModel extends Model
-{
-    protected $table = 'booking_items';
-    protected $allowedFields = ['booking_id', 'service_id', 'quantity', 'status']; 
-}*/
