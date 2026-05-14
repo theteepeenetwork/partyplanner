@@ -346,16 +346,21 @@ class EventController extends BaseController
         $extraRows = $extrasModel->where('service_id', $serviceId)->findAll();
         $extrasById = [];
         foreach ($extraRows as $er) {
+            $ptype = strtolower(trim((string) ($er['pricing_type'] ?? 'flat')));
             $extrasById[(int) $er['id']] = [
                 'price' => (float) ($er['price'] ?? 0),
                 'name' => (string) ($er['name'] ?? 'Extra'),
-                'pricing_type' => (string) ($er['pricing_type'] ?? 'flat'),
+                'pricing_type' => $ptype === 'per_item' ? 'per_item' : 'flat',
                 'min_quantity' => isset($er['min_quantity']) && $er['min_quantity'] !== '' && $er['min_quantity'] !== null
                     ? (int) $er['min_quantity'] : null,
                 'max_quantity' => isset($er['max_quantity']) && $er['max_quantity'] !== '' && $er['max_quantity'] !== null
                     ? (int) $er['max_quantity'] : null,
                 'unit_label' => isset($er['unit_label']) && $er['unit_label'] !== '' ? (string) $er['unit_label'] : null,
             ];
+        }
+
+        if (($privatePricing['pricing_type'] ?? '') === 'guest_based_pricing') {
+            $pricingOption = null;
         }
 
         $quoteCalc = new EventBookingQuote();
@@ -466,6 +471,9 @@ class EventController extends BaseController
             $id = (int) $key;
             if ($id <= 0) {
                 continue;
+            }
+            if (is_string($val)) {
+                $val = trim($val);
             }
             if ($val === '' || $val === null) {
                 continue;

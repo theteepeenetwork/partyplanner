@@ -88,15 +88,18 @@
                                 <?= csrf_field() ?>
                                 <?php if ($showGuest): ?>
                                     <div class="form-group">
-                                        <label for="guestPricing">Guest-Based Pricing:</label>
-                                        <select class="form-control" id="guestPricing" name="pricing_option" required>
-                                            <?php foreach ($guestPricing as $pricing): ?>
-                                                <option value="guest_<?= esc($pricing['id']) ?>">
-                                                    <?= esc($pricing['min_guest'] ?? $pricing['min_guests'] ?? '') ?> to <?= esc($pricing['max_guest'] ?? $pricing['max_guests'] ?? '') ?> Guests:
-                                                    £<?= esc($pricing['guest_price'] ?? $pricing['price'] ?? '') ?> per person
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
+                                        <label class="d-block">Guest-based pricing</label>
+                                        <?php if (!empty($guestPricing)): ?>
+                                            <ul class="list-unstyled small border rounded p-3 bg-light mb-2">
+                                                <?php foreach ($guestPricing as $pricing): ?>
+                                                    <li class="mb-1">
+                                                        <?= esc($pricing['min_guest'] ?? $pricing['min_guests'] ?? '') ?> to <?= esc($pricing['max_guest'] ?? $pricing['max_guests'] ?? '') ?> guests:
+                                                        <strong>£<?= esc(number_format((float) ($pricing['guest_price'] ?? $pricing['price'] ?? 0), 2)) ?></strong> per person
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        <?php endif; ?>
+                                        <p class="text-muted small mb-0">The band that matches your event’s guest count is applied automatically when you add this service to an event (you do not need to pick a range here).</p>
                                     </div>
                                 <?php endif; ?>
 

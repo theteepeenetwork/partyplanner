@@ -247,18 +247,25 @@ class EventBookingQuote
      */
     private function resolveGuestTier(array $guestTiers, int $guestCount, ?string $pricingOption): ?array
     {
+        // Only honour guest_<id> when that tier actually covers the event guest count (ignore stale UI/session picks).
         if ($pricingOption !== null && preg_match('/^guest_(\d+)$/', $pricingOption, $m)) {
             $id = (int) $m[1];
             foreach ($guestTiers as $t) {
-                if ((int) ($t['id'] ?? 0) === $id) {
+                if ((int) ($t['id'] ?? 0) !== $id) {
+                    continue;
+                }
+                $min = (int) ($t['min_guest'] ?? $t['min_guests'] ?? 0);
+                $max = (int) ($t['max_guest'] ?? $t['max_guests'] ?? 0);
+                if ($min > 0 && $max > 0 && $guestCount >= $min && $guestCount <= $max) {
                     return $t;
                 }
+                break;
             }
         }
 
         foreach ($guestTiers as $t) {
-            $min = (int) ($t['min_guest'] ?? 0);
-            $max = (int) ($t['max_guest'] ?? 0);
+            $min = (int) ($t['min_guest'] ?? $t['min_guests'] ?? 0);
+            $max = (int) ($t['max_guest'] ?? $t['max_guests'] ?? 0);
             if ($min > 0 && $max > 0 && $guestCount >= $min && $guestCount <= $max) {
                 return $t;
             }
@@ -321,7 +328,9 @@ class EventBookingQuote
             $price = is_array($meta) ? (float) ($meta['price'] ?? 0) : (float) $meta;
             $name  = is_array($meta) ? (string) ($meta['name'] ?? 'Optional extra') : 'Optional extra';
 
-            $pricingType = is_array($meta) ? (string) ($meta['pricing_type'] ?? 'flat') : 'flat';
+            $pricingType = is_array($meta)
+                ? strtolower(trim((string) ($meta['pricing_type'] ?? 'flat')))
+                : 'flat';
             if ($pricingType !== 'per_item') {
                 $lines[] = [
                     'code'   => 'extra_' . $id,

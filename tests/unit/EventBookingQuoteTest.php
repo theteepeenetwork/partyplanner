@@ -223,4 +223,37 @@ final class EventBookingQuoteTest extends CIUnitTestCase
         $this->assertSame([], $result['errors']);
         $this->assertEqualsWithDelta(500.0, $result['total'], 0.01);
     }
+
+    /**
+     * A stale guest_<id> from an old booking form must not override the tier when guest count is outside that band.
+     */
+    public function testGuestTierIgnoresPricingOptionOutsideGuestCount(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 0.0];
+        $event = [
+            'guest_count' => 30,
+            'event_setting' => 'private',
+        ];
+        $guestTiers = [
+            ['id' => 1, 'min_guest' => 1, 'max_guest' => 25, 'guest_price' => 10.0],
+            ['id' => 2, 'min_guest' => 26, 'max_guest' => 50, 'guest_price' => 6.25],
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1],
+            [],
+            ['pricing_type' => 'guest_based_pricing', 'id' => 9],
+            $guestTiers,
+            [],
+            [],
+            [],
+            [],
+            'guest_1',
+            []
+        );
+        $this->assertSame([], $result['errors']);
+        $this->assertEqualsWithDelta(187.5, $result['total'], 0.01);
+    }
 }
