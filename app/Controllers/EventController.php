@@ -224,6 +224,7 @@ class EventController extends BaseController
             'service_id' => $serviceId,
             'pricing_option' => $this->request->getGet('pricing_option') ?? $this->request->getPost('pricing_option'),
             'extras' => $this->request->getGet('extras') ?? $this->request->getPost('extras'),
+            'extra_qty' => $this->normalizeExtraQtyMap($this->request->getPost('extra_qty')),
         ];
 
         if (! session()->has('user_id')) {
@@ -297,9 +298,13 @@ class EventController extends BaseController
             return redirect()->to('/browse-services')->with('error', 'Invalid service or event.');
         }
 
-        $pendingAdd = session()->get('pending_add_to_event');
+        $pendingAdd = session()->get('pending_add_to_event') ?? [];
         $pricingOption = $this->request->getPost('pricing_option') ?? ($pendingAdd['pricing_option'] ?? null);
         $extrasRaw = $this->request->getPost('extras') ?? ($pendingAdd['extras'] ?? null);
+        $extraQtyMap = array_replace(
+            $this->normalizeExtraQtyMap($pendingAdd['extra_qty'] ?? []),
+            $this->normalizeExtraQtyMap($this->request->getPost('extra_qty'))
+        );
         session()->remove('pending_add_to_event');
 
         if (is_string($extrasRaw)) {
@@ -344,6 +349,12 @@ class EventController extends BaseController
             $extrasById[(int) $er['id']] = [
                 'price' => (float) ($er['price'] ?? 0),
                 'name' => (string) ($er['name'] ?? 'Extra'),
+                'pricing_type' => (string) ($er['pricing_type'] ?? 'flat'),
+                'min_quantity' => isset($er['min_quantity']) && $er['min_quantity'] !== '' && $er['min_quantity'] !== null
+                    ? (int) $er['min_quantity'] : null,
+                'max_quantity' => isset($er['max_quantity']) && $er['max_quantity'] !== '' && $er['max_quantity'] !== null
+                    ? (int) $er['max_quantity'] : null,
+                'unit_label' => isset($er['unit_label']) && $er['unit_label'] !== '' ? (string) $er['unit_label'] : null,
             ];
         }
 
@@ -359,7 +370,8 @@ class EventController extends BaseController
             $packages,
             $extrasById,
             $selectedExtras,
-            $pricingOption
+            $pricingOption,
+            $extraQtyMap
         );
 
         if (!empty($quote['errors'])) {
@@ -435,6 +447,34 @@ class EventController extends BaseController
                     $out[$k] = $service[$k];
                 }
             }
+        }
+
+        return $out;
+    }
+
+    /**
+     * @param mixed $raw
+     * @return array<int, int>
+     */
+    private function normalizeExtraQtyMap($raw): array
+    {
+        if (!is_array($raw)) {
+            return [];
+        }
+        $out = [];
+        foreach ($raw as $key => $val) {
+            $id = (int) $key;
+            if ($id <= 0) {
+                continue;
+            }
+            if ($val === '' || $val === null) {
+                continue;
+            }
+            $n = (int) $val;
+            if ($n <= 0) {
+                continue;
+            }
+            $out[$id] = $n;
         }
 
         return $out;

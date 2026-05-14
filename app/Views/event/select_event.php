@@ -32,6 +32,14 @@
                         <input type="hidden" name="extras[]" value="<?= esc($extra) ?>">
                     <?php endforeach; ?>
                 <?php endif; ?>
+                <?php if (!empty($selectedOptions['extra_qty']) && is_array($selectedOptions['extra_qty'])): ?>
+                    <?php foreach ($selectedOptions['extra_qty'] as $eid => $qty): ?>
+                        <?php if ((int) $qty <= 0) {
+                            continue;
+                        } ?>
+                        <input type="hidden" name="extra_qty[<?= (int) $eid ?>]" value="<?= (int) $qty ?>">
+                    <?php endforeach; ?>
+                <?php endif; ?>
 
                 <div class="dash-card mb-2" style="cursor:pointer;" onclick="this.closest('form').submit();">
                     <div class="d-flex align-items-center justify-content-between">
@@ -40,6 +48,9 @@
                             <div class="text-muted small">
                                 <?php if (!empty($event['event_type'])): ?>
                                     <span class="badge bg-primary me-1"><?= esc($event['event_type']) ?></span>
+                                <?php endif; ?>
+                                <?php if (!empty($event['guest_count'])): ?>
+                                    <span class="ms-2"><i class="fas fa-users me-1"></i><?= (int) $event['guest_count'] ?> guests</span>
                                 <?php endif; ?>
                                 <?php if (!empty($event['date'])): ?>
                                     <i class="fas fa-calendar-alt me-1"></i><?= date('d M Y', strtotime($event['date'])) ?>

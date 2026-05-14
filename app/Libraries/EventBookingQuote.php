@@ -16,9 +16,10 @@ class EventBookingQuote
      * @param list<array<string,mixed>> $guestTiers
      * @param list<array<string,mixed>> $durationTiers
      * @param list<array<string,mixed>> $packages
-     * @param array<int, float|array{price: float, name?: string}> $extrasById
+     * @param array<int, float|array{price: float, name?: string, pricing_type?: string, min_quantity?: int|null, max_quantity?: int|null, unit_label?: string|null}> $extrasById
      * @param list<int|string> $selectedExtraIds
      * @param string|null $pricingOption               e.g. guest_12, duration_3, package_4
+     * @param array<int, int> $extraQuantitiesById     Optional per-extra quantity overrides (per_item extras only)
      * @return array{lines: list<array{code:string,label:string,amount:float}>, total: float, warnings: list<string>, errors: list<string>, distance_km: ?float}
      */
     public function calculate(
@@ -32,7 +33,8 @@ class EventBookingQuote
         array $packages,
         array $extrasById,
         array $selectedExtraIds,
-        ?string $pricingOption
+        ?string $pricingOption,
+        array $extraQuantitiesById = []
     ): array {
         $warnings = [];
         $errors  = [];
@@ -61,7 +63,7 @@ class EventBookingQuote
             $errors   = array_merge($errors, $privateResult['errors']);
         }
 
-        $extrasResult = $this->extrasLines($extrasById, $selectedExtraIds);
+        $extrasResult = $this->extrasLines($extrasById, $selectedExtraIds, $guestCount, $extraQuantitiesById);
         $lines = array_merge($lines, $extrasResult['lines']);
 
         $distanceKm = $this->distanceKm($service, $location, $event);
@@ -302,11 +304,12 @@ class EventBookingQuote
     }
 
     /**
-     * @param array<int, float|array{price: float, name?: string}> $extrasById
+     * @param array<int, float|array{price: float, name?: string, pricing_type?: string, min_quantity?: int|null, max_quantity?: int|null, unit_label?: string|null}> $extrasById
      * @param list<int|string> $selectedExtraIds
+     * @param array<int, int> $extraQuantitiesById
      * @return array{lines: list<array{code:string,label:string,amount:float}>}
      */
-    private function extrasLines(array $extrasById, array $selectedExtraIds): array
+    private function extrasLines(array $extrasById, array $selectedExtraIds, int $guestCount, array $extraQuantitiesById = []): array
     {
         $lines = [];
         foreach ($selectedExtraIds as $rawId) {
@@ -317,10 +320,58 @@ class EventBookingQuote
             $meta  = $extrasById[$id];
             $price = is_array($meta) ? (float) ($meta['price'] ?? 0) : (float) $meta;
             $name  = is_array($meta) ? (string) ($meta['name'] ?? 'Optional extra') : 'Optional extra';
+
+            $pricingType = is_array($meta) ? (string) ($meta['pricing_type'] ?? 'flat') : 'flat';
+            if ($pricingType !== 'per_item') {
+                $lines[] = [
+                    'code'   => 'extra_' . $id,
+                    'label'  => 'Optional extra: ' . $name,
+                    'amount' => round($price, 2),
+                ];
+                continue;
+            }
+
+            $minConfigured = is_array($meta) && array_key_exists('min_quantity', $meta) && $meta['min_quantity'] !== null && $meta['min_quantity'] !== ''
+                ? (int) $meta['min_quantity']
+                : 0;
+            $maxConfigured = is_array($meta) && array_key_exists('max_quantity', $meta) && $meta['max_quantity'] !== null && $meta['max_quantity'] !== ''
+                ? (int) $meta['max_quantity']
+                : 0;
+
+            $minQ = $minConfigured > 0 ? max(1, $minConfigured) : 1;
+            $maxQ = $maxConfigured > 0 ? max($minQ, $maxConfigured) : null;
+
+            $requested = $extraQuantitiesById[$id] ?? null;
+            if ($requested === null || $requested <= 0) {
+                $qty = $guestCount;
+            } else {
+                $qty = (int) $requested;
+            }
+
+            $qty = max($qty, $minQ);
+            if ($maxQ !== null) {
+                $qty = min($qty, $maxQ);
+            }
+
+            $unitWord = '';
+            if (is_array($meta)) {
+                $unitWord = trim((string) ($meta['unit_label'] ?? ''));
+            }
+            if ($unitWord === '') {
+                $unitWord = 'item';
+            }
+
+            $amount = round($price * $qty, 2);
             $lines[] = [
                 'code'   => 'extra_' . $id,
-                'label'  => 'Optional extra: ' . $name,
-                'amount' => round($price, 2),
+                'label'  => sprintf(
+                    'Optional extra: %s (%d %s × £%s)',
+                    $name,
+                    $qty,
+                    $unitWord,
+                    number_format($price, 2)
+                ),
+                'amount' => $amount,
             ];
         }
 

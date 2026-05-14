@@ -151,14 +151,16 @@
                                                 <?php endif; ?>
                                                 <?php if ($isPerItem): ?>
                                                     <div class="extra-qty-wrap ms-4 mt-1" id="qty_wrap_<?= esc($extra['id']) ?>" style="display:none">
-                                                        <div class="d-flex align-items-center gap-2">
-                                                            <label class="form-label mb-0 small text-muted">Quantity:</label>
+                                                        <div class="d-flex flex-wrap align-items-center gap-2">
+                                                            <label class="form-label mb-0 small text-muted">Quantity (optional):</label>
                                                             <input type="number" class="form-control form-control-sm"
                                                                 style="width:90px"
                                                                 name="extra_qty[<?= esc($extra['id']) ?>]"
-                                                                value="<?= (int) ($extra['min_quantity'] ?? 1) ?>"
+                                                                value=""
+                                                                placeholder="Auto"
                                                                 min="<?= (int) ($extra['min_quantity'] ?? 1) ?>"
-                                                                <?= !empty($extra['max_quantity']) ? 'max="' . (int) $extra['max_quantity'] . '"' : '' ?>>
+                                                                <?= !empty($extra['max_quantity']) ? 'max="' . (int) $extra['max_quantity'] . '"' : '' ?>
+                                                                title="Leave blank to use your event’s guest count">
                                                             <?php if (!empty($extra['min_quantity']) || !empty($extra['max_quantity'])): ?>
                                                                 <span class="text-muted small">
                                                                     <?= !empty($extra['min_quantity']) ? 'Min: ' . (int) $extra['min_quantity'] : '' ?>
@@ -167,6 +169,7 @@
                                                                 </span>
                                                             <?php endif; ?>
                                                         </div>
+                                                        <p class="small text-muted mb-0 ms-0 mt-1">If you leave this blank, we price this extra using your event’s guest count (after you pick the event).</p>
                                                     </div>
                                                 <?php endif; ?>
                                             </div>

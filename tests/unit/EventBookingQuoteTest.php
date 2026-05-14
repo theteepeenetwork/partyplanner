@@ -106,4 +106,121 @@ final class EventBookingQuoteTest extends CIUnitTestCase
         $this->assertSame([], $result['errors']);
         $this->assertEqualsWithDelta(300.0, $result['total'], 0.01);
     }
+
+    public function testPerItemOptionalExtraDefaultsToGuestCount(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 0.0];
+        $event = [
+            'guest_count' => 80,
+            'event_setting' => 'private',
+        ];
+        $guestTiers = [
+            ['id' => 1, 'min_guest' => 1, 'max_guest' => 100, 'guest_price' => 5.0],
+        ];
+        $extrasById = [
+            7 => [
+                'price' => 2.0,
+                'name' => 'Favours',
+                'pricing_type' => 'per_item',
+                'min_quantity' => 1,
+                'max_quantity' => 200,
+                'unit_label' => 'favours',
+            ],
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1],
+            [],
+            ['pricing_type' => 'guest_based_pricing', 'id' => 9],
+            $guestTiers,
+            [],
+            [],
+            $extrasById,
+            [7],
+            'guest_1',
+            []
+        );
+        $this->assertSame([], $result['errors']);
+        $this->assertEqualsWithDelta(560.0, $result['total'], 0.01);
+    }
+
+    public function testPerItemOptionalExtraUsesExplicitQuantity(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 0.0];
+        $event = [
+            'guest_count' => 80,
+            'event_setting' => 'private',
+        ];
+        $guestTiers = [
+            ['id' => 1, 'min_guest' => 1, 'max_guest' => 100, 'guest_price' => 5.0],
+        ];
+        $extrasById = [
+            7 => [
+                'price' => 2.0,
+                'name' => 'Favours',
+                'pricing_type' => 'per_item',
+                'min_quantity' => 1,
+                'max_quantity' => 200,
+                'unit_label' => 'favours',
+            ],
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1],
+            [],
+            ['pricing_type' => 'guest_based_pricing', 'id' => 9],
+            $guestTiers,
+            [],
+            [],
+            $extrasById,
+            [7],
+            'guest_1',
+            [7 => 10]
+        );
+        $this->assertSame([], $result['errors']);
+        $this->assertEqualsWithDelta(420.0, $result['total'], 0.01);
+    }
+
+    public function testPerItemOptionalExtraClampedToVendorMax(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 0.0];
+        $event = [
+            'guest_count' => 200,
+            'event_setting' => 'private',
+        ];
+        $guestTiers = [
+            ['id' => 1, 'min_guest' => 1, 'max_guest' => 300, 'guest_price' => 1.0],
+        ];
+        $extrasById = [
+            7 => [
+                'price' => 3.0,
+                'name' => 'Favours',
+                'pricing_type' => 'per_item',
+                'min_quantity' => 1,
+                'max_quantity' => 100,
+                'unit_label' => 'favours',
+            ],
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1],
+            [],
+            ['pricing_type' => 'guest_based_pricing', 'id' => 9],
+            $guestTiers,
+            [],
+            [],
+            $extrasById,
+            [7],
+            'guest_1',
+            []
+        );
+        $this->assertSame([], $result['errors']);
+        $this->assertEqualsWithDelta(500.0, $result['total'], 0.01);
+    }
 }
