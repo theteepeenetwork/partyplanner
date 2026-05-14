@@ -1,39 +1,39 @@
-<footer class="bg-light text-center text-lg-start mt-4 border-top site-footer">
+<footer class="site-footer mt-4">
     <div class="container p-4">
         <div class="row">
             <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
-                <h5 class="text-dark">About Us</h5>
-                <p class="text-muted">
-                    We connect you with top vendors to make your event unforgettable. One platform for all your event services.
+                <h5>About us</h5>
+                <p class="site-footer-muted">
+                    We connect you with trusted vendors to make your event unforgettable—one platform for planning, messaging, and bookings.
                 </p>
-                <a href="/about" class="text-primary">Learn more about us</a>
+                <a href="<?= base_url('about') ?>" class="site-footer-link">Learn more about us</a>
             </div>
 
             <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
-                <h5 class="text-dark">Quick Links</h5>
-                <ul class="list-unstyled">
-                    <li class="mb-2"><a href="/" class="text-primary">Home</a></li>
-                    <li class="mb-2"><a href="/browse-services" class="text-primary">Browse Services</a></li>
-                    <li class="mb-2"><a href="/contact" class="text-primary">Contact</a></li>
-                    <li class="mb-2"><a href="/faq" class="text-primary">FAQ</a></li>
+                <h5>Quick links</h5>
+                <ul class="list-unstyled site-footer-links">
+                    <li class="mb-2"><a href="<?= base_url('/') ?>">Home</a></li>
+                    <li class="mb-2"><a href="<?= base_url('browse-services') ?>">Browse services</a></li>
+                    <li class="mb-2"><a href="<?= base_url('contact') ?>">Contact</a></li>
+                    <li class="mb-2"><a href="<?= base_url('faq') ?>">FAQ</a></li>
                 </ul>
             </div>
 
             <div class="col-lg-3 col-md-6 mb-4 mb-md-0">
-                <h5 class="text-dark">For Vendors</h5>
-                <p class="text-muted">Are you an event service provider? List your services on our platform.</p>
-                <p class="mb-2"><a href="/vendor-info" class="text-primary">How selling works</a></p>
-                <a href="/register/vendor" class="btn btn-outline-primary btn-sm">Become a Vendor</a>
+                <h5>For vendors</h5>
+                <p class="site-footer-muted">List your services and reach planners who are ready to book.</p>
+                <p class="mb-2"><a href="<?= base_url('vendor-info') ?>" class="site-footer-link">How selling works</a></p>
+                <a href="<?= base_url('register/vendor') ?>" class="btn btn-outline-light btn-sm">Become a vendor</a>
             </div>
 
             <div class="col-lg-3 col-md-12 mb-4 mb-md-0">
-                <h5 class="text-dark">Stay in Touch</h5>
-                <p class="text-muted">Have a question or need help planning your event?</p>
-                <a href="/contact" class="btn btn-outline-primary btn-sm">Contact us</a>
+                <h5>Stay in touch</h5>
+                <p class="site-footer-muted">Questions about planning or your account? We are here to help.</p>
+                <a href="<?= base_url('contact') ?>" class="btn btn-outline-light btn-sm">Contact us</a>
             </div>
         </div>
     </div>
-    <div class="text-center p-3 border-top mt-3">
-        <p class="text-muted">&copy; <?= date('Y') ?> For Your Events. All Rights Reserved.</p>
+    <div class="site-footer-bottom text-center p-3">
+        <p class="mb-0 small">&copy; <?= date('Y') ?> For Your Events. All rights reserved.</p>
     </div>
 </footer>

@@ -244,50 +244,21 @@
 
                     <?php if (!empty($events)): ?>
                         <?php
-                        // Build set of booked category IDs across all events
-                        $bookedCategoryIds = [];
-                        foreach ($events as $evt) {
-                            foreach ($evt['bookingItems'] as $bi) {
-                                if (!empty($bi['category_id'])) {
-                                    $bookedCategoryIds[$bi['category_id']] = true;
-                                }
-                            }
-                        }
-
-                        // Key planning categories mapped to DB root category IDs
-                        $planningCategories = [
-                            ['icon' => 'fa-utensils',      'label' => 'Catering',          'cat_ids' => [1]],
-                            ['icon' => 'fa-camera',        'label' => 'Photography',        'cat_ids' => [3]],
-                            ['icon' => 'fa-music',         'label' => 'Entertainment',      'cat_ids' => [4, 5]],
-                            ['icon' => 'fa-car',           'label' => 'Transport',          'cat_ids' => [12]],
-                            ['icon' => 'fa-paint-brush',   'label' => 'Decorations',        'cat_ids' => [7]],
-                            ['icon' => 'fa-spa',           'label' => 'Hair & Makeup',      'cat_ids' => [13]],
-                            ['icon' => 'fa-birthday-cake', 'label' => 'Cakes & Desserts',   'cat_ids' => [2]],
-                            ['icon' => 'fa-envelope',      'label' => 'Stationery',         'cat_ids' => [14]],
-                        ];
-
+                        $planningBuckets = $planningBuckets ?? [];
                         $coveredCount = 0;
-                        foreach ($planningCategories as &$cat) {
-                            $cat['is_booked'] = false;
-                            foreach ($events as $evt) {
-                                foreach ($evt['bookingItems'] as $bi) {
-                                    if (!empty($bi['category_id']) && in_array((int)$bi['category_id'], $cat['cat_ids'], true)) {
-                                        $cat['is_booked'] = true;
-                                        break 2;
-                                    }
-                                }
+                        foreach ($planningBuckets as $cat) {
+                            if (! empty($cat['is_booked'])) {
+                                $coveredCount++;
                             }
-                            if ($cat['is_booked']) $coveredCount++;
                         }
-                        unset($cat);
                         ?>
                         <p class="text-muted small mb-3">
-                            <?= $coveredCount ?>/<?= count($planningCategories) ?> key service categories covered
+                            <?= $coveredCount ?>/<?= count($planningBuckets) ?> key service categories covered
                         </p>
 
-                        <?php foreach ($planningCategories as $cat): ?>
+                        <?php foreach ($planningBuckets as $cat): ?>
                             <?php
-                            $isBooked = $cat['is_booked'];
+                            $isBooked = ! empty($cat['is_booked']);
                             $statusClass = $isBooked ? 'booked' : 'not-started';
                             $statusIcon = $isBooked ? 'fa-check' : 'fa-circle';
                             $statusLabel = $isBooked ? 'Booked' : 'Not started';
@@ -296,7 +267,7 @@
                                 <div class="progress-tracker-icon <?= $statusClass ?>">
                                     <i class="fas <?= $statusIcon ?>"></i>
                                 </div>
-                                <span class="checklist-label"><i class="fas <?= $cat['icon'] ?> me-2 text-muted"></i><?= $cat['label'] ?></span>
+                                <span class="checklist-label"><i class="fas <?= $cat['icon'] ?> me-2 text-muted"></i><?= esc($cat['label']) ?></span>
                                 <span class="badge <?= $isBooked ? 'bg-success' : 'bg-light text-muted' ?> ms-auto"><?= $statusLabel ?></span>
                             </div>
                         <?php endforeach; ?>
@@ -321,30 +292,21 @@
                     <p class="text-muted small mb-3">Popular starting points from the marketplace—explore more categories anytime.</p>
 
                     <!-- TODO: Generate recommendations based on event type and missing service categories -->
-                    <div class="attention-card border-info mb-2">
-                        <div class="attention-icon bg-info-light"><i class="fas fa-camera"></i></div>
+                    <?php foreach ($recommendationTiles ?? [] as $tile): ?>
+                    <div class="attention-card <?= esc($tile['cardClass']) ?> mb-2">
+                        <div class="attention-icon <?= esc($tile['iconBgClass'] ?? 'bg-info-light') ?>"><i class="fas <?= esc($tile['icon']) ?>"></i></div>
                         <div class="attention-content">
-                            <div class="attention-title">Add Photography</div>
-                            <p class="attention-desc">Capture every special moment</p>
+                            <div class="attention-title"><?= esc($tile['title']) ?></div>
+                            <p class="attention-desc"><?= esc($tile['desc']) ?></p>
                         </div>
-                        <a href="/browse-services?category=3" class="btn btn-sm btn-outline-info">Browse</a>
+                        <?php
+                        $browseRec = ! empty($tile['category_id'])
+                            ? base_url('browse-services?category=' . (int) $tile['category_id'])
+                            : base_url('browse-services');
+                        ?>
+                        <a href="<?= $browseRec ?>" class="btn btn-sm <?= esc($tile['btnClass']) ?>">Browse</a>
                     </div>
-                    <div class="attention-card border-success mb-2">
-                        <div class="attention-icon bg-success-light"><i class="fas fa-utensils"></i></div>
-                        <div class="attention-content">
-                            <div class="attention-title">Book Catering</div>
-                            <p class="attention-desc">Popular for events near you</p>
-                        </div>
-                        <a href="/browse-services?category=1" class="btn btn-sm btn-outline-success">Browse</a>
-                    </div>
-                    <div class="attention-card border-warning mb-2">
-                        <div class="attention-icon bg-warning-light"><i class="fas fa-music"></i></div>
-                        <div class="attention-content">
-                            <div class="attention-title">Add Entertainment</div>
-                            <p class="attention-desc">Customers also booked DJs</p>
-                        </div>
-                        <a href="/browse-services?category=4" class="btn btn-sm btn-outline-warning">Browse</a>
-                    </div>
+                    <?php endforeach; ?>
                 </div>
 
                 <!-- 8. Payment Snapshot -->

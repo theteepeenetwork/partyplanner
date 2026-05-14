@@ -120,4 +120,90 @@ class CategoryModel extends Model
     {
         return $parentId !== null && $parentId !== '';
     }
+
+    /**
+     * Walk parent_id chain to the catalogue root.
+     */
+    public function getRootAncestorId(?int $id): ?int
+    {
+        if ($id === null || $id < 1) {
+            return null;
+        }
+
+        $current = $this->find($id);
+        if (! $current) {
+            return null;
+        }
+
+        for ($i = 0; $i < 24; $i++) {
+            if (! $this->isNonNullParent($current['parent_id'] ?? null)) {
+                return (int) $current['id'];
+            }
+            $parent = $this->find((int) $current['parent_id']);
+            if (! $parent) {
+                return (int) $current['id'];
+            }
+            $current = $parent;
+        }
+
+        return (int) $current['id'];
+    }
+
+    /**
+     * Match planning checklist buckets to live root categories by name keywords.
+     *
+     * @param list<array{icon: string, label: string, keywords: list<string>}> $definitions
+     *
+     * @return list<array{icon: string, label: string, cat_ids: list<int>}>
+     */
+    public function mapPlanningDefinitionsToRoots(array $definitions): array
+    {
+        $roots   = $this->getRootCategories();
+        $matched = [];
+
+        foreach ($definitions as $def) {
+            $ids = [];
+            foreach ($roots as $root) {
+                $name = strtolower((string) ($root['name'] ?? ''));
+                foreach ($def['keywords'] ?? [] as $kw) {
+                    $kw = strtolower((string) $kw);
+                    if ($kw === '') {
+                        continue;
+                    }
+                    if (str_contains($name, $kw)) {
+                        $ids[] = (int) $root['id'];
+                        break;
+                    }
+                }
+            }
+            $matched[] = [
+                'icon'    => $def['icon'],
+                'label'   => $def['label'],
+                'cat_ids' => array_values(array_unique($ids)),
+            ];
+        }
+
+        return $matched;
+    }
+
+    /**
+     * First root category id whose name matches any keyword (case-insensitive), or null.
+     *
+     * @param list<string> $keywords
+     */
+    public function findFirstRootIdByKeywords(array $keywords): ?int
+    {
+        $roots = $this->getRootCategories();
+        foreach ($roots as $root) {
+            $name = strtolower((string) ($root['name'] ?? ''));
+            foreach ($keywords as $kw) {
+                $kw = strtolower((string) $kw);
+                if ($kw !== '' && str_contains($name, $kw)) {
+                    return (int) $root['id'];
+                }
+            }
+        }
+
+        return null;
+    }
 }
