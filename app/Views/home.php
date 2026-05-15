@@ -25,7 +25,7 @@
                         </h1>
                     </div>
                     <p class="hero-sublead mx-auto mt-3">
-                        Discover vetted vendors, compare services, and keep every booking in one calm, organised place.
+                        The smarter way to plan events, compare suppliers, and stay organised.
                     </p>
                     <div class="d-flex flex-wrap gap-2 justify-content-center mt-3 mb-4">
                         <a href="<?= base_url('browse-services') ?>" class="btn btn-light btn-lg px-4">Browse all services</a>
@@ -38,17 +38,10 @@
 
                     <form class="search-form mt-2 d-none d-lg-flex justify-content-center hero-search" action="<?= base_url('search') ?>"
                         method="get">
-                        <div class="hero-search-inner shadow-lg">
-                            <label class="visually-hidden" for="home-search-q">Keywords</label>
+                        <div class="hero-search-inner hero-search-inner--simple shadow-lg">
+                            <label class="visually-hidden" for="home-search-q">Search services</label>
                             <input type="search" class="form-control hero-search-q" id="home-search-q" name="q"
-                                placeholder="Search by name or keyword (optional)" autocomplete="off">
-                            <label class="visually-hidden" for="home-search-category">Category</label>
-                            <select class="form-select hero-search-category" id="home-search-category" name="category">
-                                <option value="">All categories</option>
-                                <?php foreach ($categories as $category): ?>
-                                    <option value="<?= esc($category['id']) ?>"><?= esc($category['name']) ?></option>
-                                <?php endforeach; ?>
-                            </select>
+                                placeholder="Search by name or keyword" autocomplete="off">
                             <button class="btn btn-primary hero-search-btn" type="submit">Search</button>
                         </div>
                     </form>
@@ -57,47 +50,63 @@
         </div>
         <div class="search-form-container d-lg-none mt-0 text-center">
             <form class="search-form py-3 px-2" action="<?= base_url('search') ?>" method="get">
-                <div class="hero-search-inner hero-search-inner--stacked mx-auto">
-                    <label class="visually-hidden" for="home-search-q-mobile">Keywords</label>
+                <div class="hero-search-inner hero-search-inner--simple hero-search-inner--stacked mx-auto">
+                    <label class="visually-hidden" for="home-search-q-mobile">Search services</label>
                     <input type="search" class="form-control" id="home-search-q-mobile" name="q"
-                        placeholder="Search (optional)" autocomplete="off">
-                    <label class="visually-hidden" for="home-search-category-mobile">Category</label>
-                    <select class="form-select" id="home-search-category-mobile" name="category">
-                        <option value="">All categories</option>
-                        <?php foreach ($categories as $category): ?>
-                            <option value="<?= esc($category['id']) ?>"><?= esc($category['name']) ?></option>
-                        <?php endforeach; ?>
-                    </select>
-                    <button class="btn btn-primary w-100" type="submit">Search services</button>
+                        placeholder="Search by name or keyword" autocomplete="off">
+                    <button class="btn btn-primary w-100" type="submit">Search</button>
                 </div>
             </form>
         </div>
     </section>
 
-    <section class="trust-strip py-4">
-        <div class="container">
-            <div class="row g-4 text-center trust-strip-inner">
-                <div class="col-6 col-md-3">
-                    <div class="trust-strip-icon"><i class="fas fa-layer-group" aria-hidden="true"></i></div>
-                    <div class="trust-strip-title">One workspace</div>
-                    <p class="trust-strip-text mb-0">Events, quotes, and messages together</p>
+    <section class="trust-strip py-4 py-lg-5">
+        <div class="container trust-strip-container">
+            <div class="row trust-strip-row justify-content-center g-2 g-md-3">
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <article class="trust-strip-card h-100">
+                        <div class="trust-strip-card-accent" aria-hidden="true"></div>
+                        <div class="trust-strip-icon-wrap">
+                            <i class="fas fa-layer-group trust-strip-icon" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="trust-strip-title">Everything in one place</h3>
+                        <p class="trust-strip-text">Keep bookings, messages, quotes, and events beautifully organised.</p>
+                    </article>
                 </div>
-                <div class="col-6 col-md-3">
-                    <div class="trust-strip-icon"><i class="fas fa-shield-alt" aria-hidden="true"></i></div>
-                    <div class="trust-strip-title">Structured bookings</div>
-                    <p class="trust-strip-text mb-0">Clear statuses from request to confirmed</p>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <article class="trust-strip-card h-100">
+                        <div class="trust-strip-card-accent" aria-hidden="true"></div>
+                        <div class="trust-strip-icon-wrap">
+                            <i class="fas fa-clipboard-list trust-strip-icon" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="trust-strip-title">Simple booking journey</h3>
+                        <p class="trust-strip-text">Track every enquiry from first message to confirmed booking.</p>
+                    </article>
                 </div>
-                <div class="col-6 col-md-3">
-                    <div class="trust-strip-icon"><i class="fas fa-sliders-h" aria-hidden="true"></i></div>
-                    <div class="trust-strip-title">Fine-grained browse</div>
-                    <p class="trust-strip-text mb-0">Filter by category and sort results</p>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <article class="trust-strip-card h-100">
+                        <div class="trust-strip-card-accent" aria-hidden="true"></div>
+                        <div class="trust-strip-icon-wrap">
+                            <i class="fas fa-search trust-strip-icon" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="trust-strip-title">Find the right suppliers</h3>
+                        <p class="trust-strip-text">Browse trusted vendors by category, style, and location.</p>
+                    </article>
                 </div>
-                <div class="col-6 col-md-3">
-                    <div class="trust-strip-icon"><i class="fas fa-hand-holding-heart" aria-hidden="true"></i></div>
-                    <div class="trust-strip-title">Built for planners</div>
-                    <p class="trust-strip-text mb-0">Low-friction paths for hosts and vendors</p>
+                <div class="col-12 col-sm-6 col-xl-3">
+                    <article class="trust-strip-card h-100">
+                        <div class="trust-strip-card-accent" aria-hidden="true"></div>
+                        <div class="trust-strip-icon-wrap">
+                            <i class="fas fa-feather trust-strip-icon" aria-hidden="true"></i>
+                        </div>
+                        <h3 class="trust-strip-title">Designed for stress-free planning</h3>
+                        <p class="trust-strip-text">Built to make organising events feel calm and effortless.</p>
+                    </article>
                 </div>
             </div>
+            <p class="trust-strip-proof text-center mb-0 mt-4 mt-lg-3">
+                Trusted by vendors across weddings, parties, corporate events, and celebrations.
+            </p>
         </div>
     </section>
 
