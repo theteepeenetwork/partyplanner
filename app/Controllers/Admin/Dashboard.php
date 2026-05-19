@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Libraries\ChatModeration;
+use App\Libraries\PublicCmsNavHealth;
 use App\Models\BookingModel;
 use App\Models\ServiceModel;
 use App\Models\UserModel;
@@ -56,7 +57,6 @@ class Dashboard extends BaseAdminController
             'inactiveServices' => $inactiveServices,
             'flaggedRooms'     => $flaggedRooms,
             'pendingLanguage'  => $pendingLanguage,
-            'cmsNavIssues'     => PublicCmsNavHealth::navIssues(),
         ]);
     }
 }
