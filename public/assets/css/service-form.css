@@ -13,7 +13,7 @@ main {
     max-width: 900px;
     margin: 20px auto;
     /* Center the form on the page */
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-family: inherit;
     color: #333;
 }
 
@@ -57,9 +57,8 @@ main {
 .service-form input[type="text"]:focus,
 .service-form textarea:focus,
 .service-form select:focus {
-    border-color: #007bff;
-    /* Highlighted border color */
-    box-shadow: 0 0 8px rgba(0, 123, 255, 0.2);
+    border-color: #72383d;
+    box-shadow: 0 0 0 0.2rem rgba(114, 56, 61, 0.2);
     outline: none;
 }
 

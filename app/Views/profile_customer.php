@@ -79,7 +79,7 @@
                                 <p>No services booked for this event yet.</p>
                             <?php endif; ?>
                             <div class="card-body">
-                                <a href="<?= base_url('/service/search?event_id=' . $event['id']) ?>"
+                                <a href="<?= base_url('search?event_id=' . (int) $event['id']) ?>"
                                     class="btn btn-primary">Add
                                     Services to this event</a>
                             </div>

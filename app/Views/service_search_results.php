@@ -3,17 +3,17 @@
 <main class="container mt-4">
     <h2>Search Results</h2>
     
-    <form action="/service/search" method="get">
-        <div class="form-row align-items-center">
+    <form action="<?= base_url('search') ?>" method="get">
+        <div class="row align-items-end g-2">
             <div class="col-md-6">
-                <input type="text" class="form-control" id="query" name="q" placeholder="Search..." value="<?= esc($searchQuery) ?>">
+                <input type="text" class="form-control" id="query" name="q" placeholder="Search..." value="<?= esc($searchQuery ?? '') ?>">
             </div>
             <div class="col-md-4">
-                <select class="form-control" id="cuisine" name="cuisine">
-                    <option value="">All Categories</option>
-                    <?php foreach ($categories as $category): ?>
-                        <option value="<?= esc($category['id']) ?>" 
-                                <?= ($cuisine == $category['id']) ? 'selected' : '' ?>>
+                <select class="form-control" id="category" name="category">
+                    <option value="">All categories</option>
+                    <?php foreach (($categories ?? []) as $category): ?>
+                        <option value="<?= esc($category['id']) ?>"
+                                <?= (isset($cuisine) && (string) $cuisine === (string) $category['id']) ? 'selected' : '' ?>>
                             <?= esc($category['name']) ?>
                         </option>
                     <?php endforeach; ?>
@@ -27,7 +27,7 @@
 
 
     <?php if (!empty($services)): ?>
-        <p>Showing results for "<?= esc($searchQuery) ?>" in cuisine: <?= esc($cuisine ?: 'All') ?>:</p>
+        <p>Showing results for "<?= esc($searchQuery ?? '') ?>"<?php if (!empty($cuisine)): ?> in category <?= esc($cuisine) ?><?php endif; ?>:</p>
         <ul class="list-unstyled">
             <?php foreach ($services as $service): ?>
                 <li class="media mb-3">
@@ -49,5 +49,4 @@
     <?php endif; ?>
 </main>
 
-<footer class="footer mt-5 py-3 bg-light">
-    </footer>
+<?= $this->include('footer') ?>

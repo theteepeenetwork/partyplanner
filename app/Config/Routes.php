@@ -55,6 +55,8 @@ $routes->get('/browse-services', 'Service_Controller::browse');
 $routes->get('/services', 'Service_Controller::browse');
 // Hero / legacy search form posts to `/search` with `category` (and optional `q`)
 $routes->get('search', 'Service_Controller::search');
+// Legacy path used by older views; forwards to the same handler as `/search`
+$routes->get('service/search', 'Service_Controller::search');
 
 // Service Routes
 $routes->get('service/view/(:num)', 'Service_Controller::view/$1');

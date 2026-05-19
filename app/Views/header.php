@@ -5,17 +5,21 @@
     <meta charset="UTF-8">
     <?= csrf_meta() ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#2c3e50">
     <title>For Your Events</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&display=swap" rel="stylesheet">
 
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 
-    <!-- Custom CSS -->
     <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
     <link rel="stylesheet" href="<?= base_url('assets/css/dashboard.css') ?>">
 
-    <!-- Slick Carousel CSS -->
+    <!-- Slick Carousel CSS (pages with carousels) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slick-carousel/slick/slick.css">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slick-carousel/slick/slick-theme.css">
 
@@ -37,9 +41,6 @@
 
     <!-- Image Uploader JS -->
     <script src="https://cdn.jsdelivr.net/gh/christianbayer/image-uploader@master/dist/image-uploader.min.js"></script>
-
-    <!-- Optional JavaScript -->
-    <script src="<?= base_url('assets/js/slick/slick.min.js') ?>"></script>
 </head>
 
 <body>
@@ -47,60 +48,52 @@
     <header>
         <nav class="navbar navbar-expand-lg fixed-top shadow-sm">
             <div class="container">
-                <!-- Logo -->
-                <a class="navbar-brand text-uppercase logo" href="/">
-                    <span class="logo-line">For <span style="color: var(--accent-orange);">Your</span></span>
-                    <span class="logo-line" style="color: var(--primary-blue-light);">Events</span>
+                <a class="navbar-brand text-uppercase logo" href="<?= base_url('/') ?>">
+                    <span class="logo-line">For <span class="logo-accent">Your</span></span>
+                    <span class="logo-line logo-line--muted">Events</span>
                 </a>
 
-                <!-- Toggle Button for Mobile View -->
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"
                     aria-controls="navbarNav" aria-expanded="false" aria-label="Toggle navigation">
                     <i class="fas fa-bars"></i>
                 </button>
 
-                <!-- Collapsible Navbar Content -->
                 <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
-                    <!-- Right-Aligned Nav Items -->
-                    <ul class="navbar-nav ms-auto">
-                        <!-- Browse Services -->
+                    <ul class="navbar-nav ms-auto align-items-lg-center">
                         <li class="nav-item">
-                            <a class="nav-link text-end" href="/browse-services">Browse Services</a>
+                            <a class="nav-link text-end" href="<?= base_url('browse-services') ?>">Browse Services</a>
                         </li>
-                        <!-- How It Works -->
                         <li class="nav-item">
-                            <a class="nav-link text-end" href="/how-it-works">How It Works</a>
+                            <a class="nav-link text-end" href="<?= base_url('how-it-works') ?>">How It Works</a>
                         </li>
 
                         <?php if (session()->has('user_id')): ?>
-                            <!-- Logged-in: My Account Dropdown -->
                             <li class="nav-item dropdown">
                                 <a class="nav-link dropdown-toggle text-end" href="#" id="accountDropdown" role="button"
                                     data-bs-toggle="dropdown" aria-expanded="false">
                                     My Account
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
-                                    <li><a class="dropdown-item" href="/profile">My Profile</a></li>
+                                    <li><a class="dropdown-item" href="<?= base_url('profile') ?>">My Profile</a></li>
                                     <?php if (session()->get('role') === 'customer'): ?>
-                                        <li><a class="dropdown-item" href="/cart">My Cart</a></li>
-                                        <li><a class="dropdown-item" href="/event/create">Create Event</a></li>
+                                        <li><a class="dropdown-item" href="<?= base_url('cart') ?>">My Cart</a></li>
+                                        <li><a class="dropdown-item" href="<?= base_url('event/create') ?>">Create Event</a></li>
                                     <?php elseif (session()->get('role') === 'vendor'): ?>
-                                        <li><a class="dropdown-item" href="/profile/services">My Services</a></li>
-                                        <li><a class="dropdown-item" href="/profile/bookings">Bookings</a></li>
+                                        <li><a class="dropdown-item" href="<?= base_url('profile/services') ?>">My Services</a></li>
+                                        <li><a class="dropdown-item" href="<?= base_url('profile/bookings') ?>">Bookings</a></li>
                                     <?php elseif (session()->get('role') === 'admin'): ?>
-                                        <li><a class="dropdown-item" href="/admin">Admin</a></li>
+                                        <li><a class="dropdown-item" href="<?= base_url('admin') ?>">Admin</a></li>
                                     <?php endif; ?>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="/logout">Logout</a></li>
+                                    <li><a class="dropdown-item" href="<?= base_url('logout') ?>">Logout</a></li>
                                 </ul>
                             </li>
                         <?php else: ?>
-                            <!-- Not logged-in: Login + Register -->
                             <li class="nav-item">
-                                <a class="nav-link text-end" href="/login">Login</a>
+                                <a class="nav-link text-end" href="<?= base_url('login') ?>">Login</a>
                             </li>
                             <li class="nav-item">
-                                <a class="btn btn-gradient ms-2" href="/register">Register</a>
+                                <a class="btn btn-gradient ms-lg-2 mt-2 mt-lg-0" href="<?= base_url('register') ?>">Register</a>
                             </li>
                         <?php endif; ?>
                     </ul>
