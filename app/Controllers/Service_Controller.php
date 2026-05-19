@@ -251,6 +251,17 @@ class Service_Controller extends BaseController
         }
 
         if ($sub !== '' && in_array('subcategory_id', $cols, true)) {
+            if ($third === '') {
+                $categoryModel = new CategoryModel();
+                $treeIds       = $categoryModel->getSelfAndDescendantIds((int) $sub);
+                $builder       = $this->applyBrowseCategoryIdSet($builder, $cols, $treeIds);
+                if ($root !== '' && in_array('category_id', $cols, true)) {
+                    $builder->where('category_id', (int) $root);
+                }
+
+                return $builder;
+            }
+
             $builder->where('subcategory_id', (int) $sub);
             if ($root !== '' && in_array('category_id', $cols, true)) {
                 $builder->where('category_id', (int) $root);
@@ -2107,15 +2118,6 @@ class Service_Controller extends BaseController
 
         if (!$service) {
             return redirect()->to('/browse-services')->with('error', 'Service not found.');
-        }
-
-        $db = \Config\Database::connect();
-        if ($db->tableExists('service_views')) {
-            $db->table('service_views')->insert([
-                'service_id'     => (int) $id,
-                'viewer_user_id' => session()->has('user_id') ? (int) session()->get('user_id') : null,
-                'viewed_at'      => date('Y-m-d H:i:s'),
-            ]);
         }
 
         // Fetch associated images
