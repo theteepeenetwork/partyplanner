@@ -166,36 +166,102 @@
             <div class="dash-card mb-4">
                 <h5><i class="fas fa-map-marker-alt text-danger me-2"></i>Location & Coverage</h5>
 
+                <!-- Fulfillment type -->
                 <div class="mb-3">
-                    <label for="service_location" class="form-label">Service Base Location</label>
-                    <input type="text" class="form-control" id="service_location" name="service_location" value="<?= esc($location['service_location'] ?? '') ?>" placeholder="e.g. Newcastle upon Tyne">
-                    <input type="hidden" name="latitude" value="<?= esc($location['latitude'] ?? '') ?>">
-                    <input type="hidden" name="longitude" value="<?= esc($location['longitude'] ?? '') ?>">
+                    <label class="form-label fw-semibold">How is this service fulfilled?</label>
+                    <?php $currentFulfillment = $location['fulfillment_type'] ?? 'in_person'; ?>
+                    <div class="form-check">
+                        <input class="form-check-input" type="radio" name="fulfillment_type" id="fulfillment_in_person"
+                            value="in_person" <?= $currentFulfillment === 'in_person' ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="fulfillment_in_person">
+                            <strong>I attend the event in person</strong>
+                            <span class="d-block text-muted small">e.g. photographer, DJ, caterer, florist</span>
+                        </label>
+                    </div>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="radio" name="fulfillment_type" id="fulfillment_postal"
+                            value="postal" <?= $currentFulfillment === 'postal' ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="fulfillment_postal">
+                            <strong>Posted / delivered to the customer</strong>
+                            <span class="d-block text-muted small">e.g. wedding favours, printed stationery, gift boxes</span>
+                        </label>
+                    </div>
+                    <div class="form-check mt-2">
+                        <input class="form-check-input" type="radio" name="fulfillment_type" id="fulfillment_both"
+                            value="both" <?= $currentFulfillment === 'both' ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="fulfillment_both">
+                            <strong>Both — I can attend in person or post to the customer</strong>
+                            <span class="d-block text-muted small">e.g. cake makers who can deliver or set up</span>
+                        </label>
+                    </div>
                 </div>
 
-                <div class="row">
-                    <div class="col-md-4 mb-3">
-                        <label for="free_coverage_radius" class="form-label">Free Coverage (km)</label>
-                        <input type="number" class="form-control" id="free_coverage_radius" name="free_coverage_radius" value="<?= esc($location['free_coverage_radius'] ?? '') ?>">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="paid_coverage_radius" class="form-label">Max Coverage (km)</label>
-                        <input type="number" class="form-control" id="paid_coverage_radius" name="paid_coverage_radius" value="<?= esc($location['paid_coverage_radius'] ?? '') ?>">
-                    </div>
-                    <div class="col-md-4 mb-3">
-                        <label for="travel_fee_per_km" class="form-label">Travel Fee (£/km)</label>
-                        <input type="number" step="0.01" class="form-control" id="travel_fee_per_km" name="travel_fee_per_km" value="<?= esc($location['travel_fee_per_km'] ?? '') ?>">
+                <!-- Postal / delivery section -->
+                <div id="edit-postal-section" class="mb-3">
+                    <h6 class="fw-semibold">Postal &amp; Delivery Details</h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label for="postal_fee" class="form-label">Postage fee per order</label>
+                            <div class="input-group">
+                                <span class="input-group-text">£</span>
+                                <input type="number" class="form-control" id="postal_fee" name="postal_fee"
+                                    min="0" step="0.01" placeholder="0.00"
+                                    value="<?= esc($location['postal_fee'] ?? '') ?>">
+                            </div>
+                            <div class="form-text">Set to 0 if postage is always free.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="free_postage_above" class="form-label">Free postage on orders over <span class="text-muted fw-normal">(optional)</span></label>
+                            <div class="input-group">
+                                <span class="input-group-text">£</span>
+                                <input type="number" class="form-control" id="free_postage_above" name="free_postage_above"
+                                    min="0" step="0.01" placeholder="e.g. 50.00"
+                                    value="<?= esc($location['free_postage_above'] ?? '') ?>">
+                            </div>
+                            <div class="form-text">Leave blank if no free postage threshold.</div>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="delivery_lead_time_days" class="form-label">Dispatch time <span class="text-muted fw-normal">(working days, optional)</span></label>
+                            <input type="number" class="form-control" id="delivery_lead_time_days"
+                                name="delivery_lead_time_days" min="1" step="1" placeholder="e.g. 5"
+                                value="<?= esc($location['delivery_lead_time_days'] ?? '') ?>">
+                        </div>
                     </div>
                 </div>
 
-                <div class="d-flex gap-4">
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="all_travel_included" name="all_travel_included" value="1" <?= !empty($location['all_travel_included']) ? 'checked' : '' ?>>
-                        <label class="form-check-label" for="all_travel_included">All travel costs included</label>
+                <!-- In-person location section -->
+                <div id="edit-location-section">
+                    <div class="mb-3">
+                        <label for="service_location" class="form-label">Service Base Location</label>
+                        <input type="text" class="form-control" id="service_location" name="service_location" value="<?= esc($location['service_location'] ?? '') ?>" placeholder="e.g. Newcastle upon Tyne">
+                        <input type="hidden" name="latitude" value="<?= esc($location['latitude'] ?? '') ?>">
+                        <input type="hidden" name="longitude" value="<?= esc($location['longitude'] ?? '') ?>">
                     </div>
-                    <div class="form-check">
-                        <input class="form-check-input" type="checkbox" id="no_travel_limit" name="no_travel_limit" value="1" <?= !empty($location['no_travel_limit']) ? 'checked' : '' ?>>
-                        <label class="form-check-label" for="no_travel_limit">No travel limit</label>
+
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="free_coverage_radius" class="form-label">Free Coverage (km)</label>
+                            <input type="number" class="form-control" id="free_coverage_radius" name="free_coverage_radius" value="<?= esc($location['free_coverage_radius'] ?? '') ?>">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="paid_coverage_radius" class="form-label">Max Coverage (km)</label>
+                            <input type="number" class="form-control" id="paid_coverage_radius" name="paid_coverage_radius" value="<?= esc($location['paid_coverage_radius'] ?? '') ?>">
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="travel_fee_per_km" class="form-label">Travel Fee (£/km)</label>
+                            <input type="number" step="0.01" class="form-control" id="travel_fee_per_km" name="travel_fee_per_km" value="<?= esc($location['travel_fee_per_km'] ?? '') ?>">
+                        </div>
+                    </div>
+
+                    <div class="d-flex gap-4">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="all_travel_included" name="all_travel_included" value="1" <?= !empty($location['all_travel_included']) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="all_travel_included">All travel costs included</label>
+                        </div>
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="no_travel_limit" name="no_travel_limit" value="1" <?= !empty($location['no_travel_limit']) ? 'checked' : '' ?>>
+                            <label class="form-check-label" for="no_travel_limit">No travel limit</label>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -207,21 +273,60 @@
                 <div id="extras-container">
                     <?php if (!empty($optionalExtras)): ?>
                         <?php foreach ($optionalExtras as $i => $extra): ?>
-                            <div class="row g-2 mb-2 extra-row">
-                                <div class="col-md-4">
-                                    <input type="text" class="form-control form-control-sm" name="extra_name[]" value="<?= esc($extra['name']) ?>" placeholder="Name">
-                                </div>
-                                <div class="col-md-2">
-                                    <div class="input-group input-group-sm">
-                                        <span class="input-group-text">£</span>
-                                        <input type="number" step="0.01" class="form-control" name="extra_price[]" value="<?= esc($extra['price']) ?>" placeholder="0">
+                            <?php $isPerItem = ($extra['pricing_type'] ?? 'flat') === 'per_item'; ?>
+                            <div class="extra-row mb-4 p-3 border rounded bg-light">
+                                <div class="row g-2 mb-2">
+                                    <div class="col-md-5">
+                                        <label class="form-label small">Name</label>
+                                        <input type="text" class="form-control form-control-sm" name="extra_name[]" value="<?= esc($extra['name']) ?>" placeholder="Name">
+                                    </div>
+                                    <div class="col-md-2">
+                                        <label class="form-label small">Price</label>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">£</span>
+                                            <input type="number" step="0.01" class="form-control" name="extra_price[]" value="<?= esc($extra['price']) ?>" placeholder="0">
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Description</label>
+                                        <input type="text" class="form-control form-control-sm" name="extra_description[]" value="<?= esc($extra['description'] ?? '') ?>" placeholder="Description">
+                                    </div>
+                                    <div class="col-md-1 d-flex align-items-end">
+                                        <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeExtraRow(this)"><i class="fas fa-times"></i></button>
                                     </div>
                                 </div>
-                                <div class="col-md-5">
-                                    <input type="text" class="form-control form-control-sm" name="extra_description[]" value="<?= esc($extra['description'] ?? '') ?>" placeholder="Description">
-                                </div>
-                                <div class="col-md-1">
-                                    <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.extra-row').remove();"><i class="fas fa-times"></i></button>
+                                <div class="row g-2 align-items-start">
+                                    <div class="col-md-4">
+                                        <label class="form-label small">Pricing type</label>
+                                        <select class="form-select form-select-sm edit-pricing-type-select" name="extra_pricing_type[]">
+                                            <option value="flat" <?= !$isPerItem ? 'selected' : '' ?>>Flat fee — one fixed price</option>
+                                            <option value="per_item" <?= $isPerItem ? 'selected' : '' ?>>Per item / per guest — price × quantity</option>
+                                        </select>
+                                        <div class="form-text small flat-hint <?= $isPerItem ? 'd-none' : '' ?>">Charged once regardless of order size.</div>
+                                        <div class="form-text small per-item-hint <?= $isPerItem ? '' : 'd-none' ?>">Customer chooses how many they want.</div>
+                                    </div>
+                                    <div class="col-md-8 per-item-fields <?= $isPerItem ? '' : 'd-none' ?>">
+                                        <div class="row g-2">
+                                            <div class="col-12">
+                                                <label class="form-label small">Unit label <span class="text-muted fw-normal">(optional)</span></label>
+                                                <input type="text" class="form-control form-control-sm" name="extra_unit_label[]"
+                                                    placeholder="e.g. per bag, per guest, each"
+                                                    value="<?= esc($extra['unit_label'] ?? '') ?>">
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small">Min qty</label>
+                                                <input type="number" class="form-control form-control-sm" name="extra_min_quantity[]"
+                                                    placeholder="e.g. 10" min="1" step="1"
+                                                    value="<?= esc($extra['min_quantity'] ?? '') ?>">
+                                            </div>
+                                            <div class="col-6">
+                                                <label class="form-label small">Max qty</label>
+                                                <input type="number" class="form-control form-control-sm" name="extra_max_quantity[]"
+                                                    placeholder="e.g. 500" min="1" step="1"
+                                                    value="<?= esc($extra['max_quantity'] ?? '') ?>">
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         <?php endforeach; ?>
@@ -312,18 +417,110 @@
 </script>
 
 <script>
+// --- Optional Extras ---
 function addExtraRow() {
     const container = document.getElementById('extras-container');
     const row = document.createElement('div');
-    row.className = 'row g-2 mb-2 extra-row';
+    row.className = 'extra-row mb-4 p-3 border rounded bg-light';
     row.innerHTML = `
-        <div class="col-md-4"><input type="text" class="form-control form-control-sm" name="extra_name[]" placeholder="Name"></div>
-        <div class="col-md-2"><div class="input-group input-group-sm"><span class="input-group-text">£</span><input type="number" step="0.01" class="form-control" name="extra_price[]" placeholder="0"></div></div>
-        <div class="col-md-5"><input type="text" class="form-control form-control-sm" name="extra_description[]" placeholder="Description"></div>
-        <div class="col-md-1"><button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="this.closest('.extra-row').remove();"><i class="fas fa-times"></i></button></div>
+        <div class="row g-2 mb-2">
+            <div class="col-md-5">
+                <label class="form-label small">Name</label>
+                <input type="text" class="form-control form-control-sm" name="extra_name[]" placeholder="Name">
+            </div>
+            <div class="col-md-2">
+                <label class="form-label small">Price</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">£</span>
+                    <input type="number" step="0.01" class="form-control" name="extra_price[]" placeholder="0">
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label small">Description</label>
+                <input type="text" class="form-control form-control-sm" name="extra_description[]" placeholder="Description">
+            </div>
+            <div class="col-md-1 d-flex align-items-end">
+                <button type="button" class="btn btn-sm btn-outline-danger w-100" onclick="removeExtraRow(this)"><i class="fas fa-times"></i></button>
+            </div>
+        </div>
+        <div class="row g-2 align-items-start">
+            <div class="col-md-4">
+                <label class="form-label small">Pricing type</label>
+                <select class="form-select form-select-sm edit-pricing-type-select" name="extra_pricing_type[]">
+                    <option value="flat" selected>Flat fee — one fixed price</option>
+                    <option value="per_item">Per item / per guest — price × quantity</option>
+                </select>
+                <div class="form-text small flat-hint">Charged once regardless of order size.</div>
+                <div class="form-text small per-item-hint d-none">Customer chooses how many they want.</div>
+            </div>
+            <div class="col-md-8 per-item-fields d-none">
+                <div class="row g-2">
+                    <div class="col-12">
+                        <label class="form-label small">Unit label <span class="text-muted fw-normal">(optional)</span></label>
+                        <input type="text" class="form-control form-control-sm" name="extra_unit_label[]" placeholder="e.g. per bag, per guest, each">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Min qty</label>
+                        <input type="number" class="form-control form-control-sm" name="extra_min_quantity[]" placeholder="e.g. 10" min="1" step="1">
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small">Max qty</label>
+                        <input type="number" class="form-control form-control-sm" name="extra_max_quantity[]" placeholder="e.g. 500" min="1" step="1">
+                    </div>
+                </div>
+            </div>
+        </div>
     `;
     container.appendChild(row);
+    attachExtraRowListeners(row);
 }
+
+function removeExtraRow(btn) {
+    const row = btn.closest('.extra-row');
+    const allRows = document.querySelectorAll('.extra-row');
+    if (allRows.length > 1) {
+        row.remove();
+    } else {
+        // Clear instead of remove if it's the last row
+        row.querySelectorAll('input[type="text"], input[type="number"], textarea').forEach(i => i.value = '');
+        const sel = row.querySelector('.edit-pricing-type-select');
+        if (sel) { sel.value = 'flat'; sel.dispatchEvent(new Event('change')); }
+    }
+}
+
+function attachExtraRowListeners(row) {
+    const select = row.querySelector('.edit-pricing-type-select');
+    if (!select) return;
+    select.addEventListener('change', function () {
+        const isPerItem = this.value === 'per_item';
+        row.querySelectorAll('.per-item-fields, .per-item-hint').forEach(el => el.classList.toggle('d-none', !isPerItem));
+        row.querySelectorAll('.flat-hint').forEach(el => el.classList.toggle('d-none', isPerItem));
+    });
+}
+
+// Attach listeners to existing rows rendered by PHP
+document.addEventListener('DOMContentLoaded', function () {
+    document.querySelectorAll('.extra-row').forEach(attachExtraRowListeners);
+});
+
+// --- Fulfillment type show/hide ---
+(function () {
+    const radios = document.querySelectorAll('[name="fulfillment_type"]');
+    const locationSection = document.getElementById('edit-location-section');
+    const postalSection = document.getElementById('edit-postal-section');
+
+    function applyFulfillment() {
+        const val = document.querySelector('[name="fulfillment_type"]:checked')?.value ?? 'in_person';
+        const showLocation = val !== 'postal';
+        const showPostal = val !== 'in_person';
+        if (locationSection) locationSection.style.display = showLocation ? '' : 'none';
+        if (postalSection) postalSection.style.display = showPostal ? '' : 'none';
+    }
+
+    radios.forEach(r => r.addEventListener('change', applyFulfillment));
+    // Run on page load to reflect persisted value
+    applyFulfillment();
+})();
 </script>
 
 <?= $this->include('footer') ?>

@@ -1976,6 +1976,10 @@ class Service_Controller extends BaseController
             // Update location
             $location = $serviceLocationModel->where('service_id', $id)->first();
             $locationData = [
+                'fulfillment_type' => $this->request->getPost('fulfillment_type') ?: 'in_person',
+                'postal_fee' => $this->request->getPost('postal_fee') !== '' && $this->request->getPost('postal_fee') !== null ? $this->request->getPost('postal_fee') : null,
+                'free_postage_above' => $this->request->getPost('free_postage_above') ?: null,
+                'delivery_lead_time_days' => $this->request->getPost('delivery_lead_time_days') ? (int) $this->request->getPost('delivery_lead_time_days') : null,
                 'service_location' => $this->request->getPost('service_location'),
                 'latitude' => $this->request->getPost('latitude') ?: null,
                 'longitude' => $this->request->getPost('longitude') ?: null,
