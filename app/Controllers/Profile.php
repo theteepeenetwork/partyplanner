@@ -14,7 +14,9 @@ use App\Models\PaymentsModel;
 use App\Models\CategoryModel;
 use App\Models\FavouriteModel;
 use App\Libraries\ChatModeration;
+use App\Libraries\CustomerEventSummary;
 use App\Libraries\QuoteAnalyticsRecorder;
+use App\Models\EventBasketItemModel;
 use App\Models\VendorQuoteModel;
 use App\Models\VendorQuoteSettingsModel;
 use App\Models\VendorMessageTemplateModel;
@@ -201,14 +203,24 @@ class Profile extends BaseController
         $paymentsModel = new PaymentsModel();
         $categoryModel = new CategoryModel();
 
-        $events = $eventModel->where('user_id', $userId)->findAll();
-        $enrichedEvents = [];
-        $totalPendingRequests = 0; $totalAccepted = 0; $totalDeclined = 0;
-        $totalConfirmed = 0; $totalAwaitingPayment = 0; $totalSpend = 0.0; $depositsPaid = 0.0;
+        $events = $eventModel->where('user_id', $userId)->orderBy('date', 'ASC')->findAll();
+        $summaryLib = new CustomerEventSummary();
+        $enrichedEvents = $summaryLib->enrichMany($userId, $events);
+        $totalPendingRequests = 0;
+        $totalAccepted = 0;
+        $totalDeclined = 0;
+        $totalConfirmed = 0;
+        $totalAwaitingPayment = 0;
+        $totalSpend = 0.0;
+        $depositsPaid = 0.0;
 
-        foreach ($events as $event) {
+        foreach ($enrichedEvents as &$event) {
+            $event['servicesBooked'] = $event['services_booked'] ?? 0;
+            $event['totalCost'] = $event['total_cost'] ?? 0;
+            $totalSpend += (float) $event['total_cost'];
+
             $bookings = $bookingModel->where('event_id', $event['id'])->findAll();
-            $eventBookingItems = []; $eventCost = 0;
+            $eventBookingItems = [];
 
             foreach ($bookings as $booking) {
                 $items = $bookingItemModel
@@ -216,35 +228,40 @@ class Profile extends BaseController
                     ->join('services', 'services.id = booking_items.service_id')
                     ->where('booking_id', $booking['id'])->findAll();
 
+                $payment = $paymentsModel->where('booking_id', $booking['id'])->first();
+                if ($payment && $payment['payment_status'] === 'succeeded') {
+                    $depositsPaid += (float) ($payment['amount_paid'] ?? 0);
+                }
+
                 foreach ($items as &$item) {
                     $vendor = $userModel->find($item['vendor_id']);
                     $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
-                    $payment = $paymentsModel->where('booking_id', $booking['id'])->first();
                     $item['payment_status'] = $payment ? $payment['payment_status'] : 'not paid';
-                    $itemPrice = (float)($item['price'] ?? $item['service_price'] ?? 0);
-                    if ($payment && $payment['payment_status'] === 'succeeded') {
-                        $depositsPaid += (float)($payment['amount_paid'] ?? 0);
-                    } elseif (in_array($item['status'], ['accepted', 'confirmed'], true)) {
-                        // Accepted/confirmed but not yet paid — counts as awaiting payment
+                    if (!$payment && in_array($item['status'], ['accepted', 'confirmed'], true)) {
                         $totalAwaitingPayment++;
                     }
-                    $eventCost += $itemPrice;
                     switch ($item['status']) {
-                        case 'pending': $totalPendingRequests++; break;
-                        case 'accepted': $totalAccepted++; break;
-                        case 'rejected': $totalDeclined++; break;
-                        case 'confirmed': $totalConfirmed++; break;
+                        case 'pending':
+                            $totalPendingRequests++;
+                            break;
+                        case 'accepted':
+                            $totalAccepted++;
+                            break;
+                        case 'rejected':
+                        case 'cancelled':
+                            $totalDeclined++;
+                            break;
+                        case 'confirmed':
+                            $totalConfirmed++;
+                            break;
                     }
                 }
                 $eventBookingItems = array_merge($eventBookingItems, $items);
             }
 
             $event['bookingItems'] = $eventBookingItems;
-            $event['totalCost'] = $eventCost;
-            $event['servicesBooked'] = count($eventBookingItems);
-            $totalSpend += $eventCost;
-            $enrichedEvents[] = $event;
         }
+        unset($event);
 
         $unreadMessages = $chatMessageModel->where('receiver_id', $userId)->where('is_read', 0)->countAllResults();
         $recentMessages = $chatMessageModel
@@ -404,29 +421,45 @@ class Profile extends BaseController
     {
         if ($r = $this->requireCustomer()) return $r;
         $user = $this->getUser();
-        $userId = $user['id'];
+        $userId = (int) $user['id'];
         $eventModel = new EventModel();
-        $bookingModel = new BookingModel();
-        $bookingItemModel = new BookingItemModel();
+        $summary = new CustomerEventSummary();
 
-        $events = $eventModel->where('user_id', $userId)->findAll();
+        $events = $eventModel->where('user_id', $userId)->orderBy('date', 'ASC')->findAll();
+        $events = $summary->enrichMany($userId, $events);
         foreach ($events as &$event) {
-            $bookings = $bookingModel->where('event_id', $event['id'])->findAll();
-            $serviceCount = 0; $totalCost = 0;
-            foreach ($bookings as $booking) {
-                $items = $bookingItemModel->where('booking_id', $booking['id'])->findAll();
-                $serviceCount += count($items);
-                foreach ($items as $it) { $totalCost += (float)($it['price'] ?? 0); }
-            }
-            $event['servicesBooked'] = $serviceCount;
-            $event['totalCost'] = $totalCost;
+            $event['servicesBooked'] = $event['services_booked'] ?? 0;
+            $event['totalCost'] = $event['total_cost'] ?? 0;
         }
+        unset($event);
 
         return view('dashboard/customer_events', [
             'user' => $user,
             'events' => $events,
             'currentTab' => 'events',
         ]);
+    }
+
+    public function setActiveEvent($eventId)
+    {
+        if ($r = $this->requireCustomer()) {
+            return $r;
+        }
+        $userId = (int) session()->get('user_id');
+        $eventModel = new EventModel();
+        $event = $eventModel->find((int) $eventId);
+        if (!$event || (int) ($event['user_id'] ?? 0) !== $userId) {
+            return redirect()->to('/profile/events')->with('error', 'Event not found.');
+        }
+
+        session()->set('preferred_basket_event_id', (int) $eventId);
+
+        $redirect = $this->request->getGet('redirect');
+        if (is_string($redirect) && $redirect !== '' && str_starts_with($redirect, '/')) {
+            return redirect()->to($redirect);
+        }
+
+        return redirect()->to('/browse-services?event_id=' . (int) $eventId);
     }
 
     public function customerBookings()
@@ -439,39 +472,59 @@ class Profile extends BaseController
         $paymentsModel = new PaymentsModel();
         $userModel = new UserModel();
 
-        $bookings = $bookingModel->where('user_id', $userId)->findAll();
-        $allItems = [];
+        $filterEventId = (int) ($this->request->getGet('event_id') ?? 0);
 
-        foreach ($bookings as $booking) {
-            $items = $bookingItemModel
-                ->select('booking_items.*, services.title as service_title, services.vendor_id, services.price as service_price,
-                          events.title as event_title, events.`date` as event_date, events.location', false)
-                ->join('services', 'services.id = booking_items.service_id')
-                ->join('bookings', 'bookings.id = booking_items.booking_id')
-                ->join('events', 'events.id = bookings.event_id')
-                ->where('booking_items.booking_id', $booking['id'])->findAll();
+        $builder = $bookingItemModel
+            ->select('booking_items.*, bookings.event_id, bookings.id as booking_id, services.title as service_title, services.vendor_id, services.price as service_price,
+                      events.title as event_title, events.`date` as event_date, events.location', false)
+            ->join('bookings', 'bookings.id = booking_items.booking_id')
+            ->join('events', 'events.id = bookings.event_id')
+            ->join('services', 'services.id = booking_items.service_id')
+            ->where('bookings.user_id', $userId)
+            ->orderBy('events.date', 'ASC')
+            ->orderBy('booking_items.created_at', 'DESC');
 
-            foreach ($items as &$item) {
-                $vendor = $userModel->find($item['vendor_id']);
-                $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
-                $payment = $paymentsModel->where('booking_id', $booking['id'])->first();
-                $item['payment_status'] = $payment ? $payment['payment_status'] : 'unpaid';
-                $item['amount_paid'] = $payment ? $payment['amount_paid'] : 0;
-                $itemPrice = (float)($item['price'] ?? $item['service_price'] ?? 0);
-                $item['outstanding'] = max(0, $itemPrice - (float)$item['amount_paid']);
-                $item['booking_id'] = $booking['id'];
-                $qd = json_decode($item['quote_breakdown'] ?? '', true);
-                $item['quote_detail'] = is_array($qd) ? $qd : null;
-                $vqModel = new VendorQuoteModel();
-                $item['pending_vendor_quote'] = $vqModel->where('booking_item_id', (int) $item['id'])
-                    ->where('status', 'sent')->orderBy('id', 'DESC')->first();
+        if ($filterEventId > 0) {
+            $builder->where('bookings.event_id', $filterEventId);
+        }
+
+        $allItems = $builder->findAll();
+        $vqModel = new VendorQuoteModel();
+
+        foreach ($allItems as &$item) {
+            $vendor = $userModel->find($item['vendor_id']);
+            $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
+            $payment = $paymentsModel->where('booking_id', $item['booking_id'])->first();
+            $item['payment_status'] = $payment ? $payment['payment_status'] : 'unpaid';
+            $item['amount_paid'] = $payment ? $payment['amount_paid'] : 0;
+            $itemPrice = (float) ($item['price'] ?? $item['service_price'] ?? 0);
+            $item['outstanding'] = max(0, $itemPrice - (float) $item['amount_paid']);
+            $qd = json_decode($item['quote_breakdown'] ?? '', true);
+            $item['quote_detail'] = is_array($qd) ? $qd : null;
+            $item['pending_vendor_quote'] = $vqModel->where('booking_item_id', (int) $item['id'])
+                ->where('status', 'sent')->orderBy('id', 'DESC')->first();
+        }
+        unset($item);
+
+        $groupedByEvent = [];
+        foreach ($allItems as $item) {
+            $eid = (int) ($item['event_id'] ?? 0);
+            if (!isset($groupedByEvent[$eid])) {
+                $groupedByEvent[$eid] = [
+                    'event_title' => $item['event_title'] ?? '',
+                    'event_date' => $item['event_date'] ?? '',
+                    'location' => $item['location'] ?? '',
+                    'items' => [],
+                ];
             }
-            $allItems = array_merge($allItems, $items);
+            $groupedByEvent[$eid]['items'][] = $item;
         }
 
         return view('dashboard/customer_bookings', [
             'user' => $user,
             'bookingItems' => $allItems,
+            'groupedByEvent' => $groupedByEvent,
+            'filterEventId' => $filterEventId,
             'currentTab' => 'bookings',
         ]);
     }
@@ -689,23 +742,18 @@ class Profile extends BaseController
 
         $bookings = $bookingModel->where('user_id', $userId)->findAll();
         $payments = [];
-        $totalPaid = 0; $totalOutstanding = 0;
+        $paymentsByEvent = [];
+        $totalPaid = 0;
+        $totalOutstanding = 0;
 
         foreach ($bookings as $booking) {
             $bookingPayments = $paymentsModel->where('booking_id', $booking['id'])->findAll();
             $event = $eventModel->find($booking['event_id']);
+            $eid = (int) ($booking['event_id'] ?? 0);
             $items = $bookingItemModel->select('booking_items.*, services.title as service_title, users.name as vendor_name')
                 ->join('services', 'services.id = booking_items.service_id')
                 ->join('users', 'users.id = services.vendor_id')
                 ->where('booking_id', $booking['id'])->findAll();
-
-            foreach ($bookingPayments as &$p) {
-                $p['event_name'] = $event ? $event['title'] : '';
-                $p['service_name'] = !empty($items) ? $items[0]['service_title'] : '';
-                $p['vendor_name'] = !empty($items) ? $items[0]['vendor_name'] : '';
-                $totalPaid += (float)($p['amount_paid'] ?? 0);
-            }
-            $payments = array_merge($payments, $bookingPayments);
 
             $itemsTotal = 0.0;
             foreach ($items as $item) {
@@ -715,12 +763,36 @@ class Profile extends BaseController
             foreach ($bookingPayments as $bp) {
                 $paidForBooking += (float) ($bp['amount_paid'] ?? 0);
             }
-            $totalOutstanding += max(0.0, $itemsTotal - $paidForBooking);
+            $bookingOutstanding = max(0.0, $itemsTotal - $paidForBooking);
+            $totalOutstanding += $bookingOutstanding;
+
+            if (!isset($paymentsByEvent[$eid])) {
+                $paymentsByEvent[$eid] = [
+                    'event_title' => $event ? $event['title'] : 'Event',
+                    'event_date' => $event['date'] ?? null,
+                    'payments' => [],
+                    'outstanding' => 0.0,
+                    'paid' => 0.0,
+                ];
+            }
+            $paymentsByEvent[$eid]['outstanding'] += $bookingOutstanding;
+
+            foreach ($bookingPayments as &$p) {
+                $p['event_name'] = $event ? $event['title'] : '';
+                $p['service_name'] = !empty($items) ? $items[0]['service_title'] : '';
+                $p['vendor_name'] = !empty($items) ? $items[0]['vendor_name'] : '';
+                $amt = (float) ($p['amount_paid'] ?? 0);
+                $totalPaid += $amt;
+                $paymentsByEvent[$eid]['paid'] += $amt;
+                $paymentsByEvent[$eid]['payments'][] = $p;
+            }
+            $payments = array_merge($payments, $bookingPayments);
         }
 
         return view('dashboard/customer_payments', [
             'user' => $user,
             'payments' => $payments,
+            'paymentsByEvent' => $paymentsByEvent,
             'totalPaid' => $totalPaid,
             'totalOutstanding' => $totalOutstanding,
             'currentTab' => 'payments',

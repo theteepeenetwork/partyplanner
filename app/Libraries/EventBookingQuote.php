@@ -78,27 +78,33 @@ class EventBookingQuote
             $errors = array_merge($errors, $corpResult['errors']);
         }
 
-        $postalResult = $this->postalLines($location ?? []);
+        $merchandiseSubtotal = $this->sumLineAmounts($lines);
+
+        $postalResult = $this->postalLines($location ?? [], $merchandiseSubtotal);
         $lines = array_merge($lines, $postalResult['lines']);
         $warnings = array_merge($warnings, $postalResult['warnings']);
 
-        $distanceKm = $this->distanceKm($service, $location, $event);
-        $strictTravel = !empty($location['strict_travel_radius']);
-        if ($distanceKm === null) {
-            $msg = 'Travel could not be calculated (missing coordinates). Add a full postcode to your event, or confirm travel with the vendor.';
-            if ($strictTravel) {
-                $errors[] = $msg;
-            } else {
-                $warnings[] = $msg;
-            }
-        } else {
-            $travel = $this->computeTravel((float) $distanceKm, $location ?? []);
-            $lines  = array_merge($lines, $travel['lines']);
-            foreach ($travel['warnings'] as $tw) {
-                if ($strictTravel && $this->isTravelRadiusWarning($tw)) {
-                    $errors[] = $tw;
+        $fulfillmentType = strtolower(trim((string) (($location ?? [])['fulfillment_type'] ?? 'in_person')));
+        $distanceKm = null;
+        if ($fulfillmentType !== 'postal') {
+            $distanceKm = $this->distanceKm($service, $location, $event);
+            $strictTravel = !empty($location['strict_travel_radius']);
+            if ($distanceKm === null) {
+                $msg = 'Travel could not be calculated (missing coordinates). Add a full postcode to your event, or confirm travel with the vendor.';
+                if ($strictTravel) {
+                    $errors[] = $msg;
                 } else {
-                    $warnings[] = $tw;
+                    $warnings[] = $msg;
+                }
+            } else {
+                $travel = $this->computeTravel((float) $distanceKm, $location ?? []);
+                $lines  = array_merge($lines, $travel['lines']);
+                foreach ($travel['warnings'] as $tw) {
+                    if ($strictTravel && $this->isTravelRadiusWarning($tw)) {
+                        $errors[] = $tw;
+                    } else {
+                        $warnings[] = $tw;
+                    }
                 }
             }
         }
@@ -690,15 +696,40 @@ class EventBookingQuote
     }
 
     /**
+     * @param list<array{code:string,label:string,amount:float}> $lines
+     */
+    private function sumLineAmounts(array $lines): float
+    {
+        $total = 0.0;
+        foreach ($lines as $line) {
+            if (($line['code'] ?? '') === 'platform_commission') {
+                continue;
+            }
+            $total += (float) ($line['amount'] ?? 0);
+        }
+
+        return round($total, 2);
+    }
+
+    /**
      * @param array<string,mixed> $loc
      * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>}
      */
-    private function postalLines(array $loc): array
+    private function postalLines(array $loc, float $merchandiseSubtotal = 0.0): array
     {
         $lines = [];
         $warnings = [];
         $ftype = strtolower(trim((string) ($loc['fulfillment_type'] ?? 'in_person')));
         if ($ftype !== 'postal' && $ftype !== 'both') {
+            return compact('lines', 'warnings');
+        }
+
+        $freeAbove = isset($loc['free_postage_above']) && $loc['free_postage_above'] !== '' && $loc['free_postage_above'] !== null
+            ? (float) $loc['free_postage_above']
+            : null;
+        if ($freeAbove !== null && $freeAbove > 0 && $merchandiseSubtotal >= $freeAbove - 0.004) {
+            $warnings[] = sprintf('Free postage applied (order over £%s)', number_format($freeAbove, 2));
+
             return compact('lines', 'warnings');
         }
 

@@ -45,6 +45,7 @@ $routes->get('/profile/calendar-data', 'Profile::calendarData');
 
 // Customer tabs
 $routes->get('/profile/events', 'Profile::customerEvents');
+$routes->get('/profile/set-active-event/(:num)', 'Profile::setActiveEvent/$1');
 $routes->get('/profile/my-bookings', 'Profile::customerBookings');
 $routes->get('/profile/messages', 'Profile::customerMessages');
 $routes->get('/profile/messages/start/(:num)', 'Profile::startMessageForService/$1');

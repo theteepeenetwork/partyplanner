@@ -342,6 +342,69 @@ final class EventBookingQuoteTest extends CIUnitTestCase
         $this->assertStringContainsString('budget', $joined);
     }
 
+    public function testFreePostageAboveWaivesFee(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 100.0];
+        $event = ['guest_count' => 5, 'event_setting' => 'private'];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            [
+                'fulfillment_type' => 'postal',
+                'postal_fee' => 15.0,
+                'free_postage_above' => 50.0,
+            ],
+            [],
+            null,
+            [],
+            [],
+            [],
+            [],
+            [],
+            null
+        );
+        $codes = array_column($result['lines'], 'code');
+        $this->assertNotContains('postal_fee', $codes);
+        $this->assertEqualsWithDelta(100.0, $result['total'], 0.01);
+        $joined = implode(' ', $result['warnings']);
+        $this->assertStringContainsString('Free postage applied', $joined);
+        $this->assertStringContainsString('50.00', $joined);
+    }
+
+    public function testPostalOnlySkipsTravel(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 100.0, 'latitude' => 51.5, 'longitude' => -0.12];
+        $event = [
+            'guest_count' => 5,
+            'event_setting' => 'private',
+            'latitude' => 52.5,
+            'longitude' => -1.0,
+        ];
+        $loc = [
+            'fulfillment_type' => 'postal',
+            'postal_fee' => 10.0,
+            'all_travel_included' => 0,
+            'no_travel_limit' => 0,
+            'free_coverage_radius' => 10,
+            'paid_coverage_radius' => 20,
+            'travel_fee_per_km' => 5.0,
+            'strict_travel_radius' => 1,
+        ];
+        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], [], [], null);
+        $codes = array_column($result['lines'], 'code');
+        $this->assertNotContains('travel', $codes);
+        $this->assertNull($result['distance_km']);
+        $this->assertSame([], $result['errors']);
+        $travelWarnings = array_filter(
+            $result['warnings'],
+            static fn (string $w): bool => stripos($w, 'travel') !== false
+        );
+        $this->assertSame([], array_values($travelWarnings));
+        $this->assertEqualsWithDelta(110.0, $result['total'], 0.01);
+    }
+
     public function testStrictTravelBlocksOutOfRadius(): void
     {
         $calc = new EventBookingQuote();
