@@ -11,6 +11,16 @@ This is a PHP CodeIgniter 4 event services marketplace. The CI4 framework is bun
 1. **MariaDB**: `sudo mysqld_safe --skip-grant-tables &` (runs as root, no password, database: `event_marketplace`)
 2. **Dev server**: `php spark serve --port 8888` from the workspace root
 
+### Composer / dev dependencies
+
+Local development needs dev packages (Kint for the debug toolbar, PHPUnit, etc.):
+
+```bash
+composer install
+```
+
+Do **not** use `composer install --no-dev` on a dev machine. If you see `Class "Kint\Zval\InstanceValue" not found`, remove `vendor/` and run `composer install` again (Kint must be **5.1.1**, not 6.x).
+
 ### Running tests
 
 ```bash
