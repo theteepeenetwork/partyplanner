@@ -2,6 +2,8 @@
 
 namespace App\Controllers\Admin;
 
+use App\Libraries\CmsPageDefaults;
+use App\Libraries\PublicCmsNavHealth;
 use App\Models\CmsPageModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use CodeIgniter\HTTP\ResponseInterface;
@@ -30,8 +32,19 @@ class Pages extends BaseAdminController
             return $r;
         }
 
+        $seeded = CmsPageDefaults::seedMissing();
+
         $model = new CmsPageModel();
         $pages = $model->orderBy('slug', 'ASC')->findAll();
+
+        if ($seeded > 0) {
+            session()->setFlashdata(
+                'success',
+                $seeded === 1
+                    ? 'One default page was added and is ready to edit.'
+                    : $seeded . ' default pages were added and are ready to edit.'
+            );
+        }
 
         return $this->layout('admin/pages/index', [
             'title'        => 'Public pages',
@@ -50,6 +63,11 @@ class Pages extends BaseAdminController
 
         $model = new CmsPageModel();
         $page  = $model->where('slug', $slug)->first();
+
+        if (! $page && CmsPageDefaults::ensureSlug($slug)) {
+            $page = $model->where('slug', $slug)->first();
+        }
+
         if (! $page) {
             throw PageNotFoundException::forPageNotFound();
         }
