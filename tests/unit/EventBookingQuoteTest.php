@@ -256,4 +256,113 @@ final class EventBookingQuoteTest extends CIUnitTestCase
         $this->assertSame([], $result['errors']);
         $this->assertEqualsWithDelta(187.5, $result['total'], 0.01);
     }
+
+    public function testCorporateMinSpendAdjustment(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 100.0];
+        $event = [
+            'guest_count' => 10,
+            'event_setting' => 'private',
+            'event_type' => 'corporate',
+        ];
+        $corporate = [
+            'corporate_enabled' => 1,
+            'corporate_min_spend' => 500,
+            'corporate_surcharge_type' => 'none',
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1, 'fulfillment_type' => 'in_person'],
+            [],
+            null,
+            [],
+            [],
+            [],
+            [],
+            [],
+            null,
+            [],
+            $corporate
+        );
+        $this->assertSame([], $result['errors']);
+        $this->assertEqualsWithDelta(500.0, $result['total'], 0.01);
+    }
+
+    public function testPostalFeeForPostalFulfillment(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 50.0];
+        $event = ['guest_count' => 5, 'event_setting' => 'private'];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            [
+                'all_travel_included' => 1,
+                'no_travel_limit' => 1,
+                'fulfillment_type' => 'postal',
+                'postal_fee' => 12.5,
+            ],
+            [],
+            null,
+            [],
+            [],
+            [],
+            [],
+            [],
+            null
+        );
+        $this->assertEqualsWithDelta(62.5, $result['total'], 0.01);
+    }
+
+    public function testBudgetMaxWarning(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 200.0];
+        $event = [
+            'guest_count' => 5,
+            'event_setting' => 'private',
+            'budget_max' => 100,
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1],
+            [],
+            null,
+            [],
+            [],
+            [],
+            [],
+            [],
+            null
+        );
+        $joined = strtolower(implode(' ', $result['warnings']));
+        $this->assertStringContainsString('budget', $joined);
+    }
+
+    public function testStrictTravelBlocksOutOfRadius(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 100.0, 'latitude' => 51.5, 'longitude' => -0.12];
+        $event = [
+            'guest_count' => 5,
+            'event_setting' => 'private',
+            'latitude' => 52.5,
+            'longitude' => -1.0,
+        ];
+        $loc = [
+            'latitude' => 51.5,
+            'longitude' => -0.12,
+            'all_travel_included' => 0,
+            'no_travel_limit' => 0,
+            'free_coverage_radius' => 10,
+            'paid_coverage_radius' => 20,
+            'travel_fee_per_km' => 1.0,
+            'strict_travel_radius' => 1,
+        ];
+        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], [], [], null);
+        $this->assertNotEmpty($result['errors']);
+    }
 }

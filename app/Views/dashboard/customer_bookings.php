@@ -69,6 +69,16 @@
                                     <?php endif; ?>
                                 </div>
                             <?php endif; ?>
+                            <?= view('partials/quote_breakdown', ['quoteDetail' => $item['quote_detail'] ?? null, 'collapseId' => (int) $item['id']]) ?>
+                            <?php if (!empty($item['pending_vendor_quote'])): ?>
+                                <div class="alert alert-warning small mt-2 mb-0">
+                                    Vendor sent a revised quote: £<?= number_format((float) $item['pending_vendor_quote']['total'], 2) ?>
+                                    <form method="post" action="/profile/vendor-quote/<?= (int) $item['id'] ?>/accept" class="d-inline ms-2">
+                                        <?= csrf_field() ?>
+                                        <button type="submit" class="btn btn-sm btn-success">Accept revised quote</button>
+                                    </form>
+                                </div>
+                            <?php endif; ?>
                         </div>
                         <div class="col-md-4 text-md-end mt-3 mt-md-0">
                             <a href="/service/view/<?= $item['service_id'] ?>" class="btn btn-sm btn-outline-primary me-1">View Service</a>

@@ -65,6 +65,7 @@
                                 </div>
                             </div>
                             <div class="col-md-4 text-md-end mt-3 mt-md-0">
+                                <a href="<?= base_url('profile/vendor-quote/' . (int) $item['id']) ?>" class="btn btn-sm btn-outline-secondary mb-2 d-block d-md-inline-block">Adjust quote</a>
                                 <a href="<?= base_url('profile/messages/by-booking/' . (int) $item['id']) ?>" class="btn btn-sm btn-outline-primary mb-2 d-block d-md-inline-block">Message customer</a>
                                 <form method="POST" action="/profile/update-booking-status/<?= $item['id'] ?>" class="d-inline">
                                     <?= csrf_field() ?>

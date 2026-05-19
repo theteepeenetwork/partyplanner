@@ -14,6 +14,10 @@ use App\Models\PaymentsModel;
 use App\Models\CategoryModel;
 use App\Models\FavouriteModel;
 use App\Libraries\ChatModeration;
+use App\Libraries\QuoteAnalyticsRecorder;
+use App\Models\VendorQuoteModel;
+use App\Models\VendorQuoteSettingsModel;
+use App\Models\VendorMessageTemplateModel;
 use DateTime;
 
 class Profile extends BaseController
@@ -303,7 +307,8 @@ class Profile extends BaseController
             $bookingItems = $bookingItemModel
                 ->select('booking_items.*, bookings.user_id, bookings.event_id, bookings.status as booking_status, bookings.created_at as request_date,
                           events.title as event_title, events.`date` as event_date, events.location, events.event_type,
-                          services.title as service_title, services.price as service_price,
+                          events.guest_count, events.event_setting, events.organiser_pitch_fee,
+                          services.title as service_title, services.price as service_price, services.vendor_id,
                           users.name as customer_name,
                           payments.payment_status, payments.amount_paid', false)
                 ->join('bookings', 'bookings.id = booking_items.booking_id')
@@ -314,6 +319,16 @@ class Profile extends BaseController
                 ->whereIn('booking_items.service_id', $vendorServiceIds)
                 ->orderBy('bookings.created_at', 'DESC')
                 ->findAll();
+
+            foreach ($bookingItems as &$bi) {
+                $qd = json_decode($bi['quote_breakdown'] ?? '', true);
+                $bi['quote_detail'] = is_array($qd) ? $qd : null;
+                if ($bi['quote_detail'] === null && !empty($bi['quote_warnings'])) {
+                    $w = json_decode($bi['quote_warnings'], true);
+                    $bi['quote_detail'] = ['lines' => [], 'warnings' => is_array($w) ? $w : []];
+                }
+            }
+            unset($bi);
         }
 
         return view('dashboard/vendor_bookings', [
@@ -445,6 +460,11 @@ class Profile extends BaseController
                 $itemPrice = (float)($item['price'] ?? $item['service_price'] ?? 0);
                 $item['outstanding'] = max(0, $itemPrice - (float)$item['amount_paid']);
                 $item['booking_id'] = $booking['id'];
+                $qd = json_decode($item['quote_breakdown'] ?? '', true);
+                $item['quote_detail'] = is_array($qd) ? $qd : null;
+                $vqModel = new VendorQuoteModel();
+                $item['pending_vendor_quote'] = $vqModel->where('booking_item_id', (int) $item['id'])
+                    ->where('status', 'sent')->orderBy('id', 'DESC')->first();
             }
             $allItems = array_merge($allItems, $items);
         }
@@ -780,7 +800,233 @@ class Profile extends BaseController
         }
 
         $bookingItemModel->update($bookingItemId, ['status' => $newStatus]);
+        if ($newStatus === 'accepted') {
+            (new QuoteAnalyticsRecorder())->recordAccepted($vendorId, (int) $bookingItem['service_id'], false);
+        }
+
         return redirect()->to('/profile/bookings')->with('success', 'Booking status updated.');
+    }
+
+    public function bulkUpdateBookingStatus()
+    {
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $user = $this->getUser();
+        $ids = $this->request->getPost('booking_item_ids') ?? [];
+        $status = $this->request->getPost('status');
+        if (!is_array($ids) || !in_array($status, ['accepted', 'rejected'], true)) {
+            return redirect()->to('/profile/bookings')->with('error', 'Invalid bulk action.');
+        }
+
+        $bookingItemModel = new BookingItemModel();
+        $serviceModel = new ServiceModel();
+        $updated = 0;
+        foreach ($ids as $rawId) {
+            $id = (int) $rawId;
+            $row = $bookingItemModel
+                ->select('booking_items.*, services.vendor_id')
+                ->join('services', 'services.id = booking_items.service_id')
+                ->where('booking_items.id', $id)
+                ->first();
+            if (!$row || (int) ($row['vendor_id'] ?? 0) !== (int) $user['id']) {
+                continue;
+            }
+            $bookingItemModel->update($id, ['status' => $status]);
+            $updated++;
+        }
+
+        return redirect()->to('/profile/bookings')->with('success', "Updated {$updated} booking(s).");
+    }
+
+    public function quoteSettings()
+    {
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $user = $this->getUser();
+        $model = new VendorQuoteSettingsModel();
+        $existing = $model->where('vendor_id', (int) $user['id'])->where('service_id', null)->first()
+            ?: $model->where('vendor_id', (int) $user['id'])->where('service_id', 0)->first();
+
+        if ($this->request->getMethod() === 'POST') {
+            $allowed = $this->request->getPost('allowed_event_settings') ?? [];
+            if (!is_array($allowed)) {
+                $allowed = [];
+            }
+            $payload = [
+                'vendor_id' => (int) $user['id'],
+                'service_id' => null,
+                'auto_accept_enabled' => $this->request->getPost('auto_accept_enabled') ? 1 : 0,
+                'max_auto_accept_amount' => $this->request->getPost('max_auto_accept_amount') ?: null,
+                'require_within_travel_radius' => $this->request->getPost('require_within_travel_radius') ? 1 : 0,
+                'min_lead_days' => (int) ($this->request->getPost('min_lead_days') ?? 0),
+                'allowed_event_settings' => json_encode(array_values($allowed)),
+                'blackout_respect' => $this->request->getPost('blackout_respect') ? 1 : 0,
+            ];
+            if ($existing) {
+                $model->update($existing['id'], $payload);
+            } else {
+                $model->insert($payload);
+            }
+
+            return redirect()->to('/profile/quote-settings')->with('success', 'Quote automation settings saved.');
+        }
+
+        return view('dashboard/vendor_quote_settings', [
+            'user' => $user,
+            'settings' => $existing,
+            'currentTab' => 'bookings',
+        ]);
+    }
+
+    public function quoteAnalytics()
+    {
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $user = $this->getUser();
+        $db = \Config\Database::connect();
+        $rows = [];
+        if ($db->tableExists('quote_analytics_daily')) {
+            $rows = $db->table('quote_analytics_daily')
+                ->where('vendor_id', (int) $user['id'])
+                ->orderBy('metric_date', 'DESC')
+                ->limit(30)
+                ->get()
+                ->getResultArray();
+        }
+
+        return view('dashboard/vendor_quote_analytics', [
+            'user' => $user,
+            'metrics' => $rows,
+            'currentTab' => 'bookings',
+        ]);
+    }
+
+    public function vendorQuote($bookingItemId)
+    {
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $user = $this->getUser();
+        $bookingItemModel = new BookingItemModel();
+        $item = $bookingItemModel
+            ->select('booking_items.*, services.vendor_id, services.title as service_title, events.title as event_title', false)
+            ->join('services', 'services.id = booking_items.service_id')
+            ->join('bookings', 'bookings.id = booking_items.booking_id')
+            ->join('events', 'events.id = bookings.event_id')
+            ->where('booking_items.id', (int) $bookingItemId)
+            ->first();
+
+        if (!$item || (int) ($item['vendor_id'] ?? 0) !== (int) $user['id']) {
+            return redirect()->to('/profile/bookings')->with('error', 'Booking not found.');
+        }
+
+        $vqModel = new VendorQuoteModel();
+        $draft = $vqModel->where('booking_item_id', (int) $bookingItemId)
+            ->whereIn('status', ['draft', 'sent'])
+            ->orderBy('id', 'DESC')
+            ->first();
+
+        $templates = (new VendorMessageTemplateModel())->where('vendor_id', (int) $user['id'])->findAll();
+        $original = json_decode($item['quote_breakdown'] ?? '', true);
+
+        if ($this->request->getMethod() === 'POST') {
+            $linesJson = $this->request->getPost('lines_json');
+            $lines = is_string($linesJson) ? json_decode($linesJson, true) : [];
+            if (!is_array($lines)) {
+                $lines = [];
+            }
+            $total = 0.0;
+            foreach ($lines as $ln) {
+                $total += (float) ($ln['amount'] ?? 0);
+            }
+            $payload = [
+                'booking_item_id' => (int) $bookingItemId,
+                'vendor_id' => (int) $user['id'],
+                'status' => 'draft',
+                'lines' => json_encode($lines, JSON_UNESCAPED_UNICODE),
+                'total' => round($total, 2),
+                'vendor_notes' => $this->request->getPost('vendor_notes'),
+                'expires_at' => date('Y-m-d H:i:s', strtotime('+7 days')),
+            ];
+            if ($draft) {
+                $vqModel->update($draft['id'], $payload);
+            } else {
+                $vqModel->insert($payload);
+            }
+
+            return redirect()->to('/profile/vendor-quote/' . $bookingItemId)->with('success', 'Draft quote saved.');
+        }
+
+        return view('dashboard/vendor_quote_edit', [
+            'user' => $user,
+            'item' => $item,
+            'draft' => $draft,
+            'original' => is_array($original) ? $original : null,
+            'templates' => $templates,
+            'currentTab' => 'bookings',
+        ]);
+    }
+
+    public function sendVendorQuote($bookingItemId)
+    {
+        if ($this->request->getMethod() !== 'POST') {
+            return redirect()->to('/profile/bookings');
+        }
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $vqModel = new VendorQuoteModel();
+        $draft = $vqModel->where('booking_item_id', (int) $bookingItemId)
+            ->where('status', 'draft')
+            ->orderBy('id', 'DESC')
+            ->first();
+        if (!$draft) {
+            return redirect()->to('/profile/vendor-quote/' . $bookingItemId)->with('error', 'No draft quote found.');
+        }
+        $vqModel->update($draft['id'], ['status' => 'sent']);
+
+        return redirect()->to('/profile/bookings')->with('success', 'Revised quote sent to customer.');
+    }
+
+    public function acceptVendorQuote($bookingItemId)
+    {
+        if ($this->request->getMethod() !== 'POST') {
+            return redirect()->to('/profile/my-bookings');
+        }
+        if ($r = $this->requireCustomer()) {
+            return $r;
+        }
+        $userId = (int) session()->get('user_id');
+        $bookingItemModel = new BookingItemModel();
+        $item = $bookingItemModel
+            ->select('booking_items.*, bookings.user_id')
+            ->join('bookings', 'bookings.id = booking_items.booking_id')
+            ->where('booking_items.id', (int) $bookingItemId)
+            ->first();
+        if (!$item || (int) ($item['user_id'] ?? 0) !== $userId) {
+            return redirect()->to('/profile/my-bookings')->with('error', 'Booking not found.');
+        }
+
+        $vqModel = new VendorQuoteModel();
+        $vq = $vqModel->where('booking_item_id', (int) $bookingItemId)
+            ->where('status', 'sent')
+            ->orderBy('id', 'DESC')
+            ->first();
+        if (!$vq) {
+            return redirect()->to('/profile/my-bookings')->with('error', 'No revised quote to accept.');
+        }
+
+        $bookingItemModel->update((int) $bookingItemId, [
+            'price' => $vq['total'],
+            'quote_breakdown' => $vq['lines'],
+            'status' => 'accepted',
+        ]);
+        $vqModel->update($vq['id'], ['status' => 'accepted']);
+
+        return redirect()->to('/profile/my-bookings')->with('success', 'Revised quote accepted.');
     }
 
     public function edit()

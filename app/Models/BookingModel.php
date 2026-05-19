@@ -19,6 +19,8 @@ class BookingModel extends Model
         'created_at',
         'updated_at',
         'payment_intent_id',
+        'balance_due',
+        'payment_plan',
     ];
 
     protected $useTimestamps = true;

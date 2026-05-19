@@ -17,7 +17,10 @@ class BookingItemModel extends Model
         'price',
         'status',
         'start_time',
-        'end_time'
+        'end_time',
+        'quote_breakdown',
+        'quote_warnings',
+        'extras_snapshot',
     ];
 
     /**

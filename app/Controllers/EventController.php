@@ -15,11 +15,18 @@ use App\Models\ServicePublicEventPricingModel;
 use App\Models\ServicePrivatePricingModel;
 use App\Models\ServiceGuestBasedPricingModel;
 use App\Models\ServiceCustomDurationPricingModel;
-use App\Models\ServiceTieredPackagesPricingModel;
 use App\Models\ServiceLocationModel;
 use App\Models\ServiceOptionalExtrasModel;
 use App\Libraries\EventBookingQuote;
+use App\Libraries\EventQuoteBuilder;
+use App\Libraries\QuoteAnalyticsRecorder;
+use App\Libraries\QuoteNotifier;
+use App\Libraries\ServiceAvailabilityChecker;
+use App\Libraries\StripeCheckoutHelper;
+use App\Libraries\VendorQuoteAutomation;
 use App\Libraries\UKAddressGeocoder;
+use App\Models\PaymentScheduleModel;
+use App\Models\ServiceTieredPackagesPricingModel;
 
 class EventController extends BaseController
 {
@@ -282,13 +289,7 @@ class EventController extends BaseController
         $eventModel = new EventModel();
         $basketModel = new EventBasketItemModel();
         $eventTypeModel = new ServiceEventTypeModel();
-        $publicPricingModel = new ServicePublicEventPricingModel();
-        $privatePricingModel = new ServicePrivatePricingModel();
-        $guestModel = new ServiceGuestBasedPricingModel();
-        $durationModel = new ServiceCustomDurationPricingModel();
         $packageModel = new ServiceTieredPackagesPricingModel();
-        $locationModel = new ServiceLocationModel();
-        $extrasModel = new ServiceOptionalExtrasModel();
 
         $service = $serviceModel->find($serviceId);
         $event = $eventModel->find($eventId);
@@ -333,51 +334,17 @@ class EventController extends BaseController
                 ->with('error', 'This service is not offered for private events. Switch your event to public format or choose another vendor.');
         }
 
-        $locationRow = $locationModel->where('service_id', $serviceId)->first();
-        $locMerged = $this->mergeServiceLocation($service, $locationRow);
-
-        $publicBands = $publicPricingModel->where('service_id', $serviceId)->orderBy('min_attendance', 'ASC')->findAll();
+        $privatePricingModel = new ServicePrivatePricingModel();
         $privatePricing = $privatePricingModel->where('service_id', $serviceId)->first();
         $privateId = $privatePricing['id'] ?? null;
-        $guestTiers = $privateId ? $guestModel->where('private_event_pricing_id', $privateId)->findAll() : [];
-        $durationTiers = $privateId ? $durationModel->where('private_event_pricing_id', $privateId)->findAll() : [];
         $packages = $privateId ? $packageModel->where('private_event_pricing_id', $privateId)->findAll() : [];
-
-        $extraRows = $extrasModel->where('service_id', $serviceId)->findAll();
-        $extrasById = [];
-        foreach ($extraRows as $er) {
-            $ptype = strtolower(trim((string) ($er['pricing_type'] ?? 'flat')));
-            $extrasById[(int) $er['id']] = [
-                'price' => (float) ($er['price'] ?? 0),
-                'name' => (string) ($er['name'] ?? 'Extra'),
-                'pricing_type' => $ptype === 'per_item' ? 'per_item' : 'flat',
-                'min_quantity' => isset($er['min_quantity']) && $er['min_quantity'] !== '' && $er['min_quantity'] !== null
-                    ? (int) $er['min_quantity'] : null,
-                'max_quantity' => isset($er['max_quantity']) && $er['max_quantity'] !== '' && $er['max_quantity'] !== null
-                    ? (int) $er['max_quantity'] : null,
-                'unit_label' => isset($er['unit_label']) && $er['unit_label'] !== '' ? (string) $er['unit_label'] : null,
-            ];
-        }
 
         if (($privatePricing['pricing_type'] ?? '') === 'guest_based_pricing') {
             $pricingOption = null;
         }
 
-        $quoteCalc = new EventBookingQuote();
-        $quote = $quoteCalc->calculate(
-            $service,
-            $event,
-            $locMerged,
-            $publicBands,
-            $privatePricing,
-            $guestTiers,
-            $durationTiers,
-            $packages,
-            $extrasById,
-            $selectedExtras,
-            $pricingOption,
-            $extraQtyMap
-        );
+        $quoteBuilder = new EventQuoteBuilder();
+        $quote = $quoteBuilder->build($service, $event, $pricingOption, $selectedExtras, $extraQtyMap);
 
         if (!empty($quote['errors'])) {
             return redirect()->to('/service/view/' . $serviceId)
@@ -434,27 +401,49 @@ class EventController extends BaseController
      */
     private function mergeServiceLocation(array $service, ?array $locationRow): array
     {
-        $base = [
-            'latitude' => null,
-            'longitude' => null,
-            'all_travel_included' => 0,
-            'no_travel_limit' => 0,
-            'free_coverage_radius' => null,
-            'paid_coverage_radius' => null,
-            'travel_fee_per_km' => null,
-        ];
-        $row = $locationRow ?? [];
-        $out = array_merge($base, $row);
-        $keys = ['latitude', 'longitude', 'all_travel_included', 'no_travel_limit', 'free_coverage_radius', 'paid_coverage_radius', 'travel_fee_per_km'];
-        foreach ($keys as $k) {
-            if (!isset($out[$k]) || $out[$k] === null || $out[$k] === '') {
-                if (array_key_exists($k, $service) && $service[$k] !== null && $service[$k] !== '') {
-                    $out[$k] = $service[$k];
-                }
-            }
+        return (new EventQuoteBuilder())->mergeServiceLocation($service, $locationRow);
+    }
+
+    /**
+     * Live quote preview (JSON) for service page AJAX.
+     */
+    public function quotePreview($serviceId, $eventId)
+    {
+        if (!session()->has('user_id')) {
+            return $this->response->setStatusCode(401)->setJSON(['error' => 'Login required']);
         }
 
-        return $out;
+        $serviceModel = new ServiceModel();
+        $eventModel = new EventModel();
+        $service = $serviceModel->find((int) $serviceId);
+        $event = $eventModel->find((int) $eventId);
+        $userId = (int) session()->get('user_id');
+
+        if (!$service || !$event || (int) $event['user_id'] !== $userId) {
+            return $this->response->setStatusCode(404)->setJSON(['error' => 'Not found']);
+        }
+
+        $pricingOption = $this->request->getGet('pricing_option');
+        $extrasRaw = $this->request->getGet('extras');
+        $selectedExtras = [];
+        if (is_string($extrasRaw) && $extrasRaw !== '') {
+            foreach (explode(',', $extrasRaw) as $x) {
+                $selectedExtras[] = (int) $x;
+            }
+        }
+        $extraQtyMap = $this->normalizeExtraQtyMap($this->request->getGet('extra_qty'));
+
+        $quote = (new EventQuoteBuilder())->build($service, $event, $pricingOption, $selectedExtras, $extraQtyMap);
+        $depositPercent = 0.15;
+
+        return $this->response->setJSON([
+            'lines' => $quote['lines'],
+            'total' => $quote['total'],
+            'warnings' => $quote['warnings'],
+            'errors' => $quote['errors'],
+            'distance_km' => $quote['distance_km'],
+            'deposit' => round($quote['total'] * $depositPercent, 2),
+        ]);
     }
 
     /**
@@ -587,10 +576,28 @@ class EventController extends BaseController
             $basketItems[] = $item;
         }
 
+        $stripe = new StripeCheckoutHelper();
+        $clientSecret = null;
+        $stripeEnabled = $stripe->isConfigured();
+        if ($stripeEnabled && $totalDeposit > 0) {
+            $pi = $stripe->createPaymentIntent((int) round($totalDeposit * 100), [
+                'event_id' => (string) $eventId,
+                'user_id' => (string) $userId,
+            ]);
+            if ($pi['success']) {
+                $clientSecret = $pi['client_secret'];
+            } else {
+                $stripeEnabled = false;
+            }
+        }
+
         return view('event/checkout', [
             'event' => $event,
             'basketItems' => $basketItems,
             'totalDeposit' => $totalDeposit,
+            'stripeEnabled' => $stripeEnabled,
+            'stripePublishableKey' => getenv('STRIPE_PUBLISHABLE_KEY') ?: '',
+            'stripeClientSecret' => $clientSecret,
         ]);
     }
 
@@ -619,47 +626,132 @@ class EventController extends BaseController
             return redirect()->to('/event/basket/' . $eventId)->with('error', 'Basket is empty.');
         }
 
-        // Create a booking for this event
+        $totalEstimated = 0.0;
+        foreach ($items as $item) {
+            $totalEstimated += (float) $item['estimated_total'];
+        }
+        $totalDeposit = 0.0;
+        foreach ($items as $item) {
+            $totalDeposit += (float) $item['deposit_amount'];
+        }
+
+        $stripe = new StripeCheckoutHelper();
+        $paymentIntentId = $this->request->getPost('payment_intent_id');
+        $paymentPlan = $this->request->getPost('payment_plan') === 'instalments' ? 'instalments' : 'single';
+        $balanceDue = max(0, round($totalEstimated - $totalDeposit, 2));
+
+        if ($stripe->isConfigured()) {
+            if (!$paymentIntentId) {
+                return redirect()->to('/event/checkout/' . $eventId)->with('error', 'Payment was not completed.');
+            }
+            $verified = $stripe->verifyPaymentIntent($paymentIntentId);
+            if (!$verified['success']) {
+                return redirect()->to('/event/checkout/' . $eventId)->with('error', $verified['error'] ?? 'Payment verification failed.');
+            }
+        }
+
         $bookingModel->insert([
             'user_id' => $userId,
             'event_id' => $eventId,
             'status' => 'pending',
+            'payment_intent_id' => $paymentIntentId ?: null,
+            'balance_due' => $balanceDue,
+            'payment_plan' => $paymentPlan,
         ]);
         $bookingId = $bookingModel->getInsertID();
 
-        $totalDeposit = 0;
+        $automation = new VendorQuoteAutomation();
+        $notifier = new QuoteNotifier();
+        $analytics = new QuoteAnalyticsRecorder();
 
         foreach ($items as $item) {
-            // Create booking items
+            $qd = json_decode($item['quote_breakdown'] ?? '', true);
+            $quoteDetail = is_array($qd) ? $qd : ['lines' => [], 'warnings' => []];
+
             $bookingItemModel->insert([
                 'booking_id' => $bookingId,
                 'service_id' => $item['service_id'],
                 'quantity' => $item['quantity'],
                 'package_name' => $item['package_name'],
+                'guest_count' => $event['guest_count'] ?? null,
                 'price' => $item['estimated_total'],
                 'status' => 'pending',
+                'quote_breakdown' => $item['quote_breakdown'],
+                'quote_warnings' => json_encode($quoteDetail['warnings'] ?? [], JSON_UNESCAPED_UNICODE),
+                'extras_snapshot' => $item['extras'] ?? null,
             ]);
+            $bookingItemId = (int) $bookingItemModel->getInsertID();
 
             $svc = $serviceModel->find($item['service_id']);
             if ($svc) {
                 $chatRoomModel->ensureRoom((int) $svc['vendor_id'], (int) $userId, (int) $item['service_id']);
-            }
+                $analytics->recordQuoteGenerated((int) $svc['vendor_id'], (int) $item['service_id'], (float) $item['estimated_total']);
 
-            $totalDeposit += (float)$item['deposit_amount'];
+                $joinedItem = array_merge($item, [
+                    'id' => $bookingItemId,
+                    'event_title' => $event['title'],
+                    'event_date' => $event['date'] ?? null,
+                    'event_setting' => $event['event_setting'] ?? 'private',
+                ]);
+                $quoteForAutomation = array_merge($quoteDetail, ['total' => (float) $item['estimated_total']]);
+                $autoResult = $automation->evaluateAfterCheckout(
+                    $joinedItem,
+                    $quoteForAutomation,
+                    (int) $svc['vendor_id'],
+                    (int) $item['service_id']
+                );
+                if ($autoResult['auto_accepted']) {
+                    $analytics->recordAccepted((int) $svc['vendor_id'], (int) $item['service_id'], true);
+                }
+
+                $notifier->sendVendorNewQuoteNotification(
+                    (int) $svc['vendor_id'],
+                    (int) $userId,
+                    (int) $item['service_id'],
+                    $joinedItem,
+                    $quoteDetail
+                );
+            }
         }
 
-        // Record deposit payment (simulated — no real gateway yet)
+        $firstSvc = $serviceModel->find($items[0]['service_id'] ?? 0);
+        $firstQd = json_decode($items[0]['quote_breakdown'] ?? '', true);
+        if ($firstSvc) {
+            $notifier->sendCustomerQuoteConfirmed(
+                (int) $userId,
+                (int) $firstSvc['vendor_id'],
+                (int) $items[0]['service_id'],
+                is_array($firstQd) ? $firstQd : []
+            );
+        }
+
+        if ($paymentPlan === 'instalments' && $balanceDue > 0) {
+            $schedule = new PaymentScheduleModel();
+            $schedule->insert([
+                'booking_id' => $bookingId,
+                'due_date' => date('Y-m-d', strtotime('+30 days')),
+                'amount' => round($balanceDue / 2, 2),
+                'status' => 'pending',
+            ]);
+            $schedule->insert([
+                'booking_id' => $bookingId,
+                'due_date' => date('Y-m-d', strtotime('+60 days')),
+                'amount' => round($balanceDue - round($balanceDue / 2, 2), 2),
+                'status' => 'pending',
+            ]);
+        }
+
         $paymentsModel->insert([
             'booking_id' => $bookingId,
+            'payment_intent_id' => $paymentIntentId ?: null,
             'payment_status' => 'succeeded',
             'amount_paid' => $totalDeposit,
             'currency' => 'gbp',
-            'payment_method' => 'card',
+            'payment_method' => $stripe->isConfigured() ? 'stripe' : 'simulated',
             'payment_type' => 'deposit',
             'description' => 'Deposit for ' . $event['title'],
         ]);
 
-        // Clear basket items after successful checkout
         $basketModel->where('event_id', $eventId)->where('user_id', $userId)->delete();
 
         return redirect()->to('/event/checkout/success/' . $bookingId);

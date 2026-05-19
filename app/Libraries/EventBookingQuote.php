@@ -20,6 +20,7 @@ class EventBookingQuote
      * @param list<int|string> $selectedExtraIds
      * @param string|null $pricingOption               e.g. guest_12, duration_3, package_4
      * @param array<int, int> $extraQuantitiesById     Optional per-extra quantity overrides (per_item extras only)
+     * @param array<string,mixed>|null $corporatePricing Decoded services_corporate_event_pricing.pricing_details
      * @return array{lines: list<array{code:string,label:string,amount:float}>, total: float, warnings: list<string>, errors: list<string>, distance_km: ?float}
      */
     public function calculate(
@@ -34,7 +35,8 @@ class EventBookingQuote
         array $extrasById,
         array $selectedExtraIds,
         ?string $pricingOption,
-        array $extraQuantitiesById = []
+        array $extraQuantitiesById = [],
+        ?array $corporatePricing = null
     ): array {
         $warnings = [];
         $errors  = [];
@@ -48,6 +50,9 @@ class EventBookingQuote
             $lines = array_merge($lines, $publicResult['lines']);
             $warnings = array_merge($warnings, $publicResult['warnings']);
             $errors   = array_merge($errors, $publicResult['errors']);
+            $commissionResult = $this->publicCommissionLine($publicBands, $guestCount, $lines);
+            $lines = array_merge($lines, $commissionResult['lines']);
+            $warnings = array_merge($warnings, $commissionResult['warnings']);
         } else {
             $privateResult = $this->privateEventSubtotal(
                 $service,
@@ -66,20 +71,50 @@ class EventBookingQuote
         $extrasResult = $this->extrasLines($extrasById, $selectedExtraIds, $guestCount, $extraQuantitiesById);
         $lines = array_merge($lines, $extrasResult['lines']);
 
+        if ($this->isCorporateEvent($event) && $corporatePricing !== null) {
+            $corpResult = $this->corporateModifiers($corporatePricing, $lines);
+            $lines = array_merge($lines, $corpResult['lines']);
+            $warnings = array_merge($warnings, $corpResult['warnings']);
+            $errors = array_merge($errors, $corpResult['errors']);
+        }
+
+        $postalResult = $this->postalLines($location ?? []);
+        $lines = array_merge($lines, $postalResult['lines']);
+        $warnings = array_merge($warnings, $postalResult['warnings']);
+
         $distanceKm = $this->distanceKm($service, $location, $event);
+        $strictTravel = !empty($location['strict_travel_radius']);
         if ($distanceKm === null) {
-            $warnings[] = 'Travel could not be calculated (missing coordinates). Add a full postcode to your event, or confirm travel with the vendor.';
+            $msg = 'Travel could not be calculated (missing coordinates). Add a full postcode to your event, or confirm travel with the vendor.';
+            if ($strictTravel) {
+                $errors[] = $msg;
+            } else {
+                $warnings[] = $msg;
+            }
         } else {
             $travel = $this->computeTravel((float) $distanceKm, $location ?? []);
             $lines  = array_merge($lines, $travel['lines']);
-            $warnings = array_merge($warnings, $travel['warnings']);
+            foreach ($travel['warnings'] as $tw) {
+                if ($strictTravel && $this->isTravelRadiusWarning($tw)) {
+                    $errors[] = $tw;
+                } else {
+                    $warnings[] = $tw;
+                }
+            }
         }
 
         $total = 0.0;
         foreach ($lines as $line) {
+            if (($line['code'] ?? '') === 'platform_commission') {
+                continue;
+            }
             $total += $line['amount'];
         }
         $total = round($total, 2);
+
+        $budgetResult = $this->budgetValidation($event, $total);
+        $warnings = array_merge($warnings, $budgetResult['warnings']);
+        $errors = array_merge($errors, $budgetResult['errors']);
 
         return [
             'lines'        => $lines,
@@ -573,5 +608,197 @@ class EventBookingQuote
 
         $warnings[] = 'Travel pricing is incomplete for this listing; confirm travel with the vendor.';
         return compact('lines', 'warnings');
+    }
+
+    /**
+     * @param array<string,mixed> $event
+     */
+    private function isCorporateEvent(array $event): bool
+    {
+        $type = strtolower(trim((string) ($event['event_type'] ?? '')));
+
+        return $type === 'corporate' || str_contains($type, 'corporate');
+    }
+
+    /**
+     * @param array<string,mixed> $corporatePricing
+     * @param list<array{code:string,label:string,amount:float}> $existingLines
+     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>, errors: list<string>}
+     */
+    private function corporateModifiers(array $corporatePricing, array $existingLines): array
+    {
+        $lines = [];
+        $warnings = [];
+        $errors = [];
+
+        if (empty($corporatePricing['corporate_enabled'])) {
+            $errors[] = 'This vendor has not enabled corporate event bookings for this listing.';
+            return compact('lines', 'warnings', 'errors');
+        }
+
+        $subtotal = 0.0;
+        foreach ($existingLines as $line) {
+            $subtotal += (float) ($line['amount'] ?? 0);
+        }
+
+        $minSpend = isset($corporatePricing['corporate_min_spend']) && $corporatePricing['corporate_min_spend'] !== ''
+            ? (float) $corporatePricing['corporate_min_spend']
+            : 0.0;
+        if ($minSpend > 0 && $subtotal < $minSpend - 0.004) {
+            $shortfall = round($minSpend - $subtotal, 2);
+            $lines[] = [
+                'code' => 'corporate_min_spend',
+                'label' => 'Minimum corporate spend adjustment',
+                'amount' => $shortfall,
+            ];
+            $warnings[] = 'A minimum corporate spend applies; the estimate includes an adjustment to meet it.';
+        }
+
+        $sType = strtolower(trim((string) ($corporatePricing['corporate_surcharge_type'] ?? 'none')));
+        $sValue = isset($corporatePricing['corporate_surcharge_value']) && $corporatePricing['corporate_surcharge_value'] !== ''
+            ? (float) $corporatePricing['corporate_surcharge_value']
+            : 0.0;
+        if ($sType === 'percent' && $sValue > 0) {
+            $amount = round($subtotal * ($sValue / 100), 2);
+            if ($amount > 0) {
+                $lines[] = [
+                    'code' => 'corporate_surcharge',
+                    'label' => sprintf('Corporate surcharge (%s%%)', number_format($sValue, 1)),
+                    'amount' => $amount,
+                ];
+            }
+        } elseif ($sType === 'flat' && $sValue > 0) {
+            $lines[] = [
+                'code' => 'corporate_surcharge',
+                'label' => 'Corporate surcharge (flat)',
+                'amount' => round($sValue, 2),
+            ];
+        }
+
+        $invoiceFee = isset($corporatePricing['corporate_invoice_fee']) && $corporatePricing['corporate_invoice_fee'] !== ''
+            ? (float) $corporatePricing['corporate_invoice_fee']
+            : 0.0;
+        if ($invoiceFee > 0) {
+            $lines[] = [
+                'code' => 'corporate_invoice_fee',
+                'label' => 'Corporate invoicing fee',
+                'amount' => round($invoiceFee, 2),
+            ];
+        }
+
+        return compact('lines', 'warnings', 'errors');
+    }
+
+    /**
+     * @param array<string,mixed> $loc
+     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>}
+     */
+    private function postalLines(array $loc): array
+    {
+        $lines = [];
+        $warnings = [];
+        $ftype = strtolower(trim((string) ($loc['fulfillment_type'] ?? 'in_person')));
+        if ($ftype !== 'postal' && $ftype !== 'both') {
+            return compact('lines', 'warnings');
+        }
+
+        $fee = isset($loc['postal_fee']) && $loc['postal_fee'] !== '' && $loc['postal_fee'] !== null
+            ? (float) $loc['postal_fee']
+            : 0.0;
+        if ($fee <= 0) {
+            $warnings[] = 'Postal delivery is offered but no postage fee is configured; confirm delivery cost with the vendor.';
+
+            return compact('lines', 'warnings');
+        }
+
+        $lines[] = [
+            'code' => 'postal_fee',
+            'label' => $ftype === 'both' ? 'Postage / delivery fee' : 'Postage fee',
+            'amount' => round($fee, 2),
+        ];
+
+        return compact('lines', 'warnings');
+    }
+
+    /**
+     * @param list<array<string,mixed>> $publicBands
+     * @param list<array{code:string,label:string,amount:float}> $linesSoFar
+     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>}
+     */
+    private function publicCommissionLine(array $publicBands, int $guestCount, array $linesSoFar): array
+    {
+        $lines = [];
+        $warnings = [];
+        $band = $this->matchAttendanceBand($publicBands, $guestCount);
+        if ($band === null) {
+            return compact('lines', 'warnings');
+        }
+
+        $pct = isset($band['commission_percentage']) && $band['commission_percentage'] !== '' && $band['commission_percentage'] !== null
+            ? (float) $band['commission_percentage']
+            : 0.0;
+        if ($pct <= 0) {
+            return compact('lines', 'warnings');
+        }
+
+        $subtotal = 0.0;
+        foreach ($linesSoFar as $line) {
+            $subtotal += (float) ($line['amount'] ?? 0);
+        }
+        if ($subtotal <= 0) {
+            return compact('lines', 'warnings');
+        }
+
+        $commission = round($subtotal * ($pct / 100), 2);
+        if ($commission > 0) {
+            $lines[] = [
+                'code' => 'platform_commission',
+                'label' => sprintf('Platform commission estimate (%s%% — informational)', number_format($pct, 1)),
+                'amount' => $commission,
+            ];
+            $warnings[] = 'Commission line is informational for public events; confirm final payout with the vendor.';
+        }
+
+        return compact('lines', 'warnings');
+    }
+
+    /**
+     * @param array<string,mixed> $event
+     * @return array{warnings: list<string>, errors: list<string>}
+     */
+    private function budgetValidation(array $event, float $total): array
+    {
+        $warnings = [];
+        $errors = [];
+        $min = isset($event['budget_min']) && $event['budget_min'] !== '' && $event['budget_min'] !== null
+            ? (float) $event['budget_min']
+            : null;
+        $max = isset($event['budget_max']) && $event['budget_max'] !== '' && $event['budget_max'] !== null
+            ? (float) $event['budget_max']
+            : null;
+
+        if ($max !== null && $max > 0 && $total > $max + 0.004) {
+            $warnings[] = sprintf(
+                'Estimated total (£%s) exceeds your event budget maximum (£%s).',
+                number_format($total, 2),
+                number_format($max, 2)
+            );
+        }
+        if ($min !== null && $min > 0 && $total < $min - 0.004) {
+            $warnings[] = sprintf(
+                'Estimated total (£%s) is below your stated budget minimum (£%s).',
+                number_format($total, 2),
+                number_format($min, 2)
+            );
+        }
+
+        return compact('warnings', 'errors');
+    }
+
+    private function isTravelRadiusWarning(string $message): bool
+    {
+        return str_contains($message, 'exceeds the vendor')
+            || str_contains($message, 'beyond the maximum')
+            || str_contains($message, 'outside the vendor');
     }
 }

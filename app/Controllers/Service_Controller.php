@@ -25,6 +25,8 @@ use App\Models\ServiceCancellationPolicyModel;
 use App\Models\ServiceLocationModel;
 use App\Models\ServiceOptionalExtrasModel;
 use App\Models\CartModel;
+use App\Libraries\EventBookingQuote;
+use App\Libraries\EventQuoteBuilder;
 use CodeIgniter\Controller;
 use Config\Services;
 use DateTime;
@@ -98,6 +100,7 @@ class Service_Controller extends BaseController
         $builder = $this->applyBrowseSort($builder, $sort, $cols);
 
         $services = $builder->findAll();
+        $services = $this->filterServicesByEventCoverage($services);
 
         foreach ($services as &$service) {
             $service['images'] = $serviceImageModel
@@ -2203,6 +2206,7 @@ class Service_Controller extends BaseController
             'category_names' => $category_names,
             'message_vendor_eligible' => $messageVendorEligible,
             'message_vendor_url' => $messageVendorUrl,
+            'preview_event_id' => session()->get('preferred_basket_event_id'),
         ];
 
         // Render the view
@@ -2593,7 +2597,100 @@ class Service_Controller extends BaseController
         return ($blockStart < $bookingEnd && $blockEnd > $bookingStart);
     }
 
+    /**
+     * When browsing with ?event_id=, hide vendors outside strict travel radius.
+     *
+     * @param list<array<string,mixed>> $services
+     * @return list<array<string,mixed>>
+     */
+    private function filterServicesByEventCoverage(array $services): array
+    {
+        $eventId = $this->request->getGet('event_id');
+        if ($eventId === null || $eventId === '') {
+            return $services;
+        }
 
+        $eventModel = new EventModel();
+        $event = $eventModel->find((int) $eventId);
+        if (!$event || empty($event['latitude']) || empty($event['longitude'])) {
+            return $services;
+        }
 
+        $locationModel = new ServiceLocationModel();
+        $quoteBuilder = new EventQuoteBuilder();
+        $filtered = [];
 
+        foreach ($services as $service) {
+            $locRow = $locationModel->where('service_id', (int) $service['id'])->first();
+            $loc = $quoteBuilder->mergeServiceLocation($service, $locRow);
+            if (empty($loc['strict_travel_radius'])) {
+                $filtered[] = $service;
+                continue;
+            }
+
+            $distance = EventBookingQuote::haversineKm(
+                (float) $loc['latitude'],
+                (float) $loc['longitude'],
+                (float) $event['latitude'],
+                (float) $event['longitude']
+            );
+            $travel = (new EventBookingQuote())->computeTravel($distance, $loc);
+            $blocked = false;
+            foreach ($travel['warnings'] as $w) {
+                if (str_contains($w, 'exceeds the vendor') || str_contains($w, 'beyond the maximum')) {
+                    $blocked = true;
+                    break;
+                }
+            }
+            if (!$blocked) {
+                $filtered[] = $service;
+            }
+        }
+
+        return $filtered;
+    }
+
+    /**
+     * Clone a service listing (pricing rules copied via DB).
+     */
+    public function duplicateService($serviceId)
+    {
+        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
+            return redirect()->to('/login');
+        }
+
+        $serviceModel = new ServiceModel();
+        $service = $serviceModel->find((int) $serviceId);
+        if (!$service || (int) $service['vendor_id'] !== (int) session()->get('user_id')) {
+            return redirect()->to('/profile/services')->with('error', 'Service not found.');
+        }
+
+        unset($service['id']);
+        $service['title'] = ($service['title'] ?? 'Service') . ' (copy)';
+        $service['status'] = 'draft';
+        $serviceModel->insert($service);
+        $newId = (int) $serviceModel->getInsertID();
+
+        $db = \Config\Database::connect();
+        foreach ([
+            'services_private_event_pricing',
+            'services_corporate_event_pricing',
+            'services_locations',
+            'services_optional_extras',
+            'services_public_event_pricing',
+            'service_event_types',
+        ] as $table) {
+            if (!$db->tableExists($table)) {
+                continue;
+            }
+            $rows = $db->table($table)->where('service_id', (int) $serviceId)->get()->getResultArray();
+            foreach ($rows as $row) {
+                unset($row['id']);
+                $row['service_id'] = $newId;
+                $db->table($table)->insert($row);
+            }
+        }
+
+        return redirect()->to('/service/edit/' . $newId)->with('success', 'Service duplicated. Review pricing and publish when ready.');
+    }
 }
