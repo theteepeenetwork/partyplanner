@@ -204,12 +204,11 @@ class Profile extends BaseController
 
         foreach ($events as $event) {
             $bookings = $bookingModel->where('event_id', $event['id'])->findAll();
-            $eventBookingItems = [];
-            $eventCost = 0;
+            $eventBookingItems = []; $eventCost = 0;
 
             foreach ($bookings as $booking) {
                 $items = $bookingItemModel
-                    ->select('booking_items.*, services.title as service_title, services.price as service_price, services.vendor_id, services.category_id, services.subcategory_id, services.third_category_id')
+                    ->select('booking_items.*, services.title as service_title, services.price as service_price, services.vendor_id, services.category_id')
                     ->join('services', 'services.id = booking_items.service_id')
                     ->where('booking_id', $booking['id'])->findAll();
 
@@ -218,30 +217,21 @@ class Profile extends BaseController
                     $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
                     $payment = $paymentsModel->where('booking_id', $booking['id'])->first();
                     $item['payment_status'] = $payment ? $payment['payment_status'] : 'not paid';
-                    $itemPrice = (float) ($item['price'] ?? $item['service_price'] ?? 0);
+                    $itemPrice = (float)($item['price'] ?? $item['service_price'] ?? 0);
                     if ($payment && $payment['payment_status'] === 'succeeded') {
-                        $depositsPaid += (float) ($payment['amount_paid'] ?? 0);
+                        $depositsPaid += (float)($payment['amount_paid'] ?? 0);
                     } elseif (in_array($item['status'], ['accepted', 'confirmed'], true)) {
                         // Accepted/confirmed but not yet paid — counts as awaiting payment
                         $totalAwaitingPayment++;
                     }
                     $eventCost += $itemPrice;
                     switch ($item['status']) {
-                        case 'pending':
-                            $totalPendingRequests++;
-                            break;
-                        case 'accepted':
-                            $totalAccepted++;
-                            break;
-                        case 'rejected':
-                            $totalDeclined++;
-                            break;
-                        case 'confirmed':
-                            $totalConfirmed++;
-                            break;
+                        case 'pending': $totalPendingRequests++; break;
+                        case 'accepted': $totalAccepted++; break;
+                        case 'rejected': $totalDeclined++; break;
+                        case 'confirmed': $totalConfirmed++; break;
                     }
                 }
-                unset($item);
                 $eventBookingItems = array_merge($eventBookingItems, $items);
             }
 
@@ -259,56 +249,6 @@ class Profile extends BaseController
             ->where('chat_messages.receiver_id', $userId)
             ->orderBy('chat_messages.created_at', 'DESC')->limit(5)->findAll();
 
-        $planningDefinitions = [
-            ['icon' => 'fa-utensils', 'label' => 'Catering', 'keywords' => ['cater', 'food', 'kitchen']],
-            ['icon' => 'fa-camera', 'label' => 'Photography', 'keywords' => ['photo', 'photograph']],
-            ['icon' => 'fa-music', 'label' => 'Entertainment', 'keywords' => ['music', 'dj', 'entertain', 'band']],
-            ['icon' => 'fa-car', 'label' => 'Transport', 'keywords' => ['transport', 'car', 'limo']],
-            ['icon' => 'fa-paint-brush', 'label' => 'Decorations', 'keywords' => ['decor', 'suppl', 'hire']],
-            ['icon' => 'fa-spa', 'label' => 'Hair & Makeup', 'keywords' => ['hair', 'makeup', 'beauty']],
-            ['icon' => 'fa-birthday-cake', 'label' => 'Cakes & Desserts', 'keywords' => ['cake', 'dessert']],
-            ['icon' => 'fa-envelope', 'label' => 'Stationery', 'keywords' => ['station', 'invite', 'paper']],
-        ];
-        $planningBuckets = $categoryModel->mapPlanningDefinitionsToRoots($planningDefinitions);
-
-        $bookedRootIds = [];
-        foreach ($enrichedEvents as $evt) {
-            foreach ($evt['bookingItems'] as $bi) {
-                foreach (['category_id', 'subcategory_id', 'third_category_id'] as $col) {
-                    if (! empty($bi[$col])) {
-                        $rid = $categoryModel->getRootAncestorId((int) $bi[$col]);
-                        if ($rid !== null) {
-                            $bookedRootIds[$rid] = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        foreach ($planningBuckets as &$bucket) {
-            $bucket['is_booked'] = false;
-            foreach ($bucket['cat_ids'] as $cid) {
-                if (isset($bookedRootIds[$cid])) {
-                    $bucket['is_booked'] = true;
-                    break;
-                }
-            }
-        }
-        unset($bucket);
-
-        $recommendationSpecs = [
-            ['title' => 'Add Photography', 'desc' => 'Capture every special moment', 'icon' => 'fa-camera', 'cardClass' => 'border-info', 'btnClass' => 'btn-outline-info', 'iconBgClass' => 'bg-info-light', 'keywords' => ['photo', 'photograph']],
-            ['title' => 'Book Catering', 'desc' => 'Popular for events near you', 'icon' => 'fa-utensils', 'cardClass' => 'border-success', 'btnClass' => 'btn-outline-success', 'iconBgClass' => 'bg-success-light', 'keywords' => ['cater', 'food', 'kitchen']],
-            ['title' => 'Add Entertainment', 'desc' => 'DJs, bands, and more', 'icon' => 'fa-music', 'cardClass' => 'border-warning', 'btnClass' => 'btn-outline-warning', 'iconBgClass' => 'bg-warning-light', 'keywords' => ['music', 'dj', 'entertain', 'band']],
-        ];
-        $recommendationTiles = [];
-        foreach ($recommendationSpecs as $spec) {
-            $kw = $spec['keywords'];
-            unset($spec['keywords']);
-            $spec['category_id'] = $categoryModel->findFirstRootIdByKeywords($kw);
-            $recommendationTiles[] = $spec;
-        }
-
         return view('dashboard/customer_main', [
             'user' => $user, 'events' => $enrichedEvents,
             'totalPendingRequests' => $totalPendingRequests, 'totalAccepted' => $totalAccepted,
@@ -316,8 +256,7 @@ class Profile extends BaseController
             'totalAwaitingPayment' => $totalAwaitingPayment, 'unreadMessages' => $unreadMessages,
             'recentMessages' => $recentMessages, 'totalSpend' => $totalSpend,
             'depositsPaid' => $depositsPaid, 'categories' => $categoryModel->getRootCategories(),
-            'planningBuckets' => $planningBuckets,
-            'recommendationTiles' => $recommendationTiles,
+            'recommendedCategories' => \App\Libraries\CustomerDashboardRecommendations::forUser($userId, $categoryModel),
             'currentTab' => 'main',
         ]);
     }

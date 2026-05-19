@@ -291,25 +291,24 @@
                     <h5 class="mb-1"><i class="fas fa-lightbulb text-warning me-2"></i>Recommended Services</h5>
                     <p class="text-muted small mb-3">Popular starting points from the marketplace—explore more categories anytime.</p>
 
-                    <!-- TODO: Generate recommendations based on event type and missing service categories -->
-                    <?php foreach ($recommendationTiles ?? [] as $tile): ?>
-                    <div class="attention-card <?= esc($tile['cardClass']) ?> mb-2">
-                        <div class="attention-icon <?= esc($tile['iconBgClass'] ?? 'bg-info-light') ?>"><i class="fas <?= esc($tile['icon']) ?>"></i></div>
-                        <div class="attention-content">
-                            <div class="attention-title"><?= esc($tile['title']) ?></div>
-                            <p class="attention-desc"><?= esc($tile['desc']) ?></p>
-                        </div>
-                        <?php
-                        $browseRec = ! empty($tile['category_id'])
-                            ? base_url('browse-services?category=' . (int) $tile['category_id'])
-                            : base_url('browse-services');
-                        ?>
-                        <a href="<?= $browseRec ?>" class="btn btn-sm <?= esc($tile['btnClass']) ?>">Browse</a>
-                    </div>
-                    <?php endforeach; ?>
-                </div>
+                                        <p class="text-muted small mb-3">Categories you have not booked yet on your events.</p>
 
-                <!-- 8. Payment Snapshot -->
+                    <?php if (!empty($recommendedCategories)): ?>
+                        <?php foreach ($recommendedCategories as $rec): ?>
+                            <div class="attention-card <?= esc($rec['border']) ?> mb-2">
+                                <div class="attention-icon bg-light"><i class="fas <?= esc($rec['icon']) ?>"></i></div>
+                                <div class="attention-content">
+                                    <div class="attention-title"><?= esc($rec['name']) ?></div>
+                                    <p class="attention-desc">Browse suppliers in this category</p>
+                                </div>
+                                <a href="<?= esc($rec['browse_url']) ?>" class="btn btn-sm <?= esc($rec['btn']) ?>">Browse</a>
+                            </div>
+                        <?php endforeach; ?>
+                    <?php else: ?>
+                        <p class="text-muted small mb-0">You have services across the main categories on your events. <a href="/browse-services">Browse the marketplace</a> for more.</p>
+                    <?php endif; ?>
+
+<!-- 8. Payment Snapshot -->
                 <div class="dash-card">
                     <h5 class="mb-1"><i class="fas fa-credit-card text-primary me-2"></i>Payment Summary</h5>
                     <p class="text-muted small mb-3">Figures reflect recorded deposits and estimates. You will confirm balances with each vendor before the event.</p>

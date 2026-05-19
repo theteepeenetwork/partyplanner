@@ -34,9 +34,11 @@ class Pages extends BaseAdminController
         $pages = $model->orderBy('slug', 'ASC')->findAll();
 
         return $this->layout('admin/pages/index', [
-            'title'     => 'Public pages',
-            'activeNav' => 'pages',
-            'pages'     => $pages,
+            'title'        => 'Public pages',
+            'activeNav'    => 'pages',
+            'pages'        => $pages,
+            'cmsNavLabels' => PublicCmsNavHealth::navSlugLabels(),
+            'cmsNavIssues' => PublicCmsNavHealth::navIssues(),
         ]);
     }
 
