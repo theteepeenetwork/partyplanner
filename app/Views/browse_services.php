@@ -1,59 +1,16 @@
 <?= $this->include('header') ?>
 
-<main class="container">
-    <h2 class="mb-4">Browse Services</h2>
+<main class="container browse-services-page">
+    <div class="d-flex flex-wrap justify-content-between align-items-end gap-2 mb-3">
+        <h2 class="mb-0">Browse Services</h2>
+        <?php if (isset($resultsCount)): ?>
+            <p class="text-muted small mb-0"><?= (int) $resultsCount ?> service<?= (int) $resultsCount === 1 ? '' : 's' ?> found</p>
+        <?php endif; ?>
+    </div>
 
     <?php if (session()->getFlashdata('error')): ?>
         <div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div>
     <?php endif; ?>
-
-    <form class="row mb-4 g-2 align-items-end" action="/browse-services" method="get" id="browse-services-form">
-        <?php if (!empty($basketEventId)): ?>
-            <input type="hidden" name="event_id" value="<?= esc($basketEventId) ?>">
-        <?php endif; ?>
-        <div class="col-lg-4 col-md-6">
-            <label for="browse-q" class="form-label small text-muted mb-0">Search</label>
-            <input type="text" class="form-control" id="browse-q" name="q" placeholder="Search services…"
-                value="<?= esc($searchQuery ?? '') ?>">
-        </div>
-        <div class="col-lg-2 col-md-6">
-            <label for="browse-category" class="form-label small text-muted mb-0">Category</label>
-            <select class="form-control" id="browse-category" name="category">
-                <option value="">All categories</option>
-                <?php foreach ($rootCategories as $category): ?>
-                    <option value="<?= esc($category['id']) ?>"
-                        <?= ((string) ($selectedCategory ?? '')) === (string) $category['id'] ? 'selected' : '' ?>>
-                        <?= esc($category['name']) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
-        <div class="col-lg-2 col-md-4">
-            <label for="browse-subcategory" class="form-label small text-muted mb-0">Subcategory</label>
-            <select class="form-control" id="browse-subcategory" name="subcategory">
-                <option value="">All subcategories</option>
-            </select>
-        </div>
-        <div class="col-lg-2 col-md-4">
-            <label for="browse-third-category" class="form-label small text-muted mb-0">Further refine</label>
-            <select class="form-control" id="browse-third-category" name="third_category">
-                <option value="">All (optional)</option>
-            </select>
-        </div>
-        <div class="col-lg-2 col-md-4">
-            <label for="browse-sort" class="form-label small text-muted mb-0">Sort by</label>
-            <select class="form-control" id="browse-sort" name="sort">
-                <option value="newest" <?= (($selectedSort ?? 'newest') === 'newest') ? 'selected' : '' ?>>Newest listed</option>
-                <option value="price_asc" <?= (($selectedSort ?? '') === 'price_asc') ? 'selected' : '' ?>>Price: low to high</option>
-                <option value="price_desc" <?= (($selectedSort ?? '') === 'price_desc') ? 'selected' : '' ?>>Price: high to low</option>
-                <option value="title" <?= (($selectedSort ?? '') === 'title') ? 'selected' : '' ?>>Title A–Z</option>
-            </select>
-        </div>
-        <div class="col-12 col-lg-12">
-            <button type="submit" class="btn btn-primary">Apply</button>
-        </div>
-    </form>
-    <p class="small text-muted mb-4">Search matches service title, descriptions, free-text tags, and the names of the categories you assign to a listing. Use the three filters to move from broad groups to service type to specific offering (for example Catering &amp; Drinks → Mobile food vendors → Burger vans).</p>
 
     <?php
     $catById = [];
@@ -65,7 +22,85 @@
         || !empty($selectedSubcategory)
         || !empty($selectedThirdCategory)
         || (!empty($selectedSort) && $selectedSort !== 'newest');
+    $clearUrl = '/browse-services' . (!empty($basketEventId) ? '?event_id=' . esc($basketEventId) : '');
     ?>
+
+    <form class="browse-services-form card border-0 shadow-sm mb-3" action="<?= site_url('browse-services') ?>" method="get" id="browse-services-form">
+        <div class="card-body">
+            <?php if (!empty($basketEventId)): ?>
+                <input type="hidden" name="event_id" value="<?= esc($basketEventId) ?>">
+            <?php endif; ?>
+
+            <div class="row g-3">
+                <div class="col-12">
+                    <label for="browse-q" class="form-label">Keywords</label>
+                    <input type="search" class="form-control" id="browse-q" name="q" placeholder="Search by title, description, or tags…"
+                        value="<?= esc($searchQuery ?? '') ?>" autocomplete="off">
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-4">
+                    <label for="browse-category" class="form-label">Category</label>
+                    <select class="form-select" id="browse-category" name="category" aria-describedby="browse-category-hint">
+                        <option value="">All categories</option>
+                        <?php foreach ($rootCategories as $category): ?>
+                            <option value="<?= esc($category['id']) ?>"
+                                <?= ((string) ($selectedCategory ?? '')) === (string) $category['id'] ? 'selected' : '' ?>>
+                                <?= esc($category['name']) ?>
+                            </option>
+                        <?php endforeach; ?>
+                    </select>
+                    <div id="browse-category-hint" class="form-text">Pick a main group, then narrow down if you like.</div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-4">
+                    <label for="browse-subcategory" class="form-label">
+                        Subcategory <span class="text-muted fw-normal">(optional)</span>
+                    </label>
+                    <select class="form-select" id="browse-subcategory" name="subcategory" disabled aria-describedby="browse-sub-hint">
+                        <option value="">Any subcategory</option>
+                    </select>
+                    <div id="browse-sub-hint" class="form-text">Leave blank to include every type under the category above.</div>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-4">
+                    <label for="browse-third-category" class="form-label">
+                        Specific type <span class="text-muted fw-normal">(optional)</span>
+                    </label>
+                    <select class="form-select" id="browse-third-category" name="third_category" disabled>
+                        <option value="">Any specific type</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-4">
+                    <label for="browse-sort" class="form-label">Sort by</label>
+                    <select class="form-select" id="browse-sort" name="sort">
+                        <option value="newest" <?= (($selectedSort ?? 'newest') === 'newest') ? 'selected' : '' ?>>Newest listed</option>
+                        <option value="price_asc" <?= (($selectedSort ?? '') === 'price_asc') ? 'selected' : '' ?>>Price: low to high</option>
+                        <option value="price_desc" <?= (($selectedSort ?? '') === 'price_desc') ? 'selected' : '' ?>>Price: high to low</option>
+                        <option value="title" <?= (($selectedSort ?? '') === 'title') ? 'selected' : '' ?>>Title A–Z</option>
+                    </select>
+                </div>
+
+                <div class="col-12 col-md-6 col-xl-4 browse-services-form__actions">
+                    <span class="form-label d-block visually-hidden">Search actions</span>
+                    <div class="d-flex flex-wrap gap-2">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search me-1" aria-hidden="true"></i>Search
+                        </button>
+                        <?php if ($hasActiveFilters): ?>
+                            <a href="<?= esc($clearUrl) ?>" class="btn btn-outline-secondary">Clear filters</a>
+                        <?php endif; ?>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+
+    <p class="small text-muted mb-4">
+        Subcategory and specific type are optional — choose only a main category to see all related listings.
+        Keywords also match category names shown on each service.
+    </p>
+
     <?php if ($hasActiveFilters): ?>
         <p class="text-muted mb-3">
             <?php
@@ -80,19 +115,18 @@
                 $filterParts[] = 'subcategory "' . esc($catById[(int) $selectedSubcategory]) . '"';
             }
             if (!empty($selectedThirdCategory) && isset($catById[(int) $selectedThirdCategory])) {
-                $filterParts[] = 'refinement "' . esc($catById[(int) $selectedThirdCategory]) . '"';
+                $filterParts[] = 'type "' . esc($catById[(int) $selectedThirdCategory]) . '"';
             }
             if (!empty($selectedSort) && $selectedSort !== 'newest') {
                 $sortLabels = [
                     'price_asc' => 'price (low to high)',
                     'price_desc' => 'price (high to low)',
-                    'title' => 'title A–Z',
+                    'title' => 'title A-Z',
                 ];
                 $filterParts[] = 'sort: ' . esc($sortLabels[$selectedSort] ?? $selectedSort);
             }
             ?>
-            Showing results for <?= implode(' · ', $filterParts) ?>
-            <a href="/browse-services<?= !empty($basketEventId) ? '?event_id=' . esc($basketEventId) : '' ?>" class="ms-2">(Clear filters)</a>
+            Showing results for <?= implode(' &middot; ', $filterParts) ?>
         </p>
     <?php endif; ?>
 
@@ -100,12 +134,12 @@
         <div class="service-card-container">
             <?php foreach ($services as $service): ?>
                 <div class="service-card">
-                    <a href="<?= base_url('service/view/' . esc($service['id'])) ?>" style="text-decoration: none; color: inherit;">
+                    <a href="<?= base_url('service/view/' . esc($service['id'])) ?>" class="service-card-link text-decoration-none text-body">
                         <?php if (!empty($service['images'])): ?>
                             <img src="<?= base_url(esc($service['images'][0]['thumbnail_path'])) ?>"
                                 alt="<?= esc($service['title']) ?>" class="service-card-image">
                         <?php else: ?>
-                            <img src="<?= base_url('assets/images/no-image.png') ?>" alt="No Image Available"
+                            <img src="<?= base_url('assets/images/no-image.png') ?>" alt="No image available"
                                 class="service-card-image">
                         <?php endif; ?>
 
@@ -118,7 +152,7 @@
                                 <?= esc($service['short_description'] ?? 'No description available.') ?>
                             </p>
                             <?php if (!empty($service['price'])): ?>
-                                <p class="service-price">From £<?= number_format($service['price'], 2) ?></p>
+                                <p class="service-price">From &pound;<?= number_format((float) $service['price'], 2) ?></p>
                             <?php endif; ?>
                         </div>
                     </a>
@@ -133,11 +167,11 @@
         </div>
     <?php else: ?>
         <div class="text-center py-5">
-            <i class="fas fa-search fa-3x text-muted mb-3"></i>
+            <i class="fas fa-search fa-3x text-muted mb-3" aria-hidden="true"></i>
             <h4>No services found</h4>
-            <p class="text-muted">Try adjusting your search or browse all categories.</p>
-            <?php if (!empty($searchQuery) || !empty($selectedCategory) || !empty($selectedSubcategory) || !empty($selectedThirdCategory)): ?>
-                <a href="/browse-services<?= !empty($basketEventId) ? '?event_id=' . esc($basketEventId) : '' ?>" class="btn btn-outline-primary">View All Services</a>
+            <p class="text-muted">Try fewer filters, a different category, or different keywords.</p>
+            <?php if ($hasActiveFilters): ?>
+                <a href="<?= esc($clearUrl) ?>" class="btn btn-outline-primary">View all services</a>
             <?php endif; ?>
         </div>
     <?php endif; ?>
@@ -157,8 +191,8 @@
                 categories: categories,
                 preselectSub: <?= json_encode($selectedSubcategory ?? '') ?>,
                 preselectThird: <?= json_encode($selectedThirdCategory ?? '') ?>,
-                subPlaceholder: 'All subcategories',
-                thirdPlaceholder: 'All (optional)',
+                subPlaceholder: 'Any subcategory',
+                thirdPlaceholder: 'Any specific type',
             });
         }
     });
