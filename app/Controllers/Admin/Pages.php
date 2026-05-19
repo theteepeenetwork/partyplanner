@@ -2,6 +2,7 @@
 
 namespace App\Controllers\Admin;
 
+use App\Libraries\CmsPageDefaults;
 use App\Libraries\PublicCmsNavHealth;
 use App\Models\CmsPageModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -46,9 +47,11 @@ class Pages extends BaseAdminController
         }
 
         return $this->layout('admin/pages/index', [
-            'title'     => 'Public pages',
-            'activeNav' => 'pages',
-            'pages'     => $pages,
+            'title'          => 'Public pages',
+            'activeNav'      => 'pages',
+            'pages'          => $pages,
+            'cmsNavLabels'   => PublicCmsNavHealth::navSlugLabels(),
+            'cmsNavIssues'   => PublicCmsNavHealth::navIssues(),
         ]);
     }
 
