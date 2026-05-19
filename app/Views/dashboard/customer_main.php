@@ -289,9 +289,7 @@
                 <!-- 6. Recommended Next Services -->
                 <div class="dash-card">
                     <h5 class="mb-1"><i class="fas fa-lightbulb text-warning me-2"></i>Recommended Services</h5>
-                    <p class="text-muted small mb-3">Popular starting points from the marketplace—explore more categories anytime.</p>
-
-                                        <p class="text-muted small mb-3">Categories you have not booked yet on your events.</p>
+                    <p class="text-muted small mb-3">Categories you have not booked yet on your events.</p>
 
                     <?php if (!empty($recommendedCategories)): ?>
                         <?php foreach ($recommendedCategories as $rec): ?>
@@ -307,8 +305,9 @@
                     <?php else: ?>
                         <p class="text-muted small mb-0">You have services across the main categories on your events. <a href="/browse-services">Browse the marketplace</a> for more.</p>
                     <?php endif; ?>
+                </div>
 
-<!-- 8. Payment Snapshot -->
+                <!-- 8. Payment Snapshot -->
                 <div class="dash-card">
                     <h5 class="mb-1"><i class="fas fa-credit-card text-primary me-2"></i>Payment Summary</h5>
                     <p class="text-muted small mb-3">Figures reflect recorded deposits and estimates. You will confirm balances with each vendor before the event.</p>

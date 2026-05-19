@@ -30,6 +30,12 @@ $routes->get('/dashboard', 'Profile::index');
 $routes->get('/profile/edit', 'Profile::edit');
 $routes->post('/profile/edit', 'Profile::edit');
 $routes->post('/profile/update-booking-status/(:num)', 'Profile::updateBookingStatus/$1');
+$routes->match(['GET', 'POST'], '/profile/quote-settings', 'Profile::quoteSettings');
+$routes->match(['GET', 'POST'], '/profile/quote-analytics', 'Profile::quoteAnalytics');
+$routes->post('/profile/bookings/bulk-status', 'Profile::bulkUpdateBookingStatus');
+$routes->match(['GET', 'POST'], '/profile/vendor-quote/(:num)', 'Profile::vendorQuote/$1');
+$routes->post('/profile/vendor-quote/(:num)/send', 'Profile::sendVendorQuote/$1');
+$routes->post('/profile/vendor-quote/(:num)/accept', 'Profile::acceptVendorQuote/$1');
 
 // Vendor tabs
 $routes->get('/profile/services', 'Profile::services');
@@ -39,6 +45,7 @@ $routes->get('/profile/calendar-data', 'Profile::calendarData');
 
 // Customer tabs
 $routes->get('/profile/events', 'Profile::customerEvents');
+$routes->get('/profile/set-active-event/(:num)', 'Profile::setActiveEvent/$1');
 $routes->get('/profile/my-bookings', 'Profile::customerBookings');
 $routes->get('/profile/messages', 'Profile::customerMessages');
 $routes->get('/profile/messages/start/(:num)', 'Profile::startMessageForService/$1');
@@ -62,6 +69,7 @@ $routes->get('service/search', 'Service_Controller::search');
 $routes->get('service/view/(:num)', 'Service_Controller::view/$1');
 $routes->get('/service', 'Service_Controller::index');
 $routes->post('/service/remove-optional-extra', 'Service_Controller::removeOptionalExtra');
+$routes->post('/service/duplicate/(:num)', 'Service_Controller::duplicateService/$1');
 
 $routes->post('/service/delete-image/(:any)', 'Service_Controller::deleteImage/$1');
 
@@ -122,6 +130,7 @@ $routes->post('/event/store', 'EventController::store');
 // Add to Event Flow
 $routes->match(['GET', 'POST'], '/event/add-to-event/(:num)', 'EventController::addToEvent/$1');
 $routes->match(['GET', 'POST'], '/event/add-to-basket/(:num)', 'EventController::addToBasket/$1');
+$routes->get('/event/quote-preview/(:num)/(:num)', 'EventController::quotePreview/$1/$2');
 
 // Event Basket
 $routes->get('/event/basket/(:num)', 'EventController::basket/$1');

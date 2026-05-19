@@ -14,6 +14,12 @@ use App\Models\PaymentsModel;
 use App\Models\CategoryModel;
 use App\Models\FavouriteModel;
 use App\Libraries\ChatModeration;
+use App\Libraries\CustomerEventSummary;
+use App\Libraries\QuoteAnalyticsRecorder;
+use App\Models\EventBasketItemModel;
+use App\Models\VendorQuoteModel;
+use App\Models\VendorQuoteSettingsModel;
+use App\Models\VendorMessageTemplateModel;
 use DateTime;
 
 class Profile extends BaseController
@@ -197,14 +203,24 @@ class Profile extends BaseController
         $paymentsModel = new PaymentsModel();
         $categoryModel = new CategoryModel();
 
-        $events = $eventModel->where('user_id', $userId)->findAll();
-        $enrichedEvents = [];
-        $totalPendingRequests = 0; $totalAccepted = 0; $totalDeclined = 0;
-        $totalConfirmed = 0; $totalAwaitingPayment = 0; $totalSpend = 0.0; $depositsPaid = 0.0;
+        $events = $eventModel->where('user_id', $userId)->orderBy('date', 'ASC')->findAll();
+        $summaryLib = new CustomerEventSummary();
+        $enrichedEvents = $summaryLib->enrichMany($userId, $events);
+        $totalPendingRequests = 0;
+        $totalAccepted = 0;
+        $totalDeclined = 0;
+        $totalConfirmed = 0;
+        $totalAwaitingPayment = 0;
+        $totalSpend = 0.0;
+        $depositsPaid = 0.0;
 
-        foreach ($events as $event) {
+        foreach ($enrichedEvents as &$event) {
+            $event['servicesBooked'] = $event['services_booked'] ?? 0;
+            $event['totalCost'] = $event['total_cost'] ?? 0;
+            $totalSpend += (float) $event['total_cost'];
+
             $bookings = $bookingModel->where('event_id', $event['id'])->findAll();
-            $eventBookingItems = []; $eventCost = 0;
+            $eventBookingItems = [];
 
             foreach ($bookings as $booking) {
                 $items = $bookingItemModel
@@ -212,35 +228,40 @@ class Profile extends BaseController
                     ->join('services', 'services.id = booking_items.service_id')
                     ->where('booking_id', $booking['id'])->findAll();
 
+                $payment = $paymentsModel->where('booking_id', $booking['id'])->first();
+                if ($payment && $payment['payment_status'] === 'succeeded') {
+                    $depositsPaid += (float) ($payment['amount_paid'] ?? 0);
+                }
+
                 foreach ($items as &$item) {
                     $vendor = $userModel->find($item['vendor_id']);
                     $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
-                    $payment = $paymentsModel->where('booking_id', $booking['id'])->first();
                     $item['payment_status'] = $payment ? $payment['payment_status'] : 'not paid';
-                    $itemPrice = (float)($item['price'] ?? $item['service_price'] ?? 0);
-                    if ($payment && $payment['payment_status'] === 'succeeded') {
-                        $depositsPaid += (float)($payment['amount_paid'] ?? 0);
-                    } elseif (in_array($item['status'], ['accepted', 'confirmed'], true)) {
-                        // Accepted/confirmed but not yet paid — counts as awaiting payment
+                    if (!$payment && in_array($item['status'], ['accepted', 'confirmed'], true)) {
                         $totalAwaitingPayment++;
                     }
-                    $eventCost += $itemPrice;
                     switch ($item['status']) {
-                        case 'pending': $totalPendingRequests++; break;
-                        case 'accepted': $totalAccepted++; break;
-                        case 'rejected': $totalDeclined++; break;
-                        case 'confirmed': $totalConfirmed++; break;
+                        case 'pending':
+                            $totalPendingRequests++;
+                            break;
+                        case 'accepted':
+                            $totalAccepted++;
+                            break;
+                        case 'rejected':
+                        case 'cancelled':
+                            $totalDeclined++;
+                            break;
+                        case 'confirmed':
+                            $totalConfirmed++;
+                            break;
                     }
                 }
                 $eventBookingItems = array_merge($eventBookingItems, $items);
             }
 
             $event['bookingItems'] = $eventBookingItems;
-            $event['totalCost'] = $eventCost;
-            $event['servicesBooked'] = count($eventBookingItems);
-            $totalSpend += $eventCost;
-            $enrichedEvents[] = $event;
         }
+        unset($event);
 
         $unreadMessages = $chatMessageModel->where('receiver_id', $userId)->where('is_read', 0)->countAllResults();
         $recentMessages = $chatMessageModel
@@ -303,7 +324,8 @@ class Profile extends BaseController
             $bookingItems = $bookingItemModel
                 ->select('booking_items.*, bookings.user_id, bookings.event_id, bookings.status as booking_status, bookings.created_at as request_date,
                           events.title as event_title, events.`date` as event_date, events.location, events.event_type,
-                          services.title as service_title, services.price as service_price,
+                          events.guest_count, events.event_setting, events.organiser_pitch_fee,
+                          services.title as service_title, services.price as service_price, services.vendor_id,
                           users.name as customer_name,
                           payments.payment_status, payments.amount_paid', false)
                 ->join('bookings', 'bookings.id = booking_items.booking_id')
@@ -314,6 +336,16 @@ class Profile extends BaseController
                 ->whereIn('booking_items.service_id', $vendorServiceIds)
                 ->orderBy('bookings.created_at', 'DESC')
                 ->findAll();
+
+            foreach ($bookingItems as &$bi) {
+                $qd = json_decode($bi['quote_breakdown'] ?? '', true);
+                $bi['quote_detail'] = is_array($qd) ? $qd : null;
+                if ($bi['quote_detail'] === null && !empty($bi['quote_warnings'])) {
+                    $w = json_decode($bi['quote_warnings'], true);
+                    $bi['quote_detail'] = ['lines' => [], 'warnings' => is_array($w) ? $w : []];
+                }
+            }
+            unset($bi);
         }
 
         return view('dashboard/vendor_bookings', [
@@ -389,29 +421,45 @@ class Profile extends BaseController
     {
         if ($r = $this->requireCustomer()) return $r;
         $user = $this->getUser();
-        $userId = $user['id'];
+        $userId = (int) $user['id'];
         $eventModel = new EventModel();
-        $bookingModel = new BookingModel();
-        $bookingItemModel = new BookingItemModel();
+        $summary = new CustomerEventSummary();
 
-        $events = $eventModel->where('user_id', $userId)->findAll();
+        $events = $eventModel->where('user_id', $userId)->orderBy('date', 'ASC')->findAll();
+        $events = $summary->enrichMany($userId, $events);
         foreach ($events as &$event) {
-            $bookings = $bookingModel->where('event_id', $event['id'])->findAll();
-            $serviceCount = 0; $totalCost = 0;
-            foreach ($bookings as $booking) {
-                $items = $bookingItemModel->where('booking_id', $booking['id'])->findAll();
-                $serviceCount += count($items);
-                foreach ($items as $it) { $totalCost += (float)($it['price'] ?? 0); }
-            }
-            $event['servicesBooked'] = $serviceCount;
-            $event['totalCost'] = $totalCost;
+            $event['servicesBooked'] = $event['services_booked'] ?? 0;
+            $event['totalCost'] = $event['total_cost'] ?? 0;
         }
+        unset($event);
 
         return view('dashboard/customer_events', [
             'user' => $user,
             'events' => $events,
             'currentTab' => 'events',
         ]);
+    }
+
+    public function setActiveEvent($eventId)
+    {
+        if ($r = $this->requireCustomer()) {
+            return $r;
+        }
+        $userId = (int) session()->get('user_id');
+        $eventModel = new EventModel();
+        $event = $eventModel->find((int) $eventId);
+        if (!$event || (int) ($event['user_id'] ?? 0) !== $userId) {
+            return redirect()->to('/profile/events')->with('error', 'Event not found.');
+        }
+
+        session()->set('preferred_basket_event_id', (int) $eventId);
+
+        $redirect = $this->request->getGet('redirect');
+        if (is_string($redirect) && $redirect !== '' && str_starts_with($redirect, '/')) {
+            return redirect()->to($redirect);
+        }
+
+        return redirect()->to('/browse-services?event_id=' . (int) $eventId);
     }
 
     public function customerBookings()
@@ -424,34 +472,59 @@ class Profile extends BaseController
         $paymentsModel = new PaymentsModel();
         $userModel = new UserModel();
 
-        $bookings = $bookingModel->where('user_id', $userId)->findAll();
-        $allItems = [];
+        $filterEventId = (int) ($this->request->getGet('event_id') ?? 0);
 
-        foreach ($bookings as $booking) {
-            $items = $bookingItemModel
-                ->select('booking_items.*, services.title as service_title, services.vendor_id, services.price as service_price,
-                          events.title as event_title, events.`date` as event_date, events.location', false)
-                ->join('services', 'services.id = booking_items.service_id')
-                ->join('bookings', 'bookings.id = booking_items.booking_id')
-                ->join('events', 'events.id = bookings.event_id')
-                ->where('booking_items.booking_id', $booking['id'])->findAll();
+        $builder = $bookingItemModel
+            ->select('booking_items.*, bookings.event_id, bookings.id as booking_id, services.title as service_title, services.vendor_id, services.price as service_price,
+                      events.title as event_title, events.`date` as event_date, events.location', false)
+            ->join('bookings', 'bookings.id = booking_items.booking_id')
+            ->join('events', 'events.id = bookings.event_id')
+            ->join('services', 'services.id = booking_items.service_id')
+            ->where('bookings.user_id', $userId)
+            ->orderBy('events.date', 'ASC')
+            ->orderBy('booking_items.created_at', 'DESC');
 
-            foreach ($items as &$item) {
-                $vendor = $userModel->find($item['vendor_id']);
-                $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
-                $payment = $paymentsModel->where('booking_id', $booking['id'])->first();
-                $item['payment_status'] = $payment ? $payment['payment_status'] : 'unpaid';
-                $item['amount_paid'] = $payment ? $payment['amount_paid'] : 0;
-                $itemPrice = (float)($item['price'] ?? $item['service_price'] ?? 0);
-                $item['outstanding'] = max(0, $itemPrice - (float)$item['amount_paid']);
-                $item['booking_id'] = $booking['id'];
+        if ($filterEventId > 0) {
+            $builder->where('bookings.event_id', $filterEventId);
+        }
+
+        $allItems = $builder->findAll();
+        $vqModel = new VendorQuoteModel();
+
+        foreach ($allItems as &$item) {
+            $vendor = $userModel->find($item['vendor_id']);
+            $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
+            $payment = $paymentsModel->where('booking_id', $item['booking_id'])->first();
+            $item['payment_status'] = $payment ? $payment['payment_status'] : 'unpaid';
+            $item['amount_paid'] = $payment ? $payment['amount_paid'] : 0;
+            $itemPrice = (float) ($item['price'] ?? $item['service_price'] ?? 0);
+            $item['outstanding'] = max(0, $itemPrice - (float) $item['amount_paid']);
+            $qd = json_decode($item['quote_breakdown'] ?? '', true);
+            $item['quote_detail'] = is_array($qd) ? $qd : null;
+            $item['pending_vendor_quote'] = $vqModel->where('booking_item_id', (int) $item['id'])
+                ->where('status', 'sent')->orderBy('id', 'DESC')->first();
+        }
+        unset($item);
+
+        $groupedByEvent = [];
+        foreach ($allItems as $item) {
+            $eid = (int) ($item['event_id'] ?? 0);
+            if (!isset($groupedByEvent[$eid])) {
+                $groupedByEvent[$eid] = [
+                    'event_title' => $item['event_title'] ?? '',
+                    'event_date' => $item['event_date'] ?? '',
+                    'location' => $item['location'] ?? '',
+                    'items' => [],
+                ];
             }
-            $allItems = array_merge($allItems, $items);
+            $groupedByEvent[$eid]['items'][] = $item;
         }
 
         return view('dashboard/customer_bookings', [
             'user' => $user,
             'bookingItems' => $allItems,
+            'groupedByEvent' => $groupedByEvent,
+            'filterEventId' => $filterEventId,
             'currentTab' => 'bookings',
         ]);
     }
@@ -669,23 +742,18 @@ class Profile extends BaseController
 
         $bookings = $bookingModel->where('user_id', $userId)->findAll();
         $payments = [];
-        $totalPaid = 0; $totalOutstanding = 0;
+        $paymentsByEvent = [];
+        $totalPaid = 0;
+        $totalOutstanding = 0;
 
         foreach ($bookings as $booking) {
             $bookingPayments = $paymentsModel->where('booking_id', $booking['id'])->findAll();
             $event = $eventModel->find($booking['event_id']);
+            $eid = (int) ($booking['event_id'] ?? 0);
             $items = $bookingItemModel->select('booking_items.*, services.title as service_title, users.name as vendor_name')
                 ->join('services', 'services.id = booking_items.service_id')
                 ->join('users', 'users.id = services.vendor_id')
                 ->where('booking_id', $booking['id'])->findAll();
-
-            foreach ($bookingPayments as &$p) {
-                $p['event_name'] = $event ? $event['title'] : '';
-                $p['service_name'] = !empty($items) ? $items[0]['service_title'] : '';
-                $p['vendor_name'] = !empty($items) ? $items[0]['vendor_name'] : '';
-                $totalPaid += (float)($p['amount_paid'] ?? 0);
-            }
-            $payments = array_merge($payments, $bookingPayments);
 
             $itemsTotal = 0.0;
             foreach ($items as $item) {
@@ -695,12 +763,36 @@ class Profile extends BaseController
             foreach ($bookingPayments as $bp) {
                 $paidForBooking += (float) ($bp['amount_paid'] ?? 0);
             }
-            $totalOutstanding += max(0.0, $itemsTotal - $paidForBooking);
+            $bookingOutstanding = max(0.0, $itemsTotal - $paidForBooking);
+            $totalOutstanding += $bookingOutstanding;
+
+            if (!isset($paymentsByEvent[$eid])) {
+                $paymentsByEvent[$eid] = [
+                    'event_title' => $event ? $event['title'] : 'Event',
+                    'event_date' => $event['date'] ?? null,
+                    'payments' => [],
+                    'outstanding' => 0.0,
+                    'paid' => 0.0,
+                ];
+            }
+            $paymentsByEvent[$eid]['outstanding'] += $bookingOutstanding;
+
+            foreach ($bookingPayments as &$p) {
+                $p['event_name'] = $event ? $event['title'] : '';
+                $p['service_name'] = !empty($items) ? $items[0]['service_title'] : '';
+                $p['vendor_name'] = !empty($items) ? $items[0]['vendor_name'] : '';
+                $amt = (float) ($p['amount_paid'] ?? 0);
+                $totalPaid += $amt;
+                $paymentsByEvent[$eid]['paid'] += $amt;
+                $paymentsByEvent[$eid]['payments'][] = $p;
+            }
+            $payments = array_merge($payments, $bookingPayments);
         }
 
         return view('dashboard/customer_payments', [
             'user' => $user,
             'payments' => $payments,
+            'paymentsByEvent' => $paymentsByEvent,
             'totalPaid' => $totalPaid,
             'totalOutstanding' => $totalOutstanding,
             'currentTab' => 'payments',
@@ -780,7 +872,233 @@ class Profile extends BaseController
         }
 
         $bookingItemModel->update($bookingItemId, ['status' => $newStatus]);
+        if ($newStatus === 'accepted') {
+            (new QuoteAnalyticsRecorder())->recordAccepted($vendorId, (int) $bookingItem['service_id'], false);
+        }
+
         return redirect()->to('/profile/bookings')->with('success', 'Booking status updated.');
+    }
+
+    public function bulkUpdateBookingStatus()
+    {
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $user = $this->getUser();
+        $ids = $this->request->getPost('booking_item_ids') ?? [];
+        $status = $this->request->getPost('status');
+        if (!is_array($ids) || !in_array($status, ['accepted', 'rejected'], true)) {
+            return redirect()->to('/profile/bookings')->with('error', 'Invalid bulk action.');
+        }
+
+        $bookingItemModel = new BookingItemModel();
+        $serviceModel = new ServiceModel();
+        $updated = 0;
+        foreach ($ids as $rawId) {
+            $id = (int) $rawId;
+            $row = $bookingItemModel
+                ->select('booking_items.*, services.vendor_id')
+                ->join('services', 'services.id = booking_items.service_id')
+                ->where('booking_items.id', $id)
+                ->first();
+            if (!$row || (int) ($row['vendor_id'] ?? 0) !== (int) $user['id']) {
+                continue;
+            }
+            $bookingItemModel->update($id, ['status' => $status]);
+            $updated++;
+        }
+
+        return redirect()->to('/profile/bookings')->with('success', "Updated {$updated} booking(s).");
+    }
+
+    public function quoteSettings()
+    {
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $user = $this->getUser();
+        $model = new VendorQuoteSettingsModel();
+        $existing = $model->where('vendor_id', (int) $user['id'])->where('service_id', null)->first()
+            ?: $model->where('vendor_id', (int) $user['id'])->where('service_id', 0)->first();
+
+        if ($this->request->getMethod() === 'POST') {
+            $allowed = $this->request->getPost('allowed_event_settings') ?? [];
+            if (!is_array($allowed)) {
+                $allowed = [];
+            }
+            $payload = [
+                'vendor_id' => (int) $user['id'],
+                'service_id' => null,
+                'auto_accept_enabled' => $this->request->getPost('auto_accept_enabled') ? 1 : 0,
+                'max_auto_accept_amount' => $this->request->getPost('max_auto_accept_amount') ?: null,
+                'require_within_travel_radius' => $this->request->getPost('require_within_travel_radius') ? 1 : 0,
+                'min_lead_days' => (int) ($this->request->getPost('min_lead_days') ?? 0),
+                'allowed_event_settings' => json_encode(array_values($allowed)),
+                'blackout_respect' => $this->request->getPost('blackout_respect') ? 1 : 0,
+            ];
+            if ($existing) {
+                $model->update($existing['id'], $payload);
+            } else {
+                $model->insert($payload);
+            }
+
+            return redirect()->to('/profile/quote-settings')->with('success', 'Quote automation settings saved.');
+        }
+
+        return view('dashboard/vendor_quote_settings', [
+            'user' => $user,
+            'settings' => $existing,
+            'currentTab' => 'bookings',
+        ]);
+    }
+
+    public function quoteAnalytics()
+    {
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $user = $this->getUser();
+        $db = \Config\Database::connect();
+        $rows = [];
+        if ($db->tableExists('quote_analytics_daily')) {
+            $rows = $db->table('quote_analytics_daily')
+                ->where('vendor_id', (int) $user['id'])
+                ->orderBy('metric_date', 'DESC')
+                ->limit(30)
+                ->get()
+                ->getResultArray();
+        }
+
+        return view('dashboard/vendor_quote_analytics', [
+            'user' => $user,
+            'metrics' => $rows,
+            'currentTab' => 'bookings',
+        ]);
+    }
+
+    public function vendorQuote($bookingItemId)
+    {
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $user = $this->getUser();
+        $bookingItemModel = new BookingItemModel();
+        $item = $bookingItemModel
+            ->select('booking_items.*, services.vendor_id, services.title as service_title, events.title as event_title', false)
+            ->join('services', 'services.id = booking_items.service_id')
+            ->join('bookings', 'bookings.id = booking_items.booking_id')
+            ->join('events', 'events.id = bookings.event_id')
+            ->where('booking_items.id', (int) $bookingItemId)
+            ->first();
+
+        if (!$item || (int) ($item['vendor_id'] ?? 0) !== (int) $user['id']) {
+            return redirect()->to('/profile/bookings')->with('error', 'Booking not found.');
+        }
+
+        $vqModel = new VendorQuoteModel();
+        $draft = $vqModel->where('booking_item_id', (int) $bookingItemId)
+            ->whereIn('status', ['draft', 'sent'])
+            ->orderBy('id', 'DESC')
+            ->first();
+
+        $templates = (new VendorMessageTemplateModel())->where('vendor_id', (int) $user['id'])->findAll();
+        $original = json_decode($item['quote_breakdown'] ?? '', true);
+
+        if ($this->request->getMethod() === 'POST') {
+            $linesJson = $this->request->getPost('lines_json');
+            $lines = is_string($linesJson) ? json_decode($linesJson, true) : [];
+            if (!is_array($lines)) {
+                $lines = [];
+            }
+            $total = 0.0;
+            foreach ($lines as $ln) {
+                $total += (float) ($ln['amount'] ?? 0);
+            }
+            $payload = [
+                'booking_item_id' => (int) $bookingItemId,
+                'vendor_id' => (int) $user['id'],
+                'status' => 'draft',
+                'lines' => json_encode($lines, JSON_UNESCAPED_UNICODE),
+                'total' => round($total, 2),
+                'vendor_notes' => $this->request->getPost('vendor_notes'),
+                'expires_at' => date('Y-m-d H:i:s', strtotime('+7 days')),
+            ];
+            if ($draft) {
+                $vqModel->update($draft['id'], $payload);
+            } else {
+                $vqModel->insert($payload);
+            }
+
+            return redirect()->to('/profile/vendor-quote/' . $bookingItemId)->with('success', 'Draft quote saved.');
+        }
+
+        return view('dashboard/vendor_quote_edit', [
+            'user' => $user,
+            'item' => $item,
+            'draft' => $draft,
+            'original' => is_array($original) ? $original : null,
+            'templates' => $templates,
+            'currentTab' => 'bookings',
+        ]);
+    }
+
+    public function sendVendorQuote($bookingItemId)
+    {
+        if ($this->request->getMethod() !== 'POST') {
+            return redirect()->to('/profile/bookings');
+        }
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $vqModel = new VendorQuoteModel();
+        $draft = $vqModel->where('booking_item_id', (int) $bookingItemId)
+            ->where('status', 'draft')
+            ->orderBy('id', 'DESC')
+            ->first();
+        if (!$draft) {
+            return redirect()->to('/profile/vendor-quote/' . $bookingItemId)->with('error', 'No draft quote found.');
+        }
+        $vqModel->update($draft['id'], ['status' => 'sent']);
+
+        return redirect()->to('/profile/bookings')->with('success', 'Revised quote sent to customer.');
+    }
+
+    public function acceptVendorQuote($bookingItemId)
+    {
+        if ($this->request->getMethod() !== 'POST') {
+            return redirect()->to('/profile/my-bookings');
+        }
+        if ($r = $this->requireCustomer()) {
+            return $r;
+        }
+        $userId = (int) session()->get('user_id');
+        $bookingItemModel = new BookingItemModel();
+        $item = $bookingItemModel
+            ->select('booking_items.*, bookings.user_id')
+            ->join('bookings', 'bookings.id = booking_items.booking_id')
+            ->where('booking_items.id', (int) $bookingItemId)
+            ->first();
+        if (!$item || (int) ($item['user_id'] ?? 0) !== $userId) {
+            return redirect()->to('/profile/my-bookings')->with('error', 'Booking not found.');
+        }
+
+        $vqModel = new VendorQuoteModel();
+        $vq = $vqModel->where('booking_item_id', (int) $bookingItemId)
+            ->where('status', 'sent')
+            ->orderBy('id', 'DESC')
+            ->first();
+        if (!$vq) {
+            return redirect()->to('/profile/my-bookings')->with('error', 'No revised quote to accept.');
+        }
+
+        $bookingItemModel->update((int) $bookingItemId, [
+            'price' => $vq['total'],
+            'quote_breakdown' => $vq['lines'],
+            'status' => 'accepted',
+        ]);
+        $vqModel->update($vq['id'], ['status' => 'accepted']);
+
+        return redirect()->to('/profile/my-bookings')->with('success', 'Revised quote accepted.');
     }
 
     public function edit()

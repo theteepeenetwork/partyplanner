@@ -721,6 +721,8 @@ CREATE TABLE IF NOT EXISTS `bookings` (
   `start_time` time DEFAULT NULL,
   `end_time` time DEFAULT NULL,
   `payment_intent_id` varchar(255) DEFAULT NULL,
+  `balance_due` decimal(10,2) DEFAULT NULL,
+  `payment_plan` varchar(32) DEFAULT 'single',
   `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   PRIMARY KEY (`id`)
@@ -738,6 +740,9 @@ CREATE TABLE IF NOT EXISTS `booking_items` (
   `package_name` varchar(255) DEFAULT NULL,
   `guest_count` int(11) DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL,
+  `quote_breakdown` json DEFAULT NULL,
+  `quote_warnings` json DEFAULT NULL,
+  `extras_snapshot` json DEFAULT NULL,
   `status` varchar(50) DEFAULT 'pending',
   `start_time` time DEFAULT NULL,
   `end_time` time DEFAULT NULL,

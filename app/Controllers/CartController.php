@@ -89,6 +89,13 @@ class CartController extends BaseController
             return redirect()->to('/cart')->with('error', 'Your cart is empty.');
         }
 
+        if (count($events) > 1) {
+            return redirect()->to('/profile/events')->with(
+                'error',
+                'Your cart contains services for multiple events. Pay a deposit for each event separately from My Events — combined checkout is not supported.'
+            );
+        }
+
         $totalDeposit = 0;
         foreach ($events as $event_id => $event) {
             $eventTotal = 0;

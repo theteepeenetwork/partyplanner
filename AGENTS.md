@@ -48,3 +48,6 @@ For basic syntax checks: `find app -name "*.php" -exec php -l {} \;`
 - `php-cs-fixer` can be extremely slow on a full `app/` scan (may hang for several minutes). For quick linting, prefer `find app -name "*.php" -exec php -l {} \;` which completes in ~5 seconds.
 - The `event_marketplace.sql` dump is idempotent (uses `CREATE TABLE IF NOT EXISTS`) and includes all ~26 tables plus seed data. However, its INSERT statements reference columns (e.g. `moderation_status` on `chat_messages`) that are only added by `database_update.sql`. The correct import order is: run `database_update.sql` first (it uses `ADD COLUMN IF NOT EXISTS` / `CREATE TABLE IF NOT EXISTS` so it's safe on a fresh DB), then run `event_marketplace.sql`.
 - MariaDB needs `/run/mysqld` to exist before starting: `sudo mkdir -p /run/mysqld && sudo chown mysql:mysql /run/mysqld`.
+- Quote automation schema: run `database_quote_automation.sql` after `database_update.sql` (adds `booking_items.quote_breakdown`, vendor auto-accept settings, counter-offers, analytics).
+- Scheduled quote maintenance: `php spark quote:remind-pending`, `php spark quote:expire-stale`.
+- Event checkout uses **15%** deposit; legacy cart uses 10%. Stripe optional via `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET`.

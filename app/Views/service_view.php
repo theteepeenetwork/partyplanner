@@ -188,6 +188,14 @@
                                     </div>
                                 <?php endif; ?>
 
+                                <?php if (!empty($preview_event_id) && session()->get('role') === 'customer'): ?>
+                                    <div id="live-quote-preview" class="alert alert-secondary small mb-3" data-service-id="<?= (int) $service['id'] ?>" data-event-id="<?= (int) $preview_event_id ?>">
+                                        <strong>Estimated total:</strong> <span id="live-quote-total">—</span>
+                                        <div id="live-quote-errors" class="text-danger mt-1"></div>
+                                        <ul id="live-quote-lines" class="mb-0 ps-3"></ul>
+                                    </div>
+                                <?php endif; ?>
+
                                 <!-- Action Buttons -->
                                 <div class="mt-3">
                                     <?php if (session()->has('user_id') && session()->get('role') === 'vendor' && $service['vendor_id'] == session()->get('user_id')): ?>
@@ -228,6 +236,42 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const preview = document.getElementById('live-quote-preview');
+    if (preview) {
+        const form = preview.closest('form');
+        const serviceId = preview.dataset.serviceId;
+        const eventId = preview.dataset.eventId;
+        const refreshQuote = function () {
+            if (!form) return;
+            const fd = new FormData(form);
+            const params = new URLSearchParams();
+            const po = fd.get('pricing_option');
+            if (po) params.set('pricing_option', po);
+            fd.getAll('extras[]').forEach(function (id) { params.append('extras[]', id); });
+            const url = '/event/quote-preview/' + serviceId + '/' + eventId + '?' + params.toString();
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+                .then(function (r) { return r.json(); })
+                .then(function (data) {
+                    document.getElementById('live-quote-total').textContent = data.total != null ? '£' + Number(data.total).toFixed(2) : '—';
+                    const errEl = document.getElementById('live-quote-errors');
+                    errEl.textContent = (data.errors || []).join(' ');
+                    const ul = document.getElementById('live-quote-lines');
+                    ul.innerHTML = '';
+                    (data.lines || []).forEach(function (line) {
+                        if (line.code === 'platform_commission') return;
+                        const li = document.createElement('li');
+                        li.textContent = line.label + ': £' + Number(line.amount).toFixed(2);
+                        ul.appendChild(li);
+                    });
+                })
+                .catch(function () {});
+        };
+        if (form) {
+            form.addEventListener('change', refreshQuote);
+            refreshQuote();
+        }
+    }
+
     document.querySelectorAll('.extra-checkbox[data-per-item="1"]').forEach(function (checkbox) {
         const extraId = checkbox.value;
         const qtyWrap = document.getElementById('qty_wrap_' + extraId);
