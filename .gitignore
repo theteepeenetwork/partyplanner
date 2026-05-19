@@ -125,3 +125,8 @@ nb-configuration.xml
 
 /results/
 /phpunit*.xml
+
+# Dev upload scratch space
+public/uploads/temp/*
+!public/uploads/temp/index.html
+

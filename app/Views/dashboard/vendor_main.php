@@ -58,8 +58,7 @@
                     <div class="stat-icon bg-purple-light mx-auto">
                         <i class="fas fa-eye"></i>
                     </div>
-                    <!-- TODO: Implement profile/service view tracking -->
-                    <div class="stat-value">—</div>
+                    <div class="stat-value"><?= (int) ($profileViews ?? 0) ?></div>
                     <div class="stat-label">Profile Views</div>
                 </div>
             </div>
@@ -68,8 +67,7 @@
                     <div class="stat-icon bg-danger-light mx-auto">
                         <i class="fas fa-reply"></i>
                     </div>
-                    <!-- TODO: Calculate average response time from chat_messages -->
-                    <div class="stat-value">—</div>
+                    <div class="stat-value"><?= isset($avgResponseHours) && $avgResponseHours !== null ? esc($avgResponseHours) . 'h' : '—' ?></div>
                     <div class="stat-label">Avg Response</div>
                 </div>
             </div>
