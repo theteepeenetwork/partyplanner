@@ -1022,19 +1022,6 @@ ON DUPLICATE KEY UPDATE
   `updated_at` = NOW();
 
 -- ============================================================
--- TABLE: service_views — listing view analytics for vendors
--- ============================================================
-CREATE TABLE IF NOT EXISTS `service_views` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `service_id` int(11) NOT NULL,
-  `viewer_user_id` int(11) DEFAULT NULL,
-  `viewed_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `service_views_service_id` (`service_id`),
-  KEY `service_views_viewed_at` (`viewed_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
-
--- ============================================================
 -- Done! Your database is now up to date.
 -- ============================================================
 SELECT 'Database update complete!' AS status;
