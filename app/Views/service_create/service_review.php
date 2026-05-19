@@ -447,24 +447,59 @@
             <section id="locationSection">
                 <div class="review-section">
                     <h4>Step 4: Location and Coverage</h4>
-                    <p><strong>Service Location:</strong>
-                        <?= esc($serviceData['step4']['service_location'] ?? 'Not Provided') ?>
+
+                    <?php
+                        $fulfillmentType = $serviceData['step4']['fulfillment_type'] ?? 'in_person';
+                        $fulfillmentLabels = [
+                            'in_person' => 'I attend the event in person',
+                            'postal'    => 'Posted / delivered to the customer',
+                            'both'      => 'Both — in person and postal',
+                        ];
+                    ?>
+                    <p><strong>Fulfillment:</strong>
+                        <?= esc($fulfillmentLabels[$fulfillmentType] ?? ucfirst($fulfillmentType)) ?>
                     </p>
-                    <p><strong>All Travel Included:</strong>
-                        <?= isset($serviceData['step4']['all_travel_included']) && $serviceData['step4']['all_travel_included'] ? 'Yes' : 'No' ?>
-                    </p>
-                    <p><strong>National Coverage:</strong>
-                        <?= isset($serviceData['step4']['no_travel_limit']) && $serviceData['step4']['no_travel_limit'] ? 'Yes' : 'No' ?>
-                    </p>
-                    <p><strong>Included Coverage Radius:</strong>
-                        up to <?= esc($serviceData['step4']['free_coverage_radius'] ?? 'Not Provided'); ?> km</p>
-                    <?php if (isset($serviceData['step4']['paid_coverage_radius'])): ?>
-                        <p><strong>Paid Coverage Radius:</strong>
-                            <?= esc($serviceData['step4']['paid_coverage_radius'] ?? 'Not limited') ?> km</p>
+
+                    <?php if ($fulfillmentType === 'postal' || $fulfillmentType === 'both'): ?>
+                        <p><strong>Postage Fee:</strong>
+                            <?php if (isset($serviceData['step4']['postal_fee']) && $serviceData['step4']['postal_fee'] > 0): ?>
+                                £<?= esc(number_format((float) $serviceData['step4']['postal_fee'], 2)) ?>
+                            <?php else: ?>
+                                Free
+                            <?php endif; ?>
+                        </p>
+                        <?php if (!empty($serviceData['step4']['free_postage_above'])): ?>
+                            <p><strong>Free Postage On Orders Over:</strong>
+                                £<?= esc(number_format((float) $serviceData['step4']['free_postage_above'], 2)) ?>
+                            </p>
+                        <?php endif; ?>
+                        <?php if (!empty($serviceData['step4']['delivery_lead_time_days'])): ?>
+                            <p><strong>Typical Dispatch Time:</strong>
+                                <?= esc($serviceData['step4']['delivery_lead_time_days']) ?> working day(s)
+                            </p>
+                        <?php endif; ?>
                     <?php endif; ?>
-                    <p><strong>Travel Fee Per KM:</strong>
-                        £<?= esc($serviceData['step4']['travel_fee_per_km'] ?? '0.00') ?>
-                    </p>
+
+                    <?php if ($fulfillmentType === 'in_person' || $fulfillmentType === 'both'): ?>
+                        <p><strong>Service Location:</strong>
+                            <?= esc($serviceData['step4']['service_location'] ?? 'Not Provided') ?>
+                        </p>
+                        <p><strong>All Travel Included:</strong>
+                            <?= isset($serviceData['step4']['all_travel_included']) && $serviceData['step4']['all_travel_included'] ? 'Yes' : 'No' ?>
+                        </p>
+                        <p><strong>National Coverage:</strong>
+                            <?= isset($serviceData['step4']['no_travel_limit']) && $serviceData['step4']['no_travel_limit'] ? 'Yes' : 'No' ?>
+                        </p>
+                        <p><strong>Included Coverage Radius:</strong>
+                            up to <?= esc($serviceData['step4']['free_coverage_radius'] ?? 'Not Provided'); ?> km</p>
+                        <?php if (isset($serviceData['step4']['paid_coverage_radius'])): ?>
+                            <p><strong>Paid Coverage Radius:</strong>
+                                <?= esc($serviceData['step4']['paid_coverage_radius'] ?? 'Not limited') ?> km</p>
+                        <?php endif; ?>
+                        <p><strong>Travel Fee Per KM:</strong>
+                            £<?= esc($serviceData['step4']['travel_fee_per_km'] ?? '0.00') ?>
+                        </p>
+                    <?php endif; ?>
                 </div>
 
 
@@ -512,7 +547,16 @@
                                         <td><?= esc($extra['name']) ?></td>
                                         <td><?= esc($extra['description']) ?></td>
                                         <td><?= '£' . number_format((float) $extra['price'], 2, '.', '') ?></td>
-                                        <td><?= esc($pricingDetail) ?></td>
+                                        <td>
+                                            <?php if (($extra['pricing_type'] ?? 'flat') === 'per_item'): ?>
+                                                Per <?= esc($extra['unit_label'] ?: 'item') ?>
+                                                <?php if (!empty($extra['min_quantity']) || !empty($extra['max_quantity'])): ?>
+                                                    (<?= esc($extra['min_quantity'] ?? 1) ?>–<?= esc($extra['max_quantity'] ?? '∞') ?>)
+                                                <?php endif; ?>
+                                            <?php else: ?>
+                                                Flat fee
+                                            <?php endif; ?>
+                                        </td>
                                     </tr>
                                 <?php endforeach; ?>
                             </tbody>
