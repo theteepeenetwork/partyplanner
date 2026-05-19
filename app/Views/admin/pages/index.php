@@ -25,7 +25,7 @@
         <div class="admin-empty">
             <div class="admin-empty-icon"><i class="fas fa-file-lines" aria-hidden="true"></i></div>
             <p class="admin-empty-title">No CMS pages in the database</p>
-            <p class="admin-empty-text">Import <code class="user-select-all">database_update.sql</code> (creates default published pages), or run <span class="font-monospace small">php spark db:seed CmsPagesSeeder</span>.</p>
+            <p class="admin-empty-text">Reload this page to create default pages automatically, or run <span class="font-monospace small">php spark db:seed CmsPagesSeeder</span>.</p>
             <div class="admin-empty-actions">
                 <a class="btn btn-outline-secondary" href="<?= site_url('/admin') ?>">Back to dashboard</a>
             </div>
@@ -52,7 +52,6 @@
                                 <?php else: ?>
                                     <span class="badge bg-info text-dark">Site nav</span>
                                 <?php endif; ?>
-                                <span class="visually-hidden"><?= esc($cmsNavLabels[$p['slug']]) ?></span>
                             <?php else: ?>
                                 <span class="text-muted small">—</span>
                             <?php endif; ?>
