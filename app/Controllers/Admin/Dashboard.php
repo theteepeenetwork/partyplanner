@@ -65,6 +65,7 @@ class Dashboard extends BaseAdminController
             'inactiveServices' => $inactiveServices,
             'flaggedRooms'     => $flaggedRooms,
             'pendingLanguage'  => $pendingLanguage,
+            'cmsNavIssues'     => PublicCmsNavHealth::navIssues(),
         ]);
     }
 }
