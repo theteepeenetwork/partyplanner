@@ -12,23 +12,45 @@
         <div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div>
     <?php endif; ?>
 
+    <?php if (!empty($customerEvents)): ?>
+        <?= view('partials/customer_event_switcher', [
+            'customerEvents' => $customerEvents,
+            'activeEvent' => $activeEvent ?? null,
+        ]) ?>
+    <?php endif; ?>
+
+    <?php if (!empty($activeEvent)): ?>
+        <div class="alert alert-info mb-3">
+            <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
+            Services you add from this page go into the basket for
+            <strong><?= esc($activeEvent['title'] ?? 'your event') ?></strong>
+            <?php if (!empty($activeEvent['date'])): ?>
+                (<?= date('d M Y', strtotime($activeEvent['date'])) ?>)
+            <?php endif; ?>.
+            <a href="/event/basket/<?= (int) $activeEvent['id'] ?>" class="alert-link">View basket</a>
+        </div>
+    <?php endif; ?>
+
     <?php
     $catById = [];
     foreach ($categories as $c) {
         $catById[(int) $c['id']] = $c['name'];
     }
+    $formEventId = !empty($basketEventId)
+        ? (int) $basketEventId
+        : (!empty($activeEvent) && !empty($activeEvent['id']) ? (int) $activeEvent['id'] : null);
     $hasActiveFilters = !empty($searchQuery)
         || !empty($selectedCategory)
         || !empty($selectedSubcategory)
         || !empty($selectedThirdCategory)
         || (!empty($selectedSort) && $selectedSort !== 'newest');
-    $clearUrl = '/browse-services' . (!empty($basketEventId) ? '?event_id=' . esc($basketEventId) : '');
+    $clearUrl = '/browse-services' . ($formEventId ? '?event_id=' . esc($formEventId) : '');
     ?>
 
     <form class="browse-services-form card border-0 shadow-sm mb-3" action="<?= site_url('browse-services') ?>" method="get" id="browse-services-form">
         <div class="card-body">
-            <?php if (!empty($basketEventId)): ?>
-                <input type="hidden" name="event_id" value="<?= esc($basketEventId) ?>">
+            <?php if ($formEventId): ?>
+                <input type="hidden" name="event_id" value="<?= esc($formEventId) ?>">
             <?php endif; ?>
 
             <div class="row g-3">

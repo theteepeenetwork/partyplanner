@@ -25,6 +25,7 @@ use App\Models\ServiceCancellationPolicyModel;
 use App\Models\ServiceLocationModel;
 use App\Models\ServiceOptionalExtrasModel;
 use App\Models\CartModel;
+use App\Libraries\CustomerEventSummary;
 use App\Libraries\EventBookingQuote;
 use App\Libraries\EventQuoteBuilder;
 use CodeIgniter\Controller;
@@ -119,6 +120,16 @@ class Service_Controller extends BaseController
             }
         }
 
+        $customerEventContext = $this->customerEventContextForBrowse();
+
+        $queryEventId = $this->request->getGet('event_id');
+        $basketEventId = null;
+        if ($queryEventId !== null && $queryEventId !== '') {
+            $basketEventId = (int) $queryEventId;
+        } elseif (session()->get('preferred_basket_event_id') !== null) {
+            $basketEventId = (int) session()->get('preferred_basket_event_id');
+        }
+
         $data = [
             'services' => $services,
             'categories' => $this->buildCategoryTree(),
@@ -128,8 +139,10 @@ class Service_Controller extends BaseController
             'selectedThirdCategory' => $thirdCategoryFilter,
             'selectedSort' => $sort,
             'searchQuery' => $searchQuery ?? '',
-            'basketEventId' => session()->get('preferred_basket_event_id'),
+            'basketEventId' => $basketEventId,
             'message_eligible_by_service_id' => $messageEligibleByServiceId,
+            'customerEvents' => $customerEventContext['events'],
+            'activeEvent' => $customerEventContext['active'],
         ];
 
         return view('browse_services', $data);
@@ -357,6 +370,27 @@ class Service_Controller extends BaseController
     /**
      * When customers browse with ?event_id=, remember it so "Add to event" can skip the picker.
      */
+    /**
+     * @return array{events: list<array<string,mixed>>, active: array<string,mixed>|null}
+     */
+    private function customerEventContextForBrowse(): array
+    {
+        if (!session()->has('user_id') || session()->get('role') !== 'customer') {
+            return ['events' => [], 'active' => null];
+        }
+
+        $eventModel = new EventModel();
+        $userId = (int) session()->get('user_id');
+        $events = $eventModel->where('user_id', $userId)->orderBy('date', 'ASC')->findAll();
+        $summary = new CustomerEventSummary();
+        $events = $summary->enrichMany($userId, $events);
+        $preferred = session()->get('preferred_basket_event_id');
+        $preferredId = $preferred !== null ? (int) $preferred : null;
+        $active = $summary->resolveActiveEvent($events, $preferredId);
+
+        return ['events' => $events, 'active' => $active];
+    }
+
     private function setPreferredBasketEventFromQuery(?string $eventId): void
     {
         if ($eventId === null || $eventId === '' || !session()->has('user_id')) {
