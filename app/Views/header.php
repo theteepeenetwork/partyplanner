@@ -16,8 +16,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
         integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
 
-    <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
-    <link rel="stylesheet" href="<?= base_url('assets/css/dashboard.css') ?>">
+    <link rel="stylesheet" href="/assets/css/style.css">
+    <link rel="stylesheet" href="/assets/css/dashboard.css">
 
     <!-- Slick Carousel CSS (pages with carousels) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slick-carousel/slick/slick.css">
@@ -48,7 +48,7 @@
     <header>
         <nav class="navbar navbar-expand-lg fixed-top shadow-sm">
             <div class="container">
-                <a class="navbar-brand text-uppercase logo" href="<?= base_url('/') ?>">
+                <a class="navbar-brand text-uppercase logo" href="/">
                     <span class="logo-line">For <span class="logo-accent">Your</span></span>
                     <span class="logo-line logo-line--muted">Events</span>
                 </a>
@@ -61,10 +61,10 @@
                 <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
                     <ul class="navbar-nav ms-auto align-items-lg-center">
                         <li class="nav-item">
-                            <a class="nav-link text-end" href="<?= base_url('browse-services') ?>">Browse Services</a>
+                            <a class="nav-link text-end" href="/browse-services">Browse Services</a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link text-end" href="<?= base_url('how-it-works') ?>">How It Works</a>
+                            <a class="nav-link text-end" href="/how-it-works">How It Works</a>
                         </li>
 
                         <?php if (session()->has('user_id')): ?>
@@ -74,26 +74,26 @@
                                     My Account
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
-                                    <li><a class="dropdown-item" href="<?= base_url('profile') ?>">My Profile</a></li>
+                                    <li><a class="dropdown-item" href="/profile">My Profile</a></li>
                                     <?php if (session()->get('role') === 'customer'): ?>
-                                        <li><a class="dropdown-item" href="<?= base_url('cart') ?>">My Cart</a></li>
-                                        <li><a class="dropdown-item" href="<?= base_url('event/create') ?>">Create Event</a></li>
+                                        <li><a class="dropdown-item" href="/cart">My Cart</a></li>
+                                        <li><a class="dropdown-item" href="/event/create">Create Event</a></li>
                                     <?php elseif (session()->get('role') === 'vendor'): ?>
-                                        <li><a class="dropdown-item" href="<?= base_url('profile/services') ?>">My Services</a></li>
-                                        <li><a class="dropdown-item" href="<?= base_url('profile/bookings') ?>">Bookings</a></li>
+                                        <li><a class="dropdown-item" href="/profile/services">My Services</a></li>
+                                        <li><a class="dropdown-item" href="/profile/bookings">Bookings</a></li>
                                     <?php elseif (session()->get('role') === 'admin'): ?>
-                                        <li><a class="dropdown-item" href="<?= base_url('admin') ?>">Admin</a></li>
+                                        <li><a class="dropdown-item" href="/admin">Admin</a></li>
                                     <?php endif; ?>
                                     <li><hr class="dropdown-divider"></li>
-                                    <li><a class="dropdown-item" href="<?= base_url('logout') ?>">Logout</a></li>
+                                    <li><a class="dropdown-item" href="/logout">Logout</a></li>
                                 </ul>
                             </li>
                         <?php else: ?>
                             <li class="nav-item">
-                                <a class="nav-link text-end" href="<?= base_url('login') ?>">Login</a>
+                                <a class="nav-link text-end" href="/login">Login</a>
                             </li>
                             <li class="nav-item">
-                                <a class="btn btn-gradient ms-lg-2 mt-2 mt-lg-0" href="<?= base_url('register') ?>">Register</a>
+                                <a class="btn btn-gradient ms-lg-2 mt-2 mt-lg-0" href="/register">Register</a>
                             </li>
                         <?php endif; ?>
                     </ul>
