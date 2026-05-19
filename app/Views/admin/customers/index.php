@@ -40,7 +40,7 @@
                         <td class="text-muted"><?= (int) $c['id'] ?></td>
                         <td><?= esc($c['name']) ?></td>
                         <td><?= esc($c['email']) ?></td>
-                        <td><?= esc($c['username']) ?></td>
+                        <td><?= esc($c['username'] ?? '') ?></td>
                         <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="<?= site_url('/admin/customers/' . $c['id']) ?>">View</a></td>
                     </tr>
                 <?php endforeach; ?>

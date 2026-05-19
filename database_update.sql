@@ -956,6 +956,12 @@ INSERT INTO `categories` (`id`, `parent_id`, `name`) VALUES
 ON DUPLICATE KEY UPDATE `parent_id`=VALUES(`parent_id`), `name`=VALUES(`name`);
 
 -- ============================================================
+-- TABLE: users — login username (legacy schemas may lack this column)
+-- ============================================================
+CALL `event_marketplace_add_column_if_missing`('users', 'username', '`username` varchar(255) DEFAULT NULL AFTER `name`');
+UPDATE `users` SET `username` = CONCAT('user', `id`) WHERE `username` IS NULL OR TRIM(`username`) = '';
+
+-- ============================================================
 -- TABLE: users — allow admin role
 -- ============================================================
 ALTER TABLE users MODIFY COLUMN `role` ENUM('customer','vendor','admin') NOT NULL;

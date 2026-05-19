@@ -34,8 +34,12 @@ class Dashboard extends BaseAdminController
             ->get()
             ->getResultArray();
 
+        $roomSelect = 'chat_messages.*, chat_rooms.id as room_id';
+        if ($db->fieldExists('flagged_for_review', 'chat_rooms')) {
+            $roomSelect .= ', chat_rooms.flagged_for_review';
+        }
         $recentMessages = $db->table('chat_messages')
-            ->select('chat_messages.*, chat_rooms.id as room_id, chat_rooms.flagged_for_review')
+            ->select($roomSelect)
             ->join('chat_rooms', 'chat_rooms.id = chat_messages.chat_room_id')
             ->orderBy('chat_messages.created_at', 'DESC')
             ->limit(15)
@@ -44,8 +48,12 @@ class Dashboard extends BaseAdminController
 
         $pendingBookings = $bookingModel->where('status', 'pending')->countAllResults();
         $inactiveServices = $serviceModel->where('deleted_at', null)->whereNotIn('status', ['active'])->countAllResults();
-        $flaggedRooms     = $db->table('chat_rooms')->where('flagged_for_review', 1)->countAllResults();
-        $pendingLanguage  = $db->table('chat_messages')->where('moderation_status', ChatModeration::STATUS_PENDING)->countAllResults();
+        $flaggedRooms = $db->fieldExists('flagged_for_review', 'chat_rooms')
+            ? $db->table('chat_rooms')->where('flagged_for_review', 1)->countAllResults()
+            : 0;
+        $pendingLanguage = $db->fieldExists('moderation_status', 'chat_messages')
+            ? $db->table('chat_messages')->where('moderation_status', ChatModeration::STATUS_PENDING)->countAllResults()
+            : 0;
 
         return $this->layout('admin/dashboard_home', [
             'title'            => 'Admin dashboard',

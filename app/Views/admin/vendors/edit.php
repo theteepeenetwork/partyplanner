@@ -10,7 +10,7 @@
     </div>
     <div class="mb-3">
         <label class="form-label">Username</label>
-        <input class="form-control" name="username" value="<?= esc(old('username', $user['username'])) ?>" required>
+        <input class="form-control" name="username" value="<?= esc(old('username', $user['username'] ?? '')) ?>" required>
     </div>
     <div class="mb-3">
         <label class="form-label">Email</label>
