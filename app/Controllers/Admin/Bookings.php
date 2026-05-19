@@ -46,10 +46,10 @@ class Bookings extends BaseAdminController
             $bookingModel->where('bookings.status', $status);
         }
         if ($dateFrom !== '') {
-            $bookingModel->where('events.date >=', $dateFrom);
+            $bookingModel->where('events.`date` >=', $dateFrom, false);
         }
         if ($dateTo !== '') {
-            $bookingModel->where('events.date <=', $dateTo);
+            $bookingModel->where('events.`date` <=', $dateTo, false);
         }
         if ($vendorId > 0 || $serviceId > 0) {
             if ($ids === []) {

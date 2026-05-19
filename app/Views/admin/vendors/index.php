@@ -40,7 +40,7 @@
                         <td class="text-muted"><?= (int) $v['id'] ?></td>
                         <td><?= esc($v['name']) ?></td>
                         <td><?= esc($v['email']) ?></td>
-                        <td><?= esc($v['username']) ?></td>
+                        <td><?= esc($v['username'] ?? '') ?></td>
                         <td class="text-end"><a class="btn btn-sm btn-outline-primary" href="<?= site_url('/admin/vendors/' . $v['id']) ?>">View</a></td>
                     </tr>
                 <?php endforeach; ?>

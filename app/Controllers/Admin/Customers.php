@@ -17,9 +17,11 @@ class Customers extends BaseAdminController
         if ($q !== '') {
             $builder->groupStart()
                 ->like('name', $q)
-                ->orLike('email', $q)
-                ->orLike('username', $q)
-                ->groupEnd();
+                ->orLike('email', $q);
+            if ($userModel->db->fieldExists('username', 'users')) {
+                $builder->orLike('username', $q);
+            }
+            $builder->groupEnd();
         }
 
         $customers = $builder->orderBy('id', 'DESC')->paginate(25);

@@ -12,7 +12,7 @@
             <h2 class="h6">Account</h2>
             <p class="mb-1"><strong>Name:</strong> <?= esc($user['name']) ?></p>
             <p class="mb-1"><strong>Email:</strong> <?= esc($user['email']) ?></p>
-            <p class="mb-0"><strong>Username:</strong> <?= esc($user['username']) ?></p>
+            <p class="mb-0"><strong>Username:</strong> <?= esc($user['username'] ?? '') ?></p>
         </div></div>
     </div>
     <div class="col-md-8">

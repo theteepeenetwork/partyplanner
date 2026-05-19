@@ -45,10 +45,10 @@ class Events extends BaseAdminController
                 ->groupEnd();
         }
         if ($dateFrom !== '') {
-            $builder->where('events.date >=', $dateFrom);
+            $builder->where('events.`date` >=', $dateFrom, false);
         }
         if ($dateTo !== '') {
-            $builder->where('events.date <=', $dateTo);
+            $builder->where('events.`date` <=', $dateTo, false);
         }
 
         $events = $builder->orderBy('events.id', 'DESC')->get()->getResultArray();

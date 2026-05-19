@@ -956,6 +956,12 @@ INSERT INTO `categories` (`id`, `parent_id`, `name`) VALUES
 ON DUPLICATE KEY UPDATE `parent_id`=VALUES(`parent_id`), `name`=VALUES(`name`);
 
 -- ============================================================
+-- TABLE: users — login username (legacy schemas may lack this column)
+-- ============================================================
+CALL `event_marketplace_add_column_if_missing`('users', 'username', '`username` varchar(255) DEFAULT NULL AFTER `name`');
+UPDATE `users` SET `username` = CONCAT('user', `id`) WHERE `username` IS NULL OR TRIM(`username`) = '';
+
+-- ============================================================
 -- TABLE: users — allow admin role
 -- ============================================================
 ALTER TABLE users MODIFY COLUMN `role` ENUM('customer','vendor','admin') NOT NULL;
@@ -1006,33 +1012,6 @@ DROP PROCEDURE IF EXISTS `event_marketplace_add_column_if_missing`;
 INSERT INTO `cms_pages` (`slug`, `title`, `content`, `status`, `created_at`, `updated_at`) VALUES
 ('homepage', 'Welcome', '<p class="lead">Plan your celebration with trusted local vendors.</p><p><em>This block is editable in <strong>Admin → Pages → homepage</strong>.</em></p>', 'published', NOW(), NOW())
 ON DUPLICATE KEY UPDATE `title` = VALUES(`title`), `content` = VALUES(`content`), `status` = 'published', `updated_at` = NOW();
-
-INSERT INTO `cms_pages` (`slug`, `title`, `content`, `meta_title`, `meta_description`, `status`, `created_at`, `updated_at`) VALUES
-('about', 'About us', '<p>We connect people planning celebrations with trusted event suppliers.</p>', 'About — For Your Events', 'Learn about the For Your Events marketplace.', 'published', NOW(), NOW()),
-('how-it-works', 'How it works', '<p class="lead">Plan your event and book suppliers in a few clear steps.</p><h2 class="h4 mt-4">For customers</h2><ol><li><strong>Create your event</strong> — date, location, guest count, and the type of occasion.</li><li><strong>Browse services</strong> — search and filter by category, compare listings, and save favourites.</li><li><strong>Add to your plan</strong> — add services to your event basket and send booking requests to vendors.</li><li><strong>Stay in control</strong> — track pending, accepted, and declined requests in My Bookings, message vendors from Messages, and review payments in Payments.</li></ol><h2 class="h4 mt-4">For vendors</h2><ol><li><strong>Register as a vendor</strong> and build your service listings with clear pricing and policies.</li><li><strong>Respond to bookings</strong> from your dashboard; accept or decline with one click.</li><li><strong>Use your calendar</strong> to see upcoming work tied to customer events.</li></ol><p class="mt-3 mb-0 text-muted">Administrators can refine this text under <strong>Admin → Pages</strong>.</p>', 'How it works', 'How the For Your Events marketplace works for customers and vendors.', 'published', NOW(), NOW()),
-('contact', 'Contact', '<p>Email us at <strong>support@example.com</strong> (replace with your live support address).</p>', 'Contact', 'Contact For Your Events.', 'published', NOW(), NOW()),
-('vendor-info', 'Information for vendors', '<p>List your services, respond to booking requests, and grow your event business from a single dashboard.</p>', 'For vendors', 'Vendor information for the marketplace.', 'published', NOW(), NOW()),
-('faq', 'Frequently asked questions', '<h5>How do I book a service?</h5><p>Add services to your event basket, send booking requests, and complete payment when suppliers confirm.</p><h5 class="mt-4">How do I message a vendor?</h5><p>Messaging opens once you have an eligible booking for that service.</p>', 'FAQ', 'Common questions about For Your Events.', 'published', NOW(), NOW())
-ON DUPLICATE KEY UPDATE
-  `title` = VALUES(`title`),
-  `content` = VALUES(`content`),
-  `meta_title` = VALUES(`meta_title`),
-  `meta_description` = VALUES(`meta_description`),
-  `status` = 'published',
-  `updated_at` = NOW();
-
--- ============================================================
--- TABLE: service_views — listing view analytics for vendors
--- ============================================================
-CREATE TABLE IF NOT EXISTS `service_views` (
-  `id` int(11) unsigned NOT NULL AUTO_INCREMENT,
-  `service_id` int(11) NOT NULL,
-  `viewer_user_id` int(11) DEFAULT NULL,
-  `viewed_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  PRIMARY KEY (`id`),
-  KEY `service_views_service_id` (`service_id`),
-  KEY `service_views_viewed_at` (`viewed_at`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 -- ============================================================
 -- Done! Your database is now up to date.
