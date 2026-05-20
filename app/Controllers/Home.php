@@ -5,9 +5,24 @@ use App\Models\ServiceModel;
 use App\Models\ServiceImageModel;
 use App\Models\CategoryModel;
 use App\Models\CmsPageModel;
+use Config\Branding;
 
 class Home extends BaseController
 {
+    /** @var list<array{image: string, keywords: list<string>}> */
+    private const CATEGORY_TILE_DEFS = [
+        ['image' => 'category_photography_v1.webp', 'keywords' => ['photo', 'photograph']],
+        ['image' => 'category_catering_v1.webp', 'keywords' => ['cater', 'food', 'kitchen']],
+        ['image' => 'category_planning_v1.webp', 'keywords' => ['plan', 'coord']],
+        ['image' => 'category_florist_v1.webp', 'keywords' => ['flor', 'flower']],
+        ['image' => 'category_entertainment_v1.webp', 'keywords' => ['music', 'dj', 'entertain']],
+        ['image' => 'category_beauty_v1.webp', 'keywords' => ['hair', 'makeup', 'beauty']],
+        ['image' => 'category_transport_v1.webp', 'keywords' => ['transport', 'car', 'limo']],
+        ['image' => 'category_venues_v1.webp', 'keywords' => ['venue', 'hall', 'space']],
+        ['image' => 'category_supplies_v1.webp', 'keywords' => ['suppl', 'decor', 'hire']],
+        ['image' => 'category_cakes_v1.webp', 'keywords' => ['cake', 'dessert', 'sweet']],
+    ];
+
     public function index()
     {
         $serviceModel = new ServiceModel();
@@ -49,21 +64,9 @@ class Home extends BaseController
         $categories = $categoryModel->getRootCategories();
 
         // Homepage tiles: pair stock art with real category IDs when names align
-        $tileDefs = [
-            ['image' => 'photo1.png', 'keywords' => ['photo', 'photograph']],
-            ['image' => 'caterer.png', 'keywords' => ['cater', 'food', 'kitchen']],
-            ['image' => 'planner.png', 'keywords' => ['plan', 'coord']],
-            ['image' => 'florist.png', 'keywords' => ['flor', 'flower']],
-            ['image' => 'dj.png', 'keywords' => ['music', 'dj', 'entertain']],
-            ['image' => 'makeup.png', 'keywords' => ['hair', 'makeup', 'beauty']],
-            ['image' => 'car.png', 'keywords' => ['transport', 'car', 'limo']],
-            ['image' => 'venues.png', 'keywords' => ['venue', 'hall', 'space']],
-            ['image' => 'supplies.png', 'keywords' => ['suppl', 'decor', 'hire']],
-            ['image' => 'cakes.png', 'keywords' => ['cake', 'dessert', 'sweet']],
-        ];
         $homeCategoryTiles = [];
         $usedIds           = [];
-        foreach ($tileDefs as $td) {
+        foreach (self::CATEGORY_TILE_DEFS as $td) {
             foreach ($categories as $cat) {
                 $name = strtolower((string) ($cat['name'] ?? ''));
                 foreach ($td['keywords'] as $kw) {
@@ -97,15 +100,19 @@ class Home extends BaseController
             $homeCategoryTiles[] = [
                 'id'    => $cid,
                 'name'  => $cat['name'],
-                'image' => 'no-image.png',
+                'image' => 'category_default_v1.webp',
             ];
         }
 
+        $branding = config(Branding::class);
+
         $data = [
             'services' => $services,
-            'categories' => $categories, // Include categories in the data array
+            'categories' => $categories,
             'homeCategoryTiles' => $homeCategoryTiles,
             'cmsHome' => $cmsHome,
+            'heroSubtitle' => $branding->heroSubtitle(),
+            'heroImage' => 'hero_wedding_evening_v1.webp',
         ];
 
         return view('home', $data);
