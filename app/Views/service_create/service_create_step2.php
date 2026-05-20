@@ -107,6 +107,13 @@
                         <label class="custom-control-label" for="tiered_packages_pricing">Tiered Packages
                             Pricing</label>
                     </div>
+
+                    <div class="custom-control custom-radio">
+                        <input type="radio" class="custom-control-input" id="quantity_based_pricing"
+                            name="pricing_type" value="quantity_based_pricing"
+                            <?= $selectedPricingType === 'quantity_based_pricing' ? 'checked' : '' ?>>
+                        <label class="custom-control-label" for="quantity_based_pricing">Per-item / quantity pricing (e.g. favours)</label>
+                    </div>
                 </div>
 
                 <!-- Corporate Events -->

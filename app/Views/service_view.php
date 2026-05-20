@@ -19,22 +19,16 @@
                     $pricingType = 'custom_duration_pricing';
                 } elseif (!empty($tieredPackages)) {
                     $pricingType = 'tiered_packages_pricing';
+                } elseif (!empty($quantityPricing)) {
+                    $pricingType = 'quantity_based_pricing';
                 }
             }
             $showGuest = $pricingType === 'guest_based_pricing';
             $showDuration = $pricingType === 'custom_duration_pricing';
             $showPackages = $pricingType === 'tiered_packages_pricing';
-            $showQuantity = $pricingType === 'quantity_based_pricing';
-            $qtyMin = (int) ($quantityPricing['min_quantity'] ?? 1);
-            $qtyMax = isset($quantityPricing['max_quantity']) && $quantityPricing['max_quantity'] !== '' && $quantityPricing['max_quantity'] !== null
-                ? (int) $quantityPricing['max_quantity'] : null;
-            $qtyDefault = $qtyMin > 0 ? $qtyMin : 1;
-            $qtyUnitLabel = esc($quantityPricing['unit_label'] ?? 'items');
-            $qtyUnitPrice = (float) ($quantityPricing['unit_price'] ?? 0);
-            $showQuantity = !empty($showQuantity) || $pricingType === 'quantity_based_pricing';
-            $qtyMin = max(1, (int) (is_array($quantityPricing ?? null) ? ($quantityPricing['min_quantity'] ?? 1) : 1));
-            $qtyMax = is_array($quantityPricing ?? null)
-                && isset($quantityPricing['max_quantity'])
+            $showQuantity = $pricingType === 'quantity_based_pricing' && !empty($quantityPricing);
+            $qtyMin = max(1, (int) ($quantityPricing['min_quantity'] ?? 1));
+            $qtyMax = isset($quantityPricing['max_quantity'])
                 && $quantityPricing['max_quantity'] !== ''
                 && $quantityPricing['max_quantity'] !== null
                 ? (int) $quantityPricing['max_quantity'] : null;

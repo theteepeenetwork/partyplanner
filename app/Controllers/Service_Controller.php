@@ -797,6 +797,7 @@ class Service_Controller extends BaseController
 
                     unset($step3['enableHours'], $step3['enableDays'], $step3['hour_number'], $step3['hour_price'], $step3['day_number'], $step3['day_price']);
                     unset($step3['package_name'], $step3['package_description'], $step3['package_price']);
+                    unset($step3['unit_price'], $step3['min_quantity'], $step3['max_quantity'], $step3['unit_label']);
                 }
 
                 if ($pricingType === 'custom_duration_pricing') {
@@ -810,6 +811,7 @@ class Service_Controller extends BaseController
 
                     unset($step3['min_guest'], $step3['max_guest'], $step3['guest_price']);
                     unset($step3['package_name'], $step3['package_description'], $step3['package_price']);
+                    unset($step3['unit_price'], $step3['min_quantity'], $step3['max_quantity'], $step3['unit_label']);
                 }
 
                 if ($pricingType === 'tiered_packages_pricing') {
@@ -2016,6 +2018,7 @@ class Service_Controller extends BaseController
         $guestPricingModel = new ServiceGuestBasedPricingModel();
         $durationPricingModel = new ServiceCustomDurationPricingModel();
         $tieredPricingModel = new ServiceTieredPackagesPricingModel();
+        $quantityPricingModel = new ServiceQuantityPricingModel();
         $serviceLocationModel = new ServiceLocationModel();
         $optionalExtrasModel = new ServiceOptionalExtrasModel();
         $cancellationModel = new ServiceCancellationPolicyModel();
@@ -2138,6 +2141,32 @@ class Service_Controller extends BaseController
                 ]);
             }
 
+            $privatePricing = $servicePrivatePricingModel->where('service_id', $id)->first();
+            if (($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing') {
+                $unitPrice = $this->request->getPost('quantity_unit_price');
+                $minQty = $this->request->getPost('quantity_min_quantity');
+                if ($unitPrice !== null && $unitPrice !== '' && $minQty !== null && $minQty !== '') {
+                    $minQty = max(1, (int) $minQty);
+                    $maxRaw = $this->request->getPost('quantity_max_quantity');
+                    $maxQty = ($maxRaw !== null && $maxRaw !== '') ? max($minQty, (int) $maxRaw) : null;
+                    $unitLabel = trim((string) ($this->request->getPost('quantity_unit_label') ?? 'items')) ?: 'items';
+                    $existing = $quantityPricingModel->where('service_id', $id)->first();
+                    $row = [
+                        'service_id' => $id,
+                        'private_event_pricing_id' => $privatePricing['id'] ?? null,
+                        'unit_price' => (float) $unitPrice,
+                        'min_quantity' => $minQty,
+                        'max_quantity' => $maxQty,
+                        'unit_label' => $unitLabel,
+                    ];
+                    if ($existing) {
+                        $quantityPricingModel->update($existing['id'], $row);
+                    } else {
+                        $quantityPricingModel->insert($row);
+                    }
+                }
+            }
+
             $db->transComplete();
 
             return redirect()->to('/service/edit/' . $id)->with('success', 'Service updated successfully.');
@@ -2154,10 +2183,12 @@ class Service_Controller extends BaseController
         $guestPricing = [];
         $durationPricing = [];
         $tieredPackages = [];
+        $quantityPricing = null;
         if ($privatePricing) {
             $guestPricing = $guestPricingModel->where('private_event_pricing_id', $privatePricing['id'])->findAll();
             $durationPricing = $durationPricingModel->where('private_event_pricing_id', $privatePricing['id'])->findAll();
             $tieredPackages = $tieredPricingModel->where('private_event_pricing_id', $privatePricing['id'])->findAll();
+            $quantityPricing = $quantityPricingModel->where('private_event_pricing_id', $privatePricing['id'])->first();
         }
 
         $categories = $this->buildCategoryTree();
@@ -2174,6 +2205,7 @@ class Service_Controller extends BaseController
             'guestPricing' => $guestPricing,
             'durationPricing' => $durationPricing,
             'tieredPackages' => $tieredPackages,
+            'quantityPricing' => $quantityPricing,
         ];
 
         return view('service_edit', $data);
@@ -2779,6 +2811,7 @@ class Service_Controller extends BaseController
             'services_locations',
             'services_optional_extras',
             'services_public_event_pricing',
+            'services_quantity_pricing',
             'service_event_types',
         ] as $table) {
             if (!$db->tableExists($table)) {

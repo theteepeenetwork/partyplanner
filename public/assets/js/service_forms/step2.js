@@ -75,6 +75,7 @@ document.addEventListener('DOMContentLoaded', function () {
     const guestBasedPricing = document.getElementById('guest_based_pricing');
     const customDurationPricing = document.getElementById('custom_duration_pricing');
     const tieredPackagesPricing = document.getElementById('tiered_packages_pricing');
+    const quantityBasedPricing = document.getElementById('quantity_based_pricing');
 
     // Determine if any pricing type is set in the session
     const pricingType = step3Data.pricing_type ?? step2Data.pricing_type ?? '';
@@ -90,11 +91,13 @@ document.addEventListener('DOMContentLoaded', function () {
             customDurationPricing.checked = true;
         } else if (pricingType === 'tiered_packages_pricing' && tieredPackagesPricing) {
             tieredPackagesPricing.checked = true;
+        } else if (pricingType === 'quantity_based_pricing' && quantityBasedPricing) {
+            quantityBasedPricing.checked = true;
         }
     }
 
     // Add event listeners to radio buttons to ensure the section stays visible when a pricing type is selected
-    [guestBasedPricing, customDurationPricing, tieredPackagesPricing].forEach(function (radio) {
+    [guestBasedPricing, customDurationPricing, tieredPackagesPricing, quantityBasedPricing].forEach(function (radio) {
         if (radio) {
             radio.addEventListener('change', function () {
                 pricingTypeSection.style.display = 'block';
