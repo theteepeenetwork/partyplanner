@@ -227,11 +227,16 @@ class EventController extends BaseController
         }
 
         // Capture selected options from the service view form
+        $pricingOption = $this->request->getGet('pricing_option') ?? $this->request->getPost('pricing_option');
         $selectedOptions = [
             'service_id' => $serviceId,
-            'pricing_option' => $this->request->getGet('pricing_option') ?? $this->request->getPost('pricing_option'),
+            'pricing_option' => $pricingOption,
             'extras' => $this->request->getGet('extras') ?? $this->request->getPost('extras'),
             'extra_qty' => $this->normalizeExtraQtyMap($this->request->getPost('extra_qty')),
+            'order_quantity' => $this->resolveOrderQuantity(
+                $pricingOption,
+                $this->request->getPost('order_quantity')
+            ),
         ];
 
         if (! session()->has('user_id')) {
@@ -301,6 +306,10 @@ class EventController extends BaseController
 
         $pendingAdd = session()->get('pending_add_to_event') ?? [];
         $pricingOption = $this->request->getPost('pricing_option') ?? ($pendingAdd['pricing_option'] ?? null);
+        $orderQuantity = $this->resolveOrderQuantity(
+            $pricingOption,
+            $this->request->getPost('order_quantity') ?? ($pendingAdd['order_quantity'] ?? null)
+        );
         $extrasRaw = $this->request->getPost('extras') ?? ($pendingAdd['extras'] ?? null);
         $extraQtyMap = array_replace(
             $this->normalizeExtraQtyMap($pendingAdd['extra_qty'] ?? []),
@@ -343,8 +352,14 @@ class EventController extends BaseController
             $pricingOption = null;
         }
 
+        if (($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing'
+            && $orderQuantity !== null
+            && $orderQuantity > 0) {
+            $pricingOption = 'qty_' . $orderQuantity;
+        }
+
         $quoteBuilder = new EventQuoteBuilder();
-        $quote = $quoteBuilder->build($service, $event, $pricingOption, $selectedExtras, $extraQtyMap);
+        $quote = $quoteBuilder->build($service, $event, $pricingOption, $selectedExtras, $extraQtyMap, $orderQuantity);
 
         if (!empty($quote['errors'])) {
             return redirect()->to('/service/view/' . $serviceId)
@@ -379,7 +394,7 @@ class EventController extends BaseController
             'vendor_id' => $service['vendor_id'],
             'package_name' => $packageLabel,
             'extras' => json_encode($selectedExtras),
-            'quantity' => 1,
+            'quantity' => max(1, (int) ($orderQuantity ?? 1)),
             'unit_price' => round($estimated, 2),
             'deposit_amount' => $depositAmount,
             'estimated_total' => round($estimated, 2),
@@ -432,8 +447,12 @@ class EventController extends BaseController
             }
         }
         $extraQtyMap = $this->normalizeExtraQtyMap($this->request->getGet('extra_qty'));
+        $orderQuantity = $this->resolveOrderQuantity(
+            is_string($pricingOption) ? $pricingOption : null,
+            $this->request->getGet('order_quantity')
+        );
 
-        $quote = (new EventQuoteBuilder())->build($service, $event, $pricingOption, $selectedExtras, $extraQtyMap);
+        $quote = (new EventQuoteBuilder())->build($service, $event, $pricingOption, $selectedExtras, $extraQtyMap, $orderQuantity);
         $depositPercent = 0.15;
 
         return $this->response->setJSON([
@@ -444,6 +463,30 @@ class EventController extends BaseController
             'distance_km' => $quote['distance_km'],
             'deposit' => round($quote['total'] * $depositPercent, 2),
         ]);
+    }
+
+    /**
+     * Order quantity from explicit field or pricing_option qty_{n}.
+     *
+     * @param mixed $rawOrderQty
+     */
+    private function resolveOrderQuantity(?string $pricingOption, $rawOrderQty): ?int
+    {
+        if ($rawOrderQty !== null && $rawOrderQty !== '') {
+            $n = (int) $rawOrderQty;
+            if ($n > 0) {
+                return $n;
+            }
+        }
+
+        if ($pricingOption !== null && preg_match('/^qty_(\d+)$/', $pricingOption, $m)) {
+            $n = (int) $m[1];
+            if ($n > 0) {
+                return $n;
+            }
+        }
+
+        return null;
     }
 
     /**

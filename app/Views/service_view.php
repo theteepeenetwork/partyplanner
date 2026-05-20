@@ -24,6 +24,21 @@
             $showGuest = $pricingType === 'guest_based_pricing';
             $showDuration = $pricingType === 'custom_duration_pricing';
             $showPackages = $pricingType === 'tiered_packages_pricing';
+            $showQuantity = $pricingType === 'quantity_based_pricing';
+            $qtyMin = (int) ($quantityPricing['min_quantity'] ?? 1);
+            $qtyMax = isset($quantityPricing['max_quantity']) && $quantityPricing['max_quantity'] !== '' && $quantityPricing['max_quantity'] !== null
+                ? (int) $quantityPricing['max_quantity'] : null;
+            $qtyDefault = $qtyMin > 0 ? $qtyMin : 1;
+            $qtyUnitLabel = esc($quantityPricing['unit_label'] ?? 'items');
+            $qtyUnitPrice = (float) ($quantityPricing['unit_price'] ?? 0);
+            $showQuantity = !empty($showQuantity) || $pricingType === 'quantity_based_pricing';
+            $qtyMin = max(1, (int) (is_array($quantityPricing ?? null) ? ($quantityPricing['min_quantity'] ?? 1) : 1));
+            $qtyMax = is_array($quantityPricing ?? null)
+                && isset($quantityPricing['max_quantity'])
+                && $quantityPricing['max_quantity'] !== ''
+                && $quantityPricing['max_quantity'] !== null
+                ? (int) $quantityPricing['max_quantity'] : null;
+            $qtyDefault = $qtyMin;
             ?>
             <div class="service-preview card">
                 <div class="row">
@@ -79,7 +94,7 @@
 
                         <!-- Pricing Options -->
                         <div class="pricing-options">
-                            <?php $hasPricing = $showGuest || $showDuration || $showPackages; ?>
+                            <?php $hasPricing = $showGuest || $showDuration || $showPackages || $showQuantity; ?>
                             <?php if ($hasPricing): ?>
                                 <h4>Pricing Options</h4>
                             <?php endif; ?>
@@ -129,6 +144,29 @@
                                     </div>
                                 <?php endif; ?>
 
+                                <?php if ($showQuantity && is_array($quantityPricing)): ?>
+                                    <div class="form-group">
+                                        <label for="orderQuantity">Order quantity<?= !empty($quantityPricing['unit_label']) ? ' (' . esc($quantityPricing['unit_label']) . ')' : '' ?>:</label>
+                                        <input type="number" class="form-control quote-refresh-input" id="orderQuantity"
+                                            name="order_quantity"
+                                            value="<?= (int) $qtyDefault ?>"
+                                            min="<?= (int) $qtyMin ?>"
+                                            <?= $qtyMax !== null ? 'max="' . (int) $qtyMax . '"' : '' ?>
+                                            required>
+                                        <?php if (!empty($quantityPricing['unit_price'])): ?>
+                                            <p class="text-muted small mb-0 mt-1">
+                                                £<?= number_format((float) $quantityPricing['unit_price'], 2) ?> per <?= esc($quantityPricing['unit_label'] ?? 'item') ?>
+                                                <?php if ($qtyMax !== null): ?>
+                                                    &middot; <?= (int) $qtyMin ?>–<?= (int) $qtyMax ?>
+                                                <?php elseif ($qtyMin > 1): ?>
+                                                    &middot; min <?= (int) $qtyMin ?>
+                                                <?php endif; ?>
+                                            </p>
+                                        <?php endif; ?>
+                                        <input type="hidden" name="pricing_option" id="qtyPricingOption" value="qty_<?= (int) $qtyDefault ?>">
+                                    </div>
+                                <?php endif; ?>
+
                                 <!-- Optional Extras -->
                                 <?php if (!empty($optional_extras)): ?>
                                     <div class="form-group">
@@ -156,7 +194,7 @@
                                                     <div class="extra-qty-wrap ms-4 mt-1" id="qty_wrap_<?= esc($extra['id']) ?>" style="display:none">
                                                         <div class="d-flex flex-wrap align-items-center gap-2">
                                                             <label class="form-label mb-0 small text-muted">Quantity (optional):</label>
-                                                            <input type="number" class="form-control form-control-sm"
+                                                            <input type="number" class="form-control form-control-sm quote-refresh-input"
                                                                 style="width:90px"
                                                                 name="extra_qty[<?= esc($extra['id']) ?>]"
                                                                 value=""
@@ -172,7 +210,7 @@
                                                                 </span>
                                                             <?php endif; ?>
                                                         </div>
-                                                        <p class="small text-muted mb-0 ms-0 mt-1">If you leave this blank, we price this extra using your event’s guest count (after you pick the event).</p>
+                                                        <p class="small text-muted mb-0 ms-0 mt-1"><?= !empty($showQuantity) ? 'If you leave this blank, we price this extra using your order quantity above.' : 'If you leave this blank, we price this extra using your event’s guest count (after you pick the event).' ?></p>
                                                     </div>
                                                 <?php endif; ?>
                                             </div>
@@ -241,13 +279,32 @@ document.addEventListener('DOMContentLoaded', function () {
         const form = preview.closest('form');
         const serviceId = preview.dataset.serviceId;
         const eventId = preview.dataset.eventId;
+        const qtyInput = document.getElementById('orderQuantity');
+        const qtyPricingOption = document.getElementById('qtyPricingOption');
+
+        const syncQtyPricingOption = function () {
+            if (!qtyInput || !qtyPricingOption) return;
+            const n = parseInt(qtyInput.value, 10);
+            if (n > 0) {
+                qtyPricingOption.value = 'qty_' + n;
+            }
+        };
+
         const refreshQuote = function () {
             if (!form) return;
+            syncQtyPricingOption();
             const fd = new FormData(form);
             const params = new URLSearchParams();
             const po = fd.get('pricing_option');
             if (po) params.set('pricing_option', po);
+            const orderQty = fd.get('order_quantity');
+            if (orderQty) params.set('order_quantity', orderQty);
             fd.getAll('extras[]').forEach(function (id) { params.append('extras[]', id); });
+            fd.forEach(function (value, key) {
+                if (key.indexOf('extra_qty') === 0 && value !== '') {
+                    params.append(key, value);
+                }
+            });
             const url = '/event/quote-preview/' + serviceId + '/' + eventId + '?' + params.toString();
             fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                 .then(function (r) { return r.json(); })
@@ -268,6 +325,14 @@ document.addEventListener('DOMContentLoaded', function () {
         };
         if (form) {
             form.addEventListener('change', refreshQuote);
+            form.addEventListener('input', function (e) {
+                if (e.target && (e.target.classList.contains('quote-refresh-input') || e.target.name && e.target.name.indexOf('extra_qty') === 0)) {
+                    refreshQuote();
+                }
+            });
+            if (qtyInput) {
+                qtyInput.addEventListener('input', syncQtyPricingOption);
+            }
             refreshQuote();
         }
     }

@@ -75,11 +75,13 @@ class EventQuoteBuilder
             $pricingOption = null;
         }
 
-        $corporatePricing = $this->loadCorporatePricing($serviceId);
-        $quantityPricing = null;
-        if (($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing') {
-            $quantityPricing = $this->loadQuantityPricing($serviceId, $privateId);
+        if (($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing'
+            && $orderQuantity !== null
+            && $orderQuantity > 0) {
+            $pricingOption = 'qty_' . $orderQuantity;
         }
+
+        $corporatePricing = $this->loadCorporatePricing($serviceId);
 
         $availability = new ServiceAvailabilityChecker();
         $availErrors = $availability->check(
@@ -104,9 +106,7 @@ class EventQuoteBuilder
             $selectedExtraIds,
             $pricingOption,
             $extraQuantitiesById,
-            $corporatePricing,
-            $orderQuantity,
-            $quantityPricing
+            $corporatePricing
         );
 
         if ($availErrors !== []) {
@@ -114,29 +114,6 @@ class EventQuoteBuilder
         }
 
         return $quote;
-    }
-
-    /**
-     * @return array<string,mixed>|null
-     */
-    /**
-     * @return array<string,mixed>|null
-     */
-    public function loadQuantityPricing(int $serviceId, ?int $privatePricingId = null): ?array
-    {
-        $db = \Config\Database::connect();
-        if (!$db->tableExists('services_quantity_based_pricing')) {
-            return null;
-        }
-
-        $builder = $db->table('services_quantity_based_pricing')->where('service_id', $serviceId);
-        if ($privatePricingId !== null) {
-            $builder->where('private_event_pricing_id', $privatePricingId);
-        }
-
-        $row = $builder->get()->getRowArray();
-
-        return is_array($row) ? $row : null;
     }
 
     public function loadCorporatePricing(int $serviceId): ?array

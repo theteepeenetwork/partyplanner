@@ -38,7 +38,8 @@ class EventBookingQuote
         array $selectedExtraIds,
         ?string $pricingOption,
         array $extraQuantitiesById = [],
-        ?array $corporatePricing = null
+        ?array $corporatePricing = null,
+        ?int $orderQuantity = null
     ): array {
         $warnings = [];
         $errors  = [];
@@ -64,7 +65,8 @@ class EventBookingQuote
                 $packages,
                 $quantityPricing,
                 $guestCount,
-                $pricingOption
+                $pricingOption,
+                $orderQuantity
             );
             $lines = array_merge($lines, $privateResult['lines']);
             $warnings = array_merge($warnings, $privateResult['warnings']);
@@ -75,7 +77,7 @@ class EventBookingQuote
         if (is_array($privatePricing)
             && ($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing'
             && $quantityPricing !== null) {
-            $resolvedQty = $this->resolveOrderQuantity($quantityPricing, $pricingOption);
+            $resolvedQty = $this->resolveOrderQuantity($quantityPricing, $pricingOption, $orderQuantity);
             if ($resolvedQty !== null) {
                 $defaultItemQuantity = $resolvedQty;
             }
@@ -226,7 +228,8 @@ class EventBookingQuote
         array $packages,
         ?array $quantityPricing,
         int $guestCount,
-        ?string $pricingOption
+        ?string $pricingOption,
+        ?int $orderQuantity = null
     ): array {
         $lines    = [];
         $warnings = [];
@@ -256,7 +259,7 @@ class EventBookingQuote
                 return compact('lines', 'warnings', 'errors');
             }
 
-            $qty = $this->resolveOrderQuantity($quantityPricing, $pricingOption);
+            $qty = $this->resolveOrderQuantity($quantityPricing, $pricingOption, $orderQuantity);
             if ($qty === null) {
                 $errors[] = 'Please enter a valid order quantity for this service.';
                 return compact('lines', 'warnings', 'errors');
@@ -322,16 +325,6 @@ class EventBookingQuote
             return compact('lines', 'warnings', 'errors');
         }
 
-        if ($type === 'quantity_based_pricing') {
-            $qtyResult = $this->quantityBasedSubtotal($privatePricing, $quantityPricing, $orderQuantity, $pricingOption);
-            $lines = array_merge($lines, $qtyResult['lines']);
-            $warnings = array_merge($warnings, $qtyResult['warnings']);
-            $errors = array_merge($errors, $qtyResult['errors']);
-            if ($qtyResult['lines'] !== [] || $qtyResult['errors'] !== []) {
-                return compact('lines', 'warnings', 'errors');
-            }
-        }
-
         $fallback = (float) ($service['price'] ?? 0);
         if ($fallback > 0) {
             $lines[] = [
@@ -343,66 +336,6 @@ class EventBookingQuote
         } else {
             $errors[] = 'This service does not have applicable private pricing for your event.';
         }
-
-        return compact('lines', 'warnings', 'errors');
-    }
-
-    /**
-     * @param array<string,mixed>|null $privatePricing
-     * @param array<string,mixed>|null $quantityPricing
-     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>, errors: list<string>}
-     */
-    private function quantityBasedSubtotal(
-        ?array $privatePricing,
-        ?array $quantityPricing,
-        ?int $orderQuantity,
-        ?string $pricingOption
-    ): array {
-        $lines = [];
-        $warnings = [];
-        $errors = [];
-
-        $qty = $orderQuantity;
-        if ($qty === null && $pricingOption !== null && preg_match('/^qty_(\d+)$/', $pricingOption, $m)) {
-            $qty = (int) $m[1];
-        }
-        $qty = max(1, (int) ($qty ?? 1));
-
-        $min = isset($quantityPricing['min_quantity']) && $quantityPricing['min_quantity'] !== '' && $quantityPricing['min_quantity'] !== null
-            ? (int) $quantityPricing['min_quantity'] : null;
-        $max = isset($quantityPricing['max_quantity']) && $quantityPricing['max_quantity'] !== '' && $quantityPricing['max_quantity'] !== null
-            ? (int) $quantityPricing['max_quantity'] : null;
-        if ($min !== null && $qty < $min) {
-            $errors[] = 'Order quantity must be at least ' . $min . '.';
-            return compact('lines', 'warnings', 'errors');
-        }
-        if ($max !== null && $qty > $max) {
-            $errors[] = 'Order quantity cannot exceed ' . $max . '.';
-            return compact('lines', 'warnings', 'errors');
-        }
-
-        $unitPrice = 0.0;
-        if (is_array($quantityPricing)) {
-            $unitPrice = (float) ($quantityPricing['unit_price'] ?? $quantityPricing['price_per_unit'] ?? $quantityPricing['price'] ?? 0);
-        }
-        if ($unitPrice <= 0 && is_array($privatePricing)) {
-            $unitPrice = (float) ($privatePricing['price'] ?? 0);
-        }
-        if ($unitPrice <= 0) {
-            $errors[] = 'This service does not have quantity-based unit pricing configured.';
-            return compact('lines', 'warnings', 'errors');
-        }
-
-        $unitLabel = '';
-        if (is_array($quantityPricing) && !empty($quantityPricing['unit_label'])) {
-            $unitLabel = ' ' . (string) $quantityPricing['unit_label'];
-        }
-
-        $lines[] = [
-            'code'   => 'quantity_based',
-            'label'  => 'Quantity pricing (' . $qty . $unitLabel . ' × £' . number_format($unitPrice, 2) . ')',
-            'amount' => round($unitPrice * $qty, 2),
-        ];
 
         return compact('lines', 'warnings', 'errors');
     }
@@ -479,14 +412,16 @@ class EventBookingQuote
     /**
      * @param array<string,mixed> $quantityPricing
      */
-    private function resolveOrderQuantity(array $quantityPricing, ?string $pricingOption): ?int
+    private function resolveOrderQuantity(array $quantityPricing, ?string $pricingOption, ?int $explicitOrderQty = null): ?int
     {
         $minQ = max(1, (int) ($quantityPricing['min_quantity'] ?? 1));
         $maxRaw = $quantityPricing['max_quantity'] ?? null;
         $maxQ = ($maxRaw !== null && $maxRaw !== '') ? max($minQ, (int) $maxRaw) : null;
 
         $qty = null;
-        if ($pricingOption !== null && preg_match('/^qty_(\d+)$/', $pricingOption, $m)) {
+        if ($explicitOrderQty !== null && $explicitOrderQty > 0) {
+            $qty = $explicitOrderQty;
+        } elseif ($pricingOption !== null && preg_match('/^qty_(\d+)$/', $pricingOption, $m)) {
             $qty = (int) $m[1];
         }
 
