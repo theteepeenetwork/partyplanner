@@ -61,10 +61,13 @@
                 <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
                     <ul class="navbar-nav ms-auto align-items-lg-center">
                         <li class="nav-item">
-                            <a class="nav-link text-end" href="/browse-services">Browse Services</a>
+                            <a class="nav-link text-end" href="/browse-services">Find Suppliers</a>
                         </li>
                         <li class="nav-item">
                             <a class="nav-link text-end" href="/how-it-works">How It Works</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-end" href="/vendor-info">For Vendors</a>
                         </li>
 
                         <?php if (session()->has('user_id')): ?>
@@ -93,7 +96,7 @@
                                 <a class="nav-link text-end" href="/login">Login</a>
                             </li>
                             <li class="nav-item">
-                                <a class="btn btn-gradient ms-lg-2 mt-2 mt-lg-0" href="/register">Register</a>
+                                <a class="btn btn-gradient ms-lg-2 mt-2 mt-lg-0" href="/register">Get Started</a>
                             </li>
                         <?php endif; ?>
                     </ul>
