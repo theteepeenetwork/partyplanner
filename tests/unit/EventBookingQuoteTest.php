@@ -74,7 +74,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
-            null,
+            [],
             [],
             [],
             'guest_1'
@@ -103,7 +103,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             'all_travel_included' => 1,
             'no_travel_limit' => 1,
         ];
-        $result = $calc->calculate($service, $event, $loc, $bands, null, [], [], [], null, [], [], null);
+        $result = $calc->calculate($service, $event, $loc, $bands, null, [], [], [], [], [], [], null);
         $this->assertSame([], $result['errors']);
         $this->assertEqualsWithDelta(300.0, $result['total'], 0.01);
     }
@@ -138,7 +138,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
-            null,
+            [],
             $extrasById,
             [7],
             'guest_1',
@@ -178,7 +178,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
-            null,
+            [],
             $extrasById,
             [7],
             'guest_1',
@@ -218,7 +218,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
-            null,
+            [],
             $extrasById,
             [7],
             'guest_1',
@@ -252,7 +252,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
-            null,
+            [],
             [],
             [],
             'guest_1',
@@ -285,7 +285,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             [],
             [],
             [],
-            null,
+            [],
             [],
             [],
             null,
@@ -315,7 +315,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             [],
             [],
             [],
-            null,
+            [],
             [],
             [],
             null
@@ -341,7 +341,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             [],
             [],
             [],
-            null,
+            [],
             [],
             [],
             null
@@ -368,7 +368,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             [],
             [],
             [],
-            null,
+            [],
             [],
             [],
             null
@@ -401,7 +401,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             'travel_fee_per_km' => 5.0,
             'strict_travel_radius' => 1,
         ];
-        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], null, [], [], null);
+        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], [], [], [], null);
         $codes = array_column($result['lines'], 'code');
         $this->assertNotContains('travel', $codes);
         $this->assertNull($result['distance_km']);
@@ -434,7 +434,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             'travel_fee_per_km' => 1.0,
             'strict_travel_radius' => 1,
         ];
-        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], null, [], [], null);
+        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], [], [], [], null);
         $this->assertNotEmpty($result['errors']);
     }
 
@@ -452,7 +452,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             'postal_fee' => 5.0,
             'delivery_lead_time_days' => 5,
         ];
-        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], null, [], [], null);
+        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], [], [], [], null);
         $joined = implode(' ', $result['warnings']);
         $this->assertStringContainsString('Allow at least 5 working days before your event date for dispatch', $joined);
         $this->assertStringContainsString('too soon for postal dispatch', $joined);
@@ -467,12 +467,12 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             'guest_count' => 200,
             'event_setting' => 'private',
         ];
-        $quantityPricing = [
+        $quantityTiers = [[
             'unit_price' => 2.5,
             'min_quantity' => 50,
             'max_quantity' => 500,
             'unit_label' => 'items',
-        ];
+        ]];
         $result = $calc->calculate(
             $service,
             $event,
@@ -482,7 +482,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             [],
             [],
             [],
-            $quantityPricing,
+            $quantityTiers,
             [],
             [],
             'qty_120'
@@ -514,7 +514,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
-            null,
+            [],
             [],
             [],
             null
@@ -548,7 +548,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
-            null,
+            [],
             [],
             [],
             'guest_1'
@@ -587,7 +587,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             [],
             [],
             [],
-            null,
+            [],
             [],
             [],
             null
@@ -632,14 +632,47 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             [],
             [],
             [],
-            $quantityPricing,
+            [[
+                'unit_price' => 2.5,
+                'min_quantity' => 50,
+                'max_quantity' => 500,
+                'unit_label' => 'items',
+            ]],
             $extrasById,
             [7],
             'qty_120',
             []
         );
         $this->assertSame([], $result['errors']);
-        $this->assertEqualsWithDelta(420.0, $result['total'], 0.01);
+        $this->assertEqualsWithDelta(480.0, $result['total'], 0.01);
+    }
+
+    public function testQuantityTierVolumeDiscount(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 0.0, 'title' => 'Favours'];
+        $event = ['guest_count' => 50, 'event_setting' => 'private'];
+        $tiers = [
+            ['unit_price' => 5.5, 'min_quantity' => 1, 'max_quantity' => 100, 'unit_label' => 'items'],
+            ['unit_price' => 4.75, 'min_quantity' => 101, 'max_quantity' => 500, 'unit_label' => 'items'],
+            ['unit_price' => 4.0, 'min_quantity' => 501, 'max_quantity' => null, 'unit_label' => 'items'],
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1],
+            [],
+            ['pricing_type' => 'quantity_based_pricing', 'id' => 1],
+            [],
+            [],
+            [],
+            $tiers,
+            [],
+            [],
+            'qty_150'
+        );
+        $this->assertSame([], $result['errors']);
+        $this->assertEqualsWithDelta(712.5, $result['total'], 0.01);
     }
 
     public function testTimeBlockPricingOption(): void
@@ -665,7 +698,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             [],
             $durationTiers,
             [],
-            null,
+            [],
             [],
             [],
             'timeblock_12',

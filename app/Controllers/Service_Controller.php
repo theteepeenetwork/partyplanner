@@ -2317,10 +2317,11 @@ class Service_Controller extends BaseController
             ? $tieredPricingModel->where('private_event_pricing_id', $privatePricingId)->findAll()
             : [];
 
-        $quantityPricing = $privatePricingId
-            ? $quantityPricingModel->where('private_event_pricing_id', $privatePricingId)->first()
-            : null;
-        $showQuantity = ($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing';
+        $quantityTiers = $privatePricingId
+            ? $quantityPricingModel->where('private_event_pricing_id', $privatePricingId)->orderBy('min_quantity', 'ASC')->findAll()
+            : [];
+        $quantityPricing = $quantityTiers[0] ?? null;
+        $showQuantity = ($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing' && $quantityTiers !== [];
         $timeBlocks = ($privatePricing['pricing_type'] ?? '') === 'custom_duration_pricing'
             ? $timeBlockModel->getByServiceId((int) $id)
             : [];
@@ -2375,6 +2376,7 @@ class Service_Controller extends BaseController
             'durationPricing' => $durationPricing,
             'tieredPackages' => $tieredPackages,
             'quantityPricing' => $quantityPricing,
+            'quantityTiers' => $quantityTiers,
             'timeBlocks' => $timeBlocks,
             'showQuantity' => $showQuantity,
             'location' => $location,

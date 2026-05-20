@@ -17,7 +17,7 @@ class EventBookingQuote
      * @param list<array<string,mixed>> $durationTiers
      * @param list<array<string,mixed>> $timeBlocks       Rows from `service_time_blocks`
      * @param list<array<string,mixed>> $packages
-     * @param array<string,mixed>|null $quantityPricing Row from `services_quantity_pricing`
+     * @param list<array<string,mixed>> $quantityTiers Rows from `services_quantity_pricing` (volume bands)
      * @param array<int, float|array{price: float, name?: string, pricing_type?: string, min_quantity?: int|null, max_quantity?: int|null, unit_label?: string|null}> $extrasById
      * @param list<int|string> $selectedExtraIds
      * @param string|null $pricingOption               e.g. guest_12, duration_3, package_4
@@ -34,7 +34,7 @@ class EventBookingQuote
         array $guestTiers,
         array $durationTiers,
         array $packages,
-        ?array $quantityPricing,
+        array $quantityTiers = [],
         array $extrasById,
         array $selectedExtraIds,
         ?string $pricingOption,
@@ -66,7 +66,7 @@ class EventBookingQuote
                 $durationTiers,
                 $timeBlocks,
                 $packages,
-                $quantityPricing,
+                $quantityTiers,
                 $guestCount,
                 $pricingOption,
                 $orderQuantity
@@ -79,8 +79,8 @@ class EventBookingQuote
         $defaultItemQuantity = $guestCount;
         if (is_array($privatePricing)
             && ($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing'
-            && $quantityPricing !== null) {
-            $resolvedQty = $this->resolveOrderQuantity($quantityPricing, $pricingOption, $orderQuantity);
+            && $quantityTiers !== []) {
+            $resolvedQty = $this->resolveOrderQuantityFromTiers($quantityTiers, $pricingOption, $orderQuantity);
             if ($resolvedQty !== null) {
                 $defaultItemQuantity = $resolvedQty;
             }
@@ -247,7 +247,7 @@ class EventBookingQuote
         array $durationTiers,
         array $timeBlocks,
         array $packages,
-        ?array $quantityPricing,
+        array $quantityTiers = [],
         int $guestCount,
         ?string $pricingOption,
         ?int $orderQuantity = null
@@ -292,24 +292,46 @@ class EventBookingQuote
         }
 
         if ($type === 'quantity_based_pricing') {
-            if ($quantityPricing === null) {
+            if ($quantityTiers === []) {
                 $errors[] = 'This service does not have quantity-based pricing configured.';
                 return compact('lines', 'warnings', 'errors');
             }
 
-            $qty = $this->resolveOrderQuantity($quantityPricing, $pricingOption, $orderQuantity);
+            $warnings = array_merge($warnings, $this->validateQuantityTierCoverage($quantityTiers));
+
+            $qty = $this->resolveOrderQuantityFromTiers($quantityTiers, $pricingOption, $orderQuantity);
             if ($qty === null) {
                 $errors[] = 'Please enter a valid order quantity for this service.';
                 return compact('lines', 'warnings', 'errors');
             }
 
-            $unitPrice = (float) ($quantityPricing['unit_price'] ?? 0);
+            $tier = $this->resolveQuantityTier($quantityTiers, $qty);
+            if ($tier === null) {
+                $rangeSummary = $this->formatQuantityTierRanges($quantityTiers);
+                if ($rangeSummary !== '') {
+                    $errors[] = sprintf(
+                        'Order quantity (%d) does not match any price band for this service. Configured bands: %s.',
+                        $qty,
+                        $rangeSummary
+                    );
+                } else {
+                    $errors[] = 'Order quantity does not match any price band for this service.';
+                }
+
+                return compact('lines', 'warnings', 'errors');
+            }
+
+            if ($this->isNearQuantityTierEdge($tier, $qty)) {
+                $warnings[] = 'Your order quantity is near the edge of a price band; confirm the correct unit price with the vendor.';
+            }
+
+            $unitPrice = (float) ($tier['unit_price'] ?? 0);
             if ($unitPrice <= 0) {
                 $errors[] = 'Quantity-based unit price is not configured for this service.';
                 return compact('lines', 'warnings', 'errors');
             }
 
-            $unitLabel = trim((string) ($quantityPricing['unit_label'] ?? 'items'));
+            $unitLabel = trim((string) ($tier['unit_label'] ?? 'items'));
             if ($unitLabel === '') {
                 $unitLabel = 'items';
             }
@@ -509,13 +531,13 @@ class EventBookingQuote
     }
 
     /**
-     * @param array<string,mixed> $quantityPricing
+     * @param list<array<string,mixed>> $quantityTiers
      */
-    private function resolveOrderQuantity(array $quantityPricing, ?string $pricingOption, ?int $explicitOrderQty = null): ?int
+    private function resolveOrderQuantityFromTiers(array $quantityTiers, ?string $pricingOption, ?int $explicitOrderQty = null): ?int
     {
-        $minQ = max(1, (int) ($quantityPricing['min_quantity'] ?? 1));
-        $maxRaw = $quantityPricing['max_quantity'] ?? null;
-        $maxQ = ($maxRaw !== null && $maxRaw !== '') ? max($minQ, (int) $maxRaw) : null;
+        $bounds = $this->quantityTierGlobalBounds($quantityTiers);
+        $minQ = $bounds['min'];
+        $maxQ = $bounds['max'];
 
         $qty = null;
         if ($explicitOrderQty !== null && $explicitOrderQty > 0) {
@@ -534,6 +556,132 @@ class EventBookingQuote
         }
 
         return $qty > 0 ? $qty : null;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $quantityTiers
+     * @return array{min: int, max: int|null}
+     */
+    private function quantityTierGlobalBounds(array $quantityTiers): array
+    {
+        $minQ = PHP_INT_MAX;
+        $maxQ = null;
+        $hasUnlimited = false;
+        foreach ($quantityTiers as $tier) {
+            $tMin = max(1, (int) ($tier['min_quantity'] ?? 1));
+            $minQ = min($minQ, $tMin);
+            $tMaxRaw = $tier['max_quantity'] ?? null;
+            if ($tMaxRaw !== null && $tMaxRaw !== '') {
+                $tMax = max($tMin, (int) $tMaxRaw);
+                $maxQ = $maxQ === null ? $tMax : max($maxQ, $tMax);
+            } else {
+                $hasUnlimited = true;
+            }
+        }
+
+        if ($hasUnlimited) {
+            $maxQ = null;
+        }
+
+        return ['min' => $minQ === PHP_INT_MAX ? 1 : $minQ, 'max' => $maxQ];
+    }
+
+    /**
+     * @param list<array<string,mixed>> $quantityTiers
+     * @return array<string,mixed>|null
+     */
+    private function resolveQuantityTier(array $quantityTiers, int $qty): ?array
+    {
+        foreach ($quantityTiers as $tier) {
+            $min = max(1, (int) ($tier['min_quantity'] ?? 1));
+            $maxRaw = $tier['max_quantity'] ?? null;
+            $max = ($maxRaw !== null && $maxRaw !== '') ? max($min, (int) $maxRaw) : null;
+            if ($qty >= $min && ($max === null || $qty <= $max)) {
+                return $tier;
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $quantityTiers
+     * @return list<string>
+     */
+    private function validateQuantityTierCoverage(array $quantityTiers): array
+    {
+        $warnings = [];
+        $ranges = $this->collectQuantityTierRanges($quantityTiers);
+        if (count($ranges) < 2) {
+            return $warnings;
+        }
+
+        usort($ranges, static fn ($a, $b) => $a['min'] <=> $b['min']);
+        for ($i = 0; $i < count($ranges) - 1; $i++) {
+            if ($ranges[$i]['max'] !== null && $ranges[$i + 1]['min'] > $ranges[$i]['max'] + 1) {
+                $warnings[] = sprintf(
+                    'Quantity bands have a gap between %d and %d; confirm pricing with the vendor if your order falls in that range.',
+                    $ranges[$i]['max'] + 1,
+                    $ranges[$i + 1]['min'] - 1
+                );
+            }
+        }
+
+        return $warnings;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $quantityTiers
+     * @return list<array{min: int, max: int|null}>
+     */
+    private function collectQuantityTierRanges(array $quantityTiers): array
+    {
+        $ranges = [];
+        foreach ($quantityTiers as $tier) {
+            $min = max(1, (int) ($tier['min_quantity'] ?? 1));
+            $maxRaw = $tier['max_quantity'] ?? null;
+            $max = ($maxRaw !== null && $maxRaw !== '') ? max($min, (int) $maxRaw) : null;
+            $ranges[] = ['min' => $min, 'max' => $max];
+        }
+
+        return $ranges;
+    }
+
+    /**
+     * @param list<array<string,mixed>> $quantityTiers
+     */
+    private function formatQuantityTierRanges(array $quantityTiers): string
+    {
+        $parts = [];
+        foreach ($quantityTiers as $tier) {
+            $min = max(1, (int) ($tier['min_quantity'] ?? 1));
+            $maxRaw = $tier['max_quantity'] ?? null;
+            $price = (float) ($tier['unit_price'] ?? 0);
+            if ($maxRaw !== null && $maxRaw !== '') {
+                $parts[] = sprintf('%d–%d @ £%s', $min, (int) $maxRaw, number_format($price, 2));
+            } else {
+                $parts[] = sprintf('%d+ @ £%s', $min, number_format($price, 2));
+            }
+        }
+
+        return implode('; ', $parts);
+    }
+
+    /**
+     * @param array<string,mixed> $tier
+     */
+    private function isNearQuantityTierEdge(array $tier, int $qty): bool
+    {
+        $min = max(1, (int) ($tier['min_quantity'] ?? 1));
+        $maxRaw = $tier['max_quantity'] ?? null;
+        if ($maxRaw === null || $maxRaw === '') {
+            return false;
+        }
+        $max = max($min, (int) $maxRaw);
+        $width = $max - $min + 1;
+        $threshold = max(1, (int) ceil($width * 0.05));
+
+        return ($qty - $min) < $threshold || ($max - $qty) < $threshold;
     }
 
     /**

@@ -56,9 +56,9 @@ class EventQuoteBuilder
             $timeBlocks = (new ServiceTimeBlockModel())->getByServiceId($serviceId);
         }
         $packages = $privateId ? $packageModel->where('private_event_pricing_id', $privateId)->findAll() : [];
-        $quantityPricing = $privateId
-            ? $quantityModel->where('private_event_pricing_id', $privateId)->first()
-            : null;
+        $quantityTiers = $privateId
+            ? $quantityModel->where('private_event_pricing_id', $privateId)->orderBy('min_quantity', 'ASC')->findAll()
+            : [];
 
         $extraRows = $extrasModel->where('service_id', $serviceId)->findAll();
         $extrasById = [];
@@ -106,7 +106,7 @@ class EventQuoteBuilder
             $guestTiers,
             $durationTiers,
             $packages,
-            $quantityPricing,
+            $quantityTiers,
             $extrasById,
             $selectedExtraIds,
             $pricingOption,

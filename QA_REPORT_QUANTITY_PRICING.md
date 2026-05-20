@@ -17,7 +17,7 @@ Quantity-based pricing feature is **WORKING CORRECTLY**. All backend logic, data
 
 ## Test Data Created
 
-Created quantity-based pricing tiers for Service ID 2 ("Sweetie Sweet Cart"):
+Created quantity-based pricing tiers for Service ID 2 ("Sweetie Sweet Cart"). The quote engine resolves the matching band by order quantity (e.g. 150 items uses the 101–500 @ £4.75 tier).
 
 ```sql
 INSERT INTO services_private_event_pricing (service_id, pricing_type) 
