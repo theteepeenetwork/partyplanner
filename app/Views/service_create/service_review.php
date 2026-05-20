@@ -136,6 +136,7 @@
                                 'guest_based_pricing' => "Your private pricing packages are offered based on guest numbers.",
                                 'custom_duration_pricing' => "Your private pricing packages are based on the duration required.",
                                 'tiered_packages_pricing' => "Your private pricing packages are offered as tiered packages.",
+                                'quantity_based_pricing' => "Your private pricing is based on order quantity (price × items).",
                                 default => "Your private pricing packages are customizable."
                             };
                             $eventTypesSentence .= " $pricingDescription";
@@ -218,6 +219,7 @@
                                 'guest_based_pricing' => 'Guest-based Pricing',
                                 'custom_duration_pricing' => 'Duration Pricing',
                                 'tiered_packages_pricing' => 'Tiered Packages Pricing',
+                                'quantity_based_pricing' => 'Per-item / quantity pricing',
                                 default => 'Not specified'
                             };
                             ?>
@@ -318,6 +320,32 @@
                                     </table>
                                 <?php else: ?>
                                     <p>No packages added.</p>
+                                <?php endif; ?>
+
+                            <?php elseif ($pricingType === 'quantity_based_pricing'): ?>
+                                <?php if (!empty($serviceData['step3']['unit_price'])): ?>
+                                    <table>
+                                        <tbody>
+                                            <tr>
+                                                <th>Unit price</th>
+                                                <td><?= $money($serviceData['step3']['unit_price']) ?></td>
+                                            </tr>
+                                            <tr>
+                                                <th>Quantity range</th>
+                                                <td>
+                                                    <?= (int) ($serviceData['step3']['min_quantity'] ?? 1) ?>
+                                                    <?php if (!empty($serviceData['step3']['max_quantity'])): ?>
+                                                        – <?= (int) $serviceData['step3']['max_quantity'] ?>
+                                                    <?php else: ?>
+                                                        + (no maximum)
+                                                    <?php endif; ?>
+                                                    <?= esc($serviceData['step3']['unit_label'] ?? 'items') ?>
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                <?php else: ?>
+                                    <p>No quantity pricing configured.</p>
                                 <?php endif; ?>
 
                             <?php else: ?>

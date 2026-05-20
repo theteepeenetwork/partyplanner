@@ -19,11 +19,20 @@
                     $pricingType = 'custom_duration_pricing';
                 } elseif (!empty($tieredPackages)) {
                     $pricingType = 'tiered_packages_pricing';
+                } elseif (!empty($quantityPricing)) {
+                    $pricingType = 'quantity_based_pricing';
                 }
             }
             $showGuest = $pricingType === 'guest_based_pricing';
             $showDuration = $pricingType === 'custom_duration_pricing';
             $showPackages = $pricingType === 'tiered_packages_pricing';
+            $showQuantity = $pricingType === 'quantity_based_pricing' && !empty($quantityPricing);
+            $qtyMin = max(1, (int) ($quantityPricing['min_quantity'] ?? 1));
+            $qtyMax = isset($quantityPricing['max_quantity'])
+                && $quantityPricing['max_quantity'] !== ''
+                && $quantityPricing['max_quantity'] !== null
+                ? (int) $quantityPricing['max_quantity'] : null;
+            $qtyDefault = $qtyMin;
             ?>
             <div class="service-preview card">
                 <div class="row">
@@ -79,7 +88,7 @@
 
                         <!-- Pricing Options -->
                         <div class="pricing-options">
-                            <?php $hasPricing = $showGuest || $showDuration || $showPackages; ?>
+                            <?php $hasPricing = $showGuest || $showDuration || $showPackages || $showQuantity; ?>
                             <?php if ($hasPricing): ?>
                                 <h4>Pricing Options</h4>
                             <?php endif; ?>
@@ -129,6 +138,29 @@
                                     </div>
                                 <?php endif; ?>
 
+                                <?php if ($showQuantity && is_array($quantityPricing)): ?>
+                                    <div class="form-group">
+                                        <label for="orderQuantity">Order quantity<?= !empty($quantityPricing['unit_label']) ? ' (' . esc($quantityPricing['unit_label']) . ')' : '' ?>:</label>
+                                        <input type="number" class="form-control quote-refresh-input" id="orderQuantity"
+                                            name="order_quantity"
+                                            value="<?= (int) $qtyDefault ?>"
+                                            min="<?= (int) $qtyMin ?>"
+                                            <?= $qtyMax !== null ? 'max="' . (int) $qtyMax . '"' : '' ?>
+                                            required>
+                                        <?php if (!empty($quantityPricing['unit_price'])): ?>
+                                            <p class="text-muted small mb-0 mt-1">
+                                                £<?= number_format((float) $quantityPricing['unit_price'], 2) ?> per <?= esc($quantityPricing['unit_label'] ?? 'item') ?>
+                                                <?php if ($qtyMax !== null): ?>
+                                                    &middot; <?= (int) $qtyMin ?>–<?= (int) $qtyMax ?>
+                                                <?php elseif ($qtyMin > 1): ?>
+                                                    &middot; min <?= (int) $qtyMin ?>
+                                                <?php endif; ?>
+                                            </p>
+                                        <?php endif; ?>
+                                        <input type="hidden" name="pricing_option" id="qtyPricingOption" value="qty_<?= (int) $qtyDefault ?>">
+                                    </div>
+                                <?php endif; ?>
+
                                 <!-- Optional Extras -->
                                 <?php if (!empty($optional_extras)): ?>
                                     <div class="form-group">
@@ -156,7 +188,7 @@
                                                     <div class="extra-qty-wrap ms-4 mt-1" id="qty_wrap_<?= esc($extra['id']) ?>" style="display:none">
                                                         <div class="d-flex flex-wrap align-items-center gap-2">
                                                             <label class="form-label mb-0 small text-muted">Quantity (optional):</label>
-                                                            <input type="number" class="form-control form-control-sm"
+                                                            <input type="number" class="form-control form-control-sm quote-refresh-input"
                                                                 style="width:90px"
                                                                 name="extra_qty[<?= esc($extra['id']) ?>]"
                                                                 value=""
@@ -172,7 +204,7 @@
                                                                 </span>
                                                             <?php endif; ?>
                                                         </div>
-                                                        <p class="small text-muted mb-0 ms-0 mt-1">If you leave this blank, we price this extra using your event’s guest count (after you pick the event).</p>
+                                                        <p class="small text-muted mb-0 ms-0 mt-1"><?= !empty($showQuantity) ? 'If you leave this blank, we price this extra using your order quantity above.' : 'If you leave this blank, we price this extra using your event’s guest count (after you pick the event).' ?></p>
                                                     </div>
                                                 <?php endif; ?>
                                             </div>

@@ -19,6 +19,7 @@ use App\Models\ServicePrivatePricingModel;
 use App\Models\ServiceCustomDurationPricingModel;
 use App\Models\ServiceTieredPackagesPricingModel;
 use App\Models\ServiceGuestBasedPricingModel;
+use App\Models\ServiceQuantityPricingModel;
 use App\Models\ServiceCancellationPolicyModel;
 
 
@@ -507,7 +508,7 @@ class Service_Controller extends BaseController
             // Only require `pricing_type` if 'private' is one of the selected event types
             $eventTypes = $this->request->getPost('event_types');
             if (is_array($eventTypes) && in_array('private', $eventTypes)) {
-                $rules['pricing_type'] = 'required|in_list[guest_based_pricing,custom_duration_pricing,tiered_packages_pricing]';
+                $rules['pricing_type'] = 'required|in_list[guest_based_pricing,custom_duration_pricing,tiered_packages_pricing,quantity_based_pricing]';
             }
 
             if (!$this->validate($rules)) {
@@ -716,6 +717,22 @@ class Service_Controller extends BaseController
                         $rules['package_price.*'] = 'required|numeric|greater_than[0]';
                         break;
 
+                    case 'quantity_based_pricing':
+                        $rules['unit_price'] = 'required|numeric|greater_than[0]';
+                        $rules['min_quantity'] = 'required|is_natural_no_zero';
+                        $rules['max_quantity'] = 'permit_empty|is_natural_no_zero';
+                        $minQty = (int) $this->request->getPost('min_quantity');
+                        $maxQty = $this->request->getPost('max_quantity');
+                        if ($maxQty !== null && $maxQty !== '') {
+                            $maxQty = (int) $maxQty;
+                            if ($maxQty < $minQty) {
+                                return redirect()->back()->withInput()->with('errors', [
+                                    'max_quantity' => 'Maximum quantity must be greater than or equal to minimum quantity.',
+                                ]);
+                            }
+                        }
+                        break;
+
                     default:
                         break;
                 }
@@ -780,6 +797,7 @@ class Service_Controller extends BaseController
 
                     unset($step3['enableHours'], $step3['enableDays'], $step3['hour_number'], $step3['hour_price'], $step3['day_number'], $step3['day_price']);
                     unset($step3['package_name'], $step3['package_description'], $step3['package_price']);
+                    unset($step3['unit_price'], $step3['min_quantity'], $step3['max_quantity'], $step3['unit_label']);
                 }
 
                 if ($pricingType === 'custom_duration_pricing') {
@@ -793,6 +811,7 @@ class Service_Controller extends BaseController
 
                     unset($step3['min_guest'], $step3['max_guest'], $step3['guest_price']);
                     unset($step3['package_name'], $step3['package_description'], $step3['package_price']);
+                    unset($step3['unit_price'], $step3['min_quantity'], $step3['max_quantity'], $step3['unit_label']);
                 }
 
                 if ($pricingType === 'tiered_packages_pricing') {
@@ -802,6 +821,18 @@ class Service_Controller extends BaseController
 
                     unset($step3['min_guest'], $step3['max_guest'], $step3['guest_price']);
                     unset($step3['enableHours'], $step3['enableDays'], $step3['hour_number'], $step3['hour_price'], $step3['day_number'], $step3['day_price']);
+                    unset($step3['unit_price'], $step3['min_quantity'], $step3['max_quantity'], $step3['unit_label']);
+                }
+
+                if ($pricingType === 'quantity_based_pricing') {
+                    $step3['unit_price'] = $post['unit_price'] ?? null;
+                    $step3['min_quantity'] = $post['min_quantity'] ?? null;
+                    $step3['max_quantity'] = $post['max_quantity'] ?? null;
+                    $step3['unit_label'] = trim((string) ($post['unit_label'] ?? 'items')) ?: 'items';
+
+                    unset($step3['min_guest'], $step3['max_guest'], $step3['guest_price']);
+                    unset($step3['enableHours'], $step3['enableDays'], $step3['hour_number'], $step3['hour_price'], $step3['day_number'], $step3['day_price']);
+                    unset($step3['package_name'], $step3['package_description'], $step3['package_price']);
                 }
             } else {
                 // Clear private fields when private not selected
@@ -817,7 +848,11 @@ class Service_Controller extends BaseController
                     $step3['day_price'],
                     $step3['package_name'],
                     $step3['package_description'],
-                    $step3['package_price']
+                    $step3['package_price'],
+                    $step3['unit_price'],
+                    $step3['min_quantity'],
+                    $step3['max_quantity'],
+                    $step3['unit_label']
                 );
             }
 
@@ -1440,6 +1475,32 @@ class Service_Controller extends BaseController
                             }
                         }
                     }
+
+                    // Quantity-based primary pricing
+                    if (isset($step3Data['unit_price'], $step3Data['min_quantity'])
+                        && $step3Data['unit_price'] !== ''
+                        && $step3Data['min_quantity'] !== '') {
+                        $quantityPricingModel = new ServiceQuantityPricingModel();
+                        $unitPrice = (float) $step3Data['unit_price'];
+                        $minQty = max(1, (int) $step3Data['min_quantity']);
+                        $maxQtyRaw = $step3Data['max_quantity'] ?? null;
+                        $maxQty = ($maxQtyRaw !== null && $maxQtyRaw !== '') ? max($minQty, (int) $maxQtyRaw) : null;
+                        $unitLabel = trim((string) ($step3Data['unit_label'] ?? 'items')) ?: 'items';
+
+                        if ($unitPrice > 0) {
+                            $res = $quantityPricingModel->insert([
+                                'service_id' => $serviceId,
+                                'private_event_pricing_id' => $privateEventPricingId,
+                                'unit_price' => $unitPrice,
+                                'min_quantity' => $minQty,
+                                'max_quantity' => $maxQty,
+                                'unit_label' => $unitLabel,
+                            ]);
+                            if (!$res) {
+                                throw new \Exception('Failed to insert quantity-based pricing (Step 3).');
+                            }
+                        }
+                    }
                 }
 
                 /* ---------- CORPORATE EVENT TEST PRICING (JSON) ---------- */
@@ -1957,6 +2018,7 @@ class Service_Controller extends BaseController
         $guestPricingModel = new ServiceGuestBasedPricingModel();
         $durationPricingModel = new ServiceCustomDurationPricingModel();
         $tieredPricingModel = new ServiceTieredPackagesPricingModel();
+        $quantityPricingModel = new ServiceQuantityPricingModel();
         $serviceLocationModel = new ServiceLocationModel();
         $optionalExtrasModel = new ServiceOptionalExtrasModel();
         $cancellationModel = new ServiceCancellationPolicyModel();
@@ -2079,6 +2141,32 @@ class Service_Controller extends BaseController
                 ]);
             }
 
+            $privatePricing = $servicePrivatePricingModel->where('service_id', $id)->first();
+            if (($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing') {
+                $unitPrice = $this->request->getPost('quantity_unit_price');
+                $minQty = $this->request->getPost('quantity_min_quantity');
+                if ($unitPrice !== null && $unitPrice !== '' && $minQty !== null && $minQty !== '') {
+                    $minQty = max(1, (int) $minQty);
+                    $maxRaw = $this->request->getPost('quantity_max_quantity');
+                    $maxQty = ($maxRaw !== null && $maxRaw !== '') ? max($minQty, (int) $maxRaw) : null;
+                    $unitLabel = trim((string) ($this->request->getPost('quantity_unit_label') ?? 'items')) ?: 'items';
+                    $existing = $quantityPricingModel->where('service_id', $id)->first();
+                    $row = [
+                        'service_id' => $id,
+                        'private_event_pricing_id' => $privatePricing['id'] ?? null,
+                        'unit_price' => (float) $unitPrice,
+                        'min_quantity' => $minQty,
+                        'max_quantity' => $maxQty,
+                        'unit_label' => $unitLabel,
+                    ];
+                    if ($existing) {
+                        $quantityPricingModel->update($existing['id'], $row);
+                    } else {
+                        $quantityPricingModel->insert($row);
+                    }
+                }
+            }
+
             $db->transComplete();
 
             return redirect()->to('/service/edit/' . $id)->with('success', 'Service updated successfully.');
@@ -2095,10 +2183,12 @@ class Service_Controller extends BaseController
         $guestPricing = [];
         $durationPricing = [];
         $tieredPackages = [];
+        $quantityPricing = null;
         if ($privatePricing) {
             $guestPricing = $guestPricingModel->where('private_event_pricing_id', $privatePricing['id'])->findAll();
             $durationPricing = $durationPricingModel->where('private_event_pricing_id', $privatePricing['id'])->findAll();
             $tieredPackages = $tieredPricingModel->where('private_event_pricing_id', $privatePricing['id'])->findAll();
+            $quantityPricing = $quantityPricingModel->where('private_event_pricing_id', $privatePricing['id'])->first();
         }
 
         $categories = $this->buildCategoryTree();
@@ -2115,6 +2205,7 @@ class Service_Controller extends BaseController
             'guestPricing' => $guestPricing,
             'durationPricing' => $durationPricing,
             'tieredPackages' => $tieredPackages,
+            'quantityPricing' => $quantityPricing,
         ];
 
         return view('service_edit', $data);
@@ -2147,6 +2238,7 @@ class Service_Controller extends BaseController
         $guestPricingModel = new ServiceGuestBasedPricingModel();
         $durationPricingModel = new ServiceCustomDurationPricingModel();
         $tieredPricingModel = new ServiceTieredPackagesPricingModel();
+        $quantityPricingModel = new ServiceQuantityPricingModel();
         $serviceLocationModel = new ServiceLocationModel();
         $optionalExtrasModel = new ServiceOptionalExtrasModel();
 
@@ -2184,6 +2276,11 @@ class Service_Controller extends BaseController
         $tieredPackages = $privatePricingId
             ? $tieredPricingModel->where('private_event_pricing_id', $privatePricingId)->findAll()
             : [];
+
+        $quantityPricing = $privatePricingId
+            ? $quantityPricingModel->where('private_event_pricing_id', $privatePricingId)->first()
+            : null;
+        $showQuantity = ($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing';
 
         // Fetch service location details
         $location = $serviceLocationModel->where('service_id', $id)->first();
@@ -2234,6 +2331,8 @@ class Service_Controller extends BaseController
             'guestPricing' => $guestPricing,
             'durationPricing' => $durationPricing,
             'tieredPackages' => $tieredPackages,
+            'quantityPricing' => $quantityPricing,
+            'showQuantity' => $showQuantity,
             'location' => $location,
             'optional_extras' => $optionalExtras,
             'cancellation_policy' => $cancellationPolicy,

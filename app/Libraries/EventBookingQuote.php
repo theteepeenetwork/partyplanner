@@ -16,6 +16,7 @@ class EventBookingQuote
      * @param list<array<string,mixed>> $guestTiers
      * @param list<array<string,mixed>> $durationTiers
      * @param list<array<string,mixed>> $packages
+     * @param array<string,mixed>|null $quantityPricing Row from `services_quantity_pricing`
      * @param array<int, float|array{price: float, name?: string, pricing_type?: string, min_quantity?: int|null, max_quantity?: int|null, unit_label?: string|null}> $extrasById
      * @param list<int|string> $selectedExtraIds
      * @param string|null $pricingOption               e.g. guest_12, duration_3, package_4
@@ -32,6 +33,7 @@ class EventBookingQuote
         array $guestTiers,
         array $durationTiers,
         array $packages,
+        ?array $quantityPricing,
         array $extrasById,
         array $selectedExtraIds,
         ?string $pricingOption,
@@ -60,15 +62,27 @@ class EventBookingQuote
                 $guestTiers,
                 $durationTiers,
                 $packages,
+                $quantityPricing,
                 $guestCount,
-                $pricingOption
+                $pricingOption,
+                $orderQuantity
             );
             $lines = array_merge($lines, $privateResult['lines']);
             $warnings = array_merge($warnings, $privateResult['warnings']);
             $errors   = array_merge($errors, $privateResult['errors']);
         }
 
-        $extrasResult = $this->extrasLines($extrasById, $selectedExtraIds, $guestCount, $extraQuantitiesById);
+        $defaultItemQuantity = $guestCount;
+        if (is_array($privatePricing)
+            && ($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing'
+            && $quantityPricing !== null) {
+            $resolvedQty = $this->resolveOrderQuantity($quantityPricing, $pricingOption, $orderQuantity);
+            if ($resolvedQty !== null) {
+                $defaultItemQuantity = $resolvedQty;
+            }
+        }
+
+        $extrasResult = $this->extrasLines($extrasById, $selectedExtraIds, $defaultItemQuantity, $extraQuantitiesById);
         $lines = array_merge($lines, $extrasResult['lines']);
 
         if ($this->isCorporateEvent($event) && $corporatePricing !== null) {
@@ -202,6 +216,7 @@ class EventBookingQuote
      * @param list<array<string,mixed>> $guestTiers
      * @param list<array<string,mixed>> $durationTiers
      * @param list<array<string,mixed>> $packages
+     * @param array<string,mixed>|null $quantityPricing
      * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>, errors: list<string>}
      */
     private function privateEventSubtotal(
@@ -210,8 +225,10 @@ class EventBookingQuote
         array $guestTiers,
         array $durationTiers,
         array $packages,
+        ?array $quantityPricing,
         int $guestCount,
-        ?string $pricingOption
+        ?string $pricingOption,
+        ?int $orderQuantity = null
     ): array {
         $lines    = [];
         $warnings = [];
@@ -232,6 +249,46 @@ class EventBookingQuote
                 'label'  => 'Guest-based service (' . $guestCount . ' guests × £' . number_format($perHead, 2) . ')',
                 'amount' => $sub,
             ];
+            return compact('lines', 'warnings', 'errors');
+        }
+
+        if ($type === 'quantity_based_pricing') {
+            if ($quantityPricing === null) {
+                $errors[] = 'This service does not have quantity-based pricing configured.';
+                return compact('lines', 'warnings', 'errors');
+            }
+
+            $qty = $this->resolveOrderQuantity($quantityPricing, $pricingOption, $orderQuantity);
+            if ($qty === null) {
+                $errors[] = 'Please enter a valid order quantity for this service.';
+                return compact('lines', 'warnings', 'errors');
+            }
+
+            $unitPrice = (float) ($quantityPricing['unit_price'] ?? 0);
+            if ($unitPrice <= 0) {
+                $errors[] = 'Quantity-based unit price is not configured for this service.';
+                return compact('lines', 'warnings', 'errors');
+            }
+
+            $unitLabel = trim((string) ($quantityPricing['unit_label'] ?? 'items'));
+            if ($unitLabel === '') {
+                $unitLabel = 'items';
+            }
+
+            $serviceName = trim((string) ($service['title'] ?? 'Service'));
+            $sub = round($unitPrice * $qty, 2);
+            $lines[] = [
+                'code'   => 'quantity_based',
+                'label'  => sprintf(
+                    '%s (%d %s × £%s)',
+                    $serviceName,
+                    $qty,
+                    $unitLabel,
+                    number_format($unitPrice, 2)
+                ),
+                'amount' => $sub,
+            ];
+
             return compact('lines', 'warnings', 'errors');
         }
 
@@ -352,12 +409,41 @@ class EventBookingQuote
     }
 
     /**
+     * @param array<string,mixed> $quantityPricing
+     */
+    private function resolveOrderQuantity(array $quantityPricing, ?string $pricingOption, ?int $explicitOrderQty = null): ?int
+    {
+        $minQ = max(1, (int) ($quantityPricing['min_quantity'] ?? 1));
+        $maxRaw = $quantityPricing['max_quantity'] ?? null;
+        $maxQ = ($maxRaw !== null && $maxRaw !== '') ? max($minQ, (int) $maxRaw) : null;
+
+        $qty = null;
+        if ($explicitOrderQty !== null && $explicitOrderQty > 0) {
+            $qty = $explicitOrderQty;
+        } elseif ($pricingOption !== null && preg_match('/^qty_(\d+)$/', $pricingOption, $m)) {
+            $qty = (int) $m[1];
+        }
+
+        if ($qty === null || $qty <= 0) {
+            $qty = $minQ;
+        }
+
+        $qty = max($qty, $minQ);
+        if ($maxQ !== null) {
+            $qty = min($qty, $maxQ);
+        }
+
+        return $qty > 0 ? $qty : null;
+    }
+
+    /**
      * @param array<int, float|array{price: float, name?: string, pricing_type?: string, min_quantity?: int|null, max_quantity?: int|null, unit_label?: string|null}> $extrasById
      * @param list<int|string> $selectedExtraIds
+     * @param int $defaultItemQuantity Default quantity for per_item extras when no override is given
      * @param array<int, int> $extraQuantitiesById
      * @return array{lines: list<array{code:string,label:string,amount:float}>}
      */
-    private function extrasLines(array $extrasById, array $selectedExtraIds, int $guestCount, array $extraQuantitiesById = []): array
+    private function extrasLines(array $extrasById, array $selectedExtraIds, int $defaultItemQuantity, array $extraQuantitiesById = []): array
     {
         $lines = [];
         foreach ($selectedExtraIds as $rawId) {
@@ -393,7 +479,7 @@ class EventBookingQuote
 
             $requested = $extraQuantitiesById[$id] ?? null;
             if ($requested === null || $requested <= 0) {
-                $qty = $guestCount;
+                $qty = $defaultItemQuantity;
             } else {
                 $qty = (int) $requested;
             }

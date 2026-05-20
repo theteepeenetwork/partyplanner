@@ -158,7 +158,36 @@
                         </div>
                     <?php endif; ?>
 
+                    <?php if (($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing'): ?>
+                        <h6>Quantity-based pricing</h6>
+                        <div class="row g-3 mb-3">
+                            <div class="col-md-3">
+                                <label class="form-label" for="quantity_unit_price">Unit price (£)</label>
+                                <input type="number" step="0.01" min="0.01" class="form-control" id="quantity_unit_price"
+                                    name="quantity_unit_price"
+                                    value="<?= esc($quantityPricing['unit_price'] ?? '') ?>" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="quantity_min_quantity">Min quantity</label>
+                                <input type="number" min="1" class="form-control" id="quantity_min_quantity"
+                                    name="quantity_min_quantity"
+                                    value="<?= esc($quantityPricing['min_quantity'] ?? 1) ?>" required>
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="quantity_max_quantity">Max quantity (optional)</label>
+                                <input type="number" min="1" class="form-control" id="quantity_max_quantity"
+                                    name="quantity_max_quantity"
+                                    value="<?= esc($quantityPricing['max_quantity'] ?? '') ?>">
+                            </div>
+                            <div class="col-md-3">
+                                <label class="form-label" for="quantity_unit_label">Unit label</label>
+                                <input type="text" class="form-control" id="quantity_unit_label" name="quantity_unit_label"
+                                    maxlength="50" value="<?= esc($quantityPricing['unit_label'] ?? 'items') ?>">
+                            </div>
+                        </div>
+                    <?php else: ?>
                     <p class="text-muted small mt-2"><i class="fas fa-info-circle me-1"></i>To change pricing structure, please recreate the service or contact support.</p>
+                    <?php endif; ?>
                 </div>
             <?php endif; ?>
 

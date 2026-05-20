@@ -227,11 +227,16 @@ class EventController extends BaseController
         }
 
         // Capture selected options from the service view form
+        $pricingOption = $this->request->getGet('pricing_option') ?? $this->request->getPost('pricing_option');
         $selectedOptions = [
             'service_id' => $serviceId,
-            'pricing_option' => $this->request->getGet('pricing_option') ?? $this->request->getPost('pricing_option'),
+            'pricing_option' => $pricingOption,
             'extras' => $this->request->getGet('extras') ?? $this->request->getPost('extras'),
             'extra_qty' => $this->normalizeExtraQtyMap($this->request->getPost('extra_qty')),
+            'order_quantity' => $this->resolveOrderQuantity(
+                $pricingOption,
+                $this->request->getPost('order_quantity')
+            ),
         ];
 
         if (! session()->has('user_id')) {
@@ -301,6 +306,10 @@ class EventController extends BaseController
 
         $pendingAdd = session()->get('pending_add_to_event') ?? [];
         $pricingOption = $this->request->getPost('pricing_option') ?? ($pendingAdd['pricing_option'] ?? null);
+        $orderQuantity = $this->resolveOrderQuantity(
+            $pricingOption,
+            $this->request->getPost('order_quantity') ?? ($pendingAdd['order_quantity'] ?? null)
+        );
         $extrasRaw = $this->request->getPost('extras') ?? ($pendingAdd['extras'] ?? null);
         $extraQtyMap = array_replace(
             $this->normalizeExtraQtyMap($pendingAdd['extra_qty'] ?? []),
@@ -379,7 +388,7 @@ class EventController extends BaseController
             'vendor_id' => $service['vendor_id'],
             'package_name' => $packageLabel,
             'extras' => json_encode($selectedExtras),
-            'quantity' => 1,
+            'quantity' => max(1, (int) ($orderQuantity ?? 1)),
             'unit_price' => round($estimated, 2),
             'deposit_amount' => $depositAmount,
             'estimated_total' => round($estimated, 2),

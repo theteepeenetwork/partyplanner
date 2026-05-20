@@ -123,6 +123,7 @@ class AdminAccountPurge
         $this->db->table('services_guest_based_pricing')->where('service_id', $serviceId)->delete();
         $this->db->table('services_custom_duration_pricing')->where('service_id', $serviceId)->delete();
         $this->db->table('services_tiered_packages_pricing')->where('service_id', $serviceId)->delete();
+        $this->db->table('services_quantity_pricing')->where('service_id', $serviceId)->delete();
         $this->db->table('services_private_event_pricing')->where('service_id', $serviceId)->delete();
 
         $this->db->table('unavailable_dates')->where('service_id', $serviceId)->delete();

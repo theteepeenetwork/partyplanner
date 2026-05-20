@@ -180,6 +180,41 @@
                         <button type="button" class="btn btn-primary" id="addPackage">Add Another
                             Package</button>
                     </div>
+                <?php elseif ($pricingType === 'quantity_based_pricing'): ?>
+                    <div id="quantityPricingContainer">
+                        <h5>Per-item / quantity pricing</h5>
+                        <p class="form-text text-muted">
+                            Set a unit price multiplied by order quantity (e.g. wedding favours). Customers choose how many items they need when booking.
+                        </p>
+                        <?php
+                        $qtyUnitPrice = session('step3_data.unit_price') ?? old('unit_price');
+                        $qtyMin = session('step3_data.min_quantity') ?? old('min_quantity', 1);
+                        $qtyMax = session('step3_data.max_quantity') ?? old('max_quantity');
+                        $qtyLabel = session('step3_data.unit_label') ?? old('unit_label', 'items');
+                        ?>
+                        <div class="row g-3">
+                            <div class="col-md-4">
+                                <label for="unit_price" class="form-label">Unit price (£)</label>
+                                <input type="number" step="0.01" min="0.01" class="form-control" id="unit_price" name="unit_price"
+                                    value="<?= esc($qtyUnitPrice) ?>" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="min_quantity" class="form-label">Minimum quantity</label>
+                                <input type="number" min="1" class="form-control" id="min_quantity" name="min_quantity"
+                                    value="<?= esc($qtyMin) ?>" required>
+                            </div>
+                            <div class="col-md-4">
+                                <label for="max_quantity" class="form-label">Maximum quantity (optional)</label>
+                                <input type="number" min="1" class="form-control" id="max_quantity" name="max_quantity"
+                                    value="<?= esc($qtyMax) ?>">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="unit_label" class="form-label">Unit label</label>
+                                <input type="text" class="form-control" id="unit_label" name="unit_label" maxlength="50"
+                                    value="<?= esc($qtyLabel) ?>" placeholder="e.g. favours, items">
+                            </div>
+                        </div>
+                    </div>
                 <?php else: ?>
                     <p>Please select a pricing type in Step 2.</p>
                 <?php endif; ?>

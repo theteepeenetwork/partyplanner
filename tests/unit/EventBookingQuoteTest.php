@@ -74,6 +74,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
+            null,
             [],
             [],
             'guest_1'
@@ -102,7 +103,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             'all_travel_included' => 1,
             'no_travel_limit' => 1,
         ];
-        $result = $calc->calculate($service, $event, $loc, $bands, null, [], [], [], [], [], null);
+        $result = $calc->calculate($service, $event, $loc, $bands, null, [], [], [], null, [], [], null);
         $this->assertSame([], $result['errors']);
         $this->assertEqualsWithDelta(300.0, $result['total'], 0.01);
     }
@@ -137,6 +138,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
+            null,
             $extrasById,
             [7],
             'guest_1',
@@ -176,6 +178,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
+            null,
             $extrasById,
             [7],
             'guest_1',
@@ -215,6 +218,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
+            null,
             $extrasById,
             [7],
             'guest_1',
@@ -248,6 +252,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
+            null,
             [],
             [],
             'guest_1',
