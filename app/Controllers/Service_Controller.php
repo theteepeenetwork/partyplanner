@@ -2811,7 +2811,6 @@ class Service_Controller extends BaseController
             'services_locations',
             'services_optional_extras',
             'services_public_event_pricing',
-            'services_quantity_pricing',
             'service_event_types',
         ] as $table) {
             if (!$db->tableExists($table)) {

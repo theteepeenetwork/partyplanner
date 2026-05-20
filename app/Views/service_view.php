@@ -273,32 +273,13 @@ document.addEventListener('DOMContentLoaded', function () {
         const form = preview.closest('form');
         const serviceId = preview.dataset.serviceId;
         const eventId = preview.dataset.eventId;
-        const qtyInput = document.getElementById('orderQuantity');
-        const qtyPricingOption = document.getElementById('qtyPricingOption');
-
-        const syncQtyPricingOption = function () {
-            if (!qtyInput || !qtyPricingOption) return;
-            const n = parseInt(qtyInput.value, 10);
-            if (n > 0) {
-                qtyPricingOption.value = 'qty_' + n;
-            }
-        };
-
         const refreshQuote = function () {
             if (!form) return;
-            syncQtyPricingOption();
             const fd = new FormData(form);
             const params = new URLSearchParams();
             const po = fd.get('pricing_option');
             if (po) params.set('pricing_option', po);
-            const orderQty = fd.get('order_quantity');
-            if (orderQty) params.set('order_quantity', orderQty);
             fd.getAll('extras[]').forEach(function (id) { params.append('extras[]', id); });
-            fd.forEach(function (value, key) {
-                if (key.indexOf('extra_qty') === 0 && value !== '') {
-                    params.append(key, value);
-                }
-            });
             const url = '/event/quote-preview/' + serviceId + '/' + eventId + '?' + params.toString();
             fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
                 .then(function (r) { return r.json(); })
@@ -319,14 +300,6 @@ document.addEventListener('DOMContentLoaded', function () {
         };
         if (form) {
             form.addEventListener('change', refreshQuote);
-            form.addEventListener('input', function (e) {
-                if (e.target && (e.target.classList.contains('quote-refresh-input') || e.target.name && e.target.name.indexOf('extra_qty') === 0)) {
-                    refreshQuote();
-                }
-            });
-            if (qtyInput) {
-                qtyInput.addEventListener('input', syncQtyPricingOption);
-            }
             refreshQuote();
         }
     }

@@ -38,8 +38,7 @@ class EventBookingQuote
         array $selectedExtraIds,
         ?string $pricingOption,
         array $extraQuantitiesById = [],
-        ?array $corporatePricing = null,
-        ?int $orderQuantity = null
+        ?array $corporatePricing = null
     ): array {
         $warnings = [];
         $errors  = [];
@@ -95,7 +94,7 @@ class EventBookingQuote
 
         $merchandiseSubtotal = $this->sumLineAmounts($lines);
 
-        $postalResult = $this->postalLines($location ?? [], $merchandiseSubtotal, $event);
+        $postalResult = $this->postalLines($location ?? [], $merchandiseSubtotal);
         $lines = array_merge($lines, $postalResult['lines']);
         $warnings = array_merge($warnings, $postalResult['warnings']);
 
@@ -800,10 +799,9 @@ class EventBookingQuote
 
     /**
      * @param array<string,mixed> $loc
-     * @param array<string,mixed> $event
      * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>}
      */
-    private function postalLines(array $loc, float $merchandiseSubtotal = 0.0, array $event = []): array
+    private function postalLines(array $loc, float $merchandiseSubtotal = 0.0): array
     {
         $lines = [];
         $warnings = [];
@@ -811,8 +809,6 @@ class EventBookingQuote
         if ($ftype !== 'postal' && $ftype !== 'both') {
             return compact('lines', 'warnings');
         }
-
-        $warnings = array_merge($warnings, $this->deliveryLeadTimeWarnings($loc, $event));
 
         $freeAbove = isset($loc['free_postage_above']) && $loc['free_postage_above'] !== '' && $loc['free_postage_above'] !== null
             ? (float) $loc['free_postage_above']
@@ -839,50 +835,6 @@ class EventBookingQuote
         ];
 
         return compact('lines', 'warnings');
-    }
-
-    /**
-     * @param array<string,mixed> $loc
-     * @param array<string,mixed> $event
-     * @return list<string>
-     */
-    private function deliveryLeadTimeWarnings(array $loc, array $event): array
-    {
-        $warnings = [];
-        $leadDays = isset($loc['delivery_lead_time_days']) && $loc['delivery_lead_time_days'] !== '' && $loc['delivery_lead_time_days'] !== null
-            ? (int) $loc['delivery_lead_time_days']
-            : 0;
-        if ($leadDays <= 0) {
-            return $warnings;
-        }
-
-        $dayWord = $leadDays === 1 ? 'day' : 'days';
-        $warnings[] = sprintf(
-            'Allow at least %d working %s before your event date for dispatch',
-            $leadDays,
-            $dayWord
-        );
-
-        $eventDate = $event['date'] ?? null;
-        if ($eventDate === null || $eventDate === '') {
-            return $warnings;
-        }
-
-        $eventTs = strtotime((string) $eventDate);
-        if ($eventTs === false) {
-            return $warnings;
-        }
-
-        $daysUntil = (int) floor(($eventTs - strtotime('today')) / 86400);
-        if ($daysUntil < $leadDays) {
-            $warnings[] = sprintf(
-                'Your event date may be too soon for postal dispatch; allow at least %d working %s before the event.',
-                $leadDays,
-                $dayWord
-            );
-        }
-
-        return $warnings;
     }
 
     /**
