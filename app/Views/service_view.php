@@ -116,11 +116,28 @@
                                     <div class="form-group">
                                         <label for="durationPricing">Duration-Based Pricing:</label>
                                         <select class="form-control" id="durationPricing" name="pricing_option" required>
-                                            <?php foreach ($durationPricing as $pricing): ?>
-                                                <option value="duration_<?= esc($pricing['id']) ?>">
-                                                    <?= esc($pricing['duration_hours'] ?? $pricing['duration'] ?? '') ?> Hour(s): £<?= esc($pricing['price']) ?>
-                                                </option>
-                                            <?php endforeach; ?>
+                                            <?php if (!empty($timeBlocks)): ?>
+                                                <optgroup label="Time slots">
+                                                    <?php foreach ($timeBlocks as $block): ?>
+                                                        <?php
+                                                        $start = preg_match('/^(\d{1,2}:\d{2})/', (string) ($block['start_time'] ?? ''), $sm) ? $sm[1] : '';
+                                                        $end = preg_match('/^(\d{1,2}:\d{2})/', (string) ($block['end_time'] ?? ''), $em) ? $em[1] : '';
+                                                        ?>
+                                                        <option value="timeblock_<?= esc($block['id']) ?>">
+                                                            <?= esc($start) ?> – <?= esc($end) ?>: £<?= esc(number_format((float) ($block['price'] ?? 0), 2)) ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </optgroup>
+                                            <?php endif; ?>
+                                            <?php if (!empty($durationPricing)): ?>
+                                                <optgroup label="Duration">
+                                                    <?php foreach ($durationPricing as $pricing): ?>
+                                                        <option value="duration_<?= esc($pricing['id']) ?>">
+                                                            <?= esc($pricing['duration_hours'] ?? $pricing['duration'] ?? '') ?> <?= (($pricing['duration_type'] ?? '') === 'day') ? 'Day(s)' : 'Hour(s)' ?>: £<?= esc(number_format((float) ($pricing['price'] ?? 0), 2)) ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </optgroup>
+                                            <?php endif; ?>
                                         </select>
                                     </div>
                                 <?php endif; ?>

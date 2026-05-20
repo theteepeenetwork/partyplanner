@@ -144,6 +144,44 @@
                         </div>
                     <?php endif; ?>
 
+                    <?php if (($privatePricing['pricing_type'] ?? '') === 'custom_duration_pricing'): ?>
+                        <h6>Time slot pricing</h6>
+                        <p class="text-muted small">Optional fixed slots (e.g. morning / afternoon) with a set price. Customers can pick a slot when booking.</p>
+                        <div id="timeblock-rows">
+                            <?php
+                            $tbRows = !empty($timeBlocks) ? $timeBlocks : [['start_time' => '', 'end_time' => '', 'price' => '']];
+                            foreach ($tbRows as $tb):
+                                $startVal = $tb['start_time'] ?? '';
+                                if (preg_match('/^(\d{1,2}:\d{2})/', (string) $startVal, $m)) {
+                                    $startVal = $m[1];
+                                }
+                                $endVal = $tb['end_time'] ?? '';
+                                if (preg_match('/^(\d{1,2}:\d{2})/', (string) $endVal, $m)) {
+                                    $endVal = $m[1];
+                                }
+                            ?>
+                            <div class="row g-2 mb-2 timeblock-row">
+                                <div class="col-md-3">
+                                    <label class="form-label small">Start</label>
+                                    <input type="time" class="form-control" name="timeblock_start[]" value="<?= esc($startVal) ?>">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">End</label>
+                                    <input type="time" class="form-control" name="timeblock_end[]" value="<?= esc($endVal) ?>">
+                                </div>
+                                <div class="col-md-3">
+                                    <label class="form-label small">Price (£)</label>
+                                    <input type="number" step="0.01" min="0" class="form-control" name="timeblock_price[]" value="<?= esc($tb['price'] ?? '') ?>">
+                                </div>
+                                <div class="col-md-3 d-flex align-items-end">
+                                    <button type="button" class="btn btn-outline-danger btn-sm remove-timeblock">Remove</button>
+                                </div>
+                            </div>
+                            <?php endforeach; ?>
+                        </div>
+                        <button type="button" class="btn btn-outline-primary btn-sm mb-3" id="add-timeblock">Add time slot</button>
+                    <?php endif; ?>
+
                     <?php if (!empty($tieredPackages)): ?>
                         <h6>Tiered Packages</h6>
                         <div class="table-responsive">
@@ -185,7 +223,7 @@
                                     maxlength="50" value="<?= esc($quantityPricing['unit_label'] ?? 'items') ?>">
                             </div>
                         </div>
-                    <?php else: ?>
+                    <?php elseif (($privatePricing['pricing_type'] ?? '') !== 'custom_duration_pricing'): ?>
                     <p class="text-muted small mt-2"><i class="fas fa-info-circle me-1"></i>To change pricing structure, please recreate the service or contact support.</p>
                     <?php endif; ?>
                 </div>
@@ -549,6 +587,45 @@ document.addEventListener('DOMContentLoaded', function () {
     radios.forEach(r => r.addEventListener('change', applyFulfillment));
     // Run on page load to reflect persisted value
     applyFulfillment();
+})();
+
+(function () {
+    const container = document.getElementById('timeblock-rows');
+    const addBtn = document.getElementById('add-timeblock');
+    if (!container || !addBtn) return;
+
+    addBtn.addEventListener('click', function () {
+        const row = document.createElement('div');
+        row.className = 'row g-2 mb-2 timeblock-row';
+        row.innerHTML = `
+            <div class="col-md-3">
+                <label class="form-label small">Start</label>
+                <input type="time" class="form-control" name="timeblock_start[]">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small">End</label>
+                <input type="time" class="form-control" name="timeblock_end[]">
+            </div>
+            <div class="col-md-3">
+                <label class="form-label small">Price (£)</label>
+                <input type="number" step="0.01" min="0" class="form-control" name="timeblock_price[]">
+            </div>
+            <div class="col-md-3 d-flex align-items-end">
+                <button type="button" class="btn btn-outline-danger btn-sm remove-timeblock">Remove</button>
+            </div>
+        `;
+        container.appendChild(row);
+    });
+
+    container.addEventListener('click', function (e) {
+        if (!e.target.classList.contains('remove-timeblock')) return;
+        const rows = container.querySelectorAll('.timeblock-row');
+        if (rows.length > 1) {
+            e.target.closest('.timeblock-row').remove();
+        } else {
+            e.target.closest('.timeblock-row').querySelectorAll('input').forEach(i => { i.value = ''; });
+        }
+    });
 })();
 </script>
 

@@ -8,6 +8,8 @@ use App\Models\ServiceOptionalExtrasModel;
 use App\Models\ServicePrivatePricingModel;
 use App\Models\ServicePublicEventPricingModel;
 use App\Models\ServiceTieredPackagesPricingModel;
+use App\Models\ServiceQuantityPricingModel;
+use App\Models\ServiceTimeBlockModel;
 use App\Models\ServiceLocationModel;
 use App\Models\ServiceModel;
 
@@ -28,7 +30,8 @@ class EventQuoteBuilder
         array $event,
         ?string $pricingOption = null,
         array $selectedExtraIds = [],
-        array $extraQuantitiesById = []
+        array $extraQuantitiesById = [],
+        ?int $orderQuantity = null
     ): array {
         $serviceId = (int) ($service['id'] ?? 0);
         $locationModel = new ServiceLocationModel();
@@ -37,6 +40,7 @@ class EventQuoteBuilder
         $guestModel = new ServiceGuestBasedPricingModel();
         $durationModel = new ServiceCustomDurationPricingModel();
         $packageModel = new ServiceTieredPackagesPricingModel();
+        $quantityModel = new ServiceQuantityPricingModel();
         $extrasModel = new ServiceOptionalExtrasModel();
 
         $locationRow = $locationModel->where('service_id', $serviceId)->first();
@@ -47,7 +51,14 @@ class EventQuoteBuilder
         $privateId = $privatePricing['id'] ?? null;
         $guestTiers = $privateId ? $guestModel->where('private_event_pricing_id', $privateId)->findAll() : [];
         $durationTiers = $privateId ? $durationModel->where('private_event_pricing_id', $privateId)->findAll() : [];
+        $timeBlocks = [];
+        if (($privatePricing['pricing_type'] ?? '') === 'custom_duration_pricing') {
+            $timeBlocks = (new ServiceTimeBlockModel())->getByServiceId($serviceId);
+        }
         $packages = $privateId ? $packageModel->where('private_event_pricing_id', $privateId)->findAll() : [];
+        $quantityPricing = $privateId
+            ? $quantityModel->where('private_event_pricing_id', $privateId)->first()
+            : null;
 
         $extraRows = $extrasModel->where('service_id', $serviceId)->findAll();
         $extrasById = [];
@@ -67,6 +78,12 @@ class EventQuoteBuilder
 
         if (($privatePricing['pricing_type'] ?? '') === 'guest_based_pricing') {
             $pricingOption = null;
+        }
+
+        if (($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing'
+            && $orderQuantity !== null
+            && $orderQuantity > 0) {
+            $pricingOption = 'qty_' . $orderQuantity;
         }
 
         $corporatePricing = $this->loadCorporatePricing($serviceId);
@@ -89,11 +106,14 @@ class EventQuoteBuilder
             $guestTiers,
             $durationTiers,
             $packages,
+            $quantityPricing,
             $extrasById,
             $selectedExtraIds,
             $pricingOption,
             $extraQuantitiesById,
-            $corporatePricing
+            $corporatePricing,
+            $orderQuantity,
+            $timeBlocks
         );
 
         if ($availErrors !== []) {
@@ -142,6 +162,7 @@ class EventQuoteBuilder
             'fulfillment_type' => 'in_person',
             'postal_fee' => null,
             'free_postage_above' => null,
+            'delivery_lead_time_days' => null,
         ];
         $row = $locationRow ?? [];
         $out = array_merge($base, $row);
@@ -149,6 +170,7 @@ class EventQuoteBuilder
             'latitude', 'longitude', 'all_travel_included', 'no_travel_limit',
             'free_coverage_radius', 'paid_coverage_radius', 'travel_fee_per_km',
             'strict_travel_radius', 'fulfillment_type', 'postal_fee', 'free_postage_above',
+            'delivery_lead_time_days',
         ];
         foreach ($keys as $k) {
             if (!isset($out[$k]) || $out[$k] === null || $out[$k] === '') {
