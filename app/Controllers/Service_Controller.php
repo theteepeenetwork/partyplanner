@@ -669,6 +669,23 @@ class Service_Controller extends BaseController
                                 }
                             }
                         }
+
+                        usort($ranges, static fn (array $a, array $b): int => $a['min'] <=> $b['min']);
+                        for ($i = 0, $n = count($ranges); $i < $n - 1; $i++) {
+                            $hole = $ranges[$i + 1]['min'] - $ranges[$i]['max'] - 1;
+                            if ($hole > 1) {
+                                return redirect()->back()->withInput()->with('errors', [
+                                    'min_guest.' . ($i + 1) => sprintf(
+                                        'There is a gap of %d guests between band %d–%d and %d–%d. Adjacent bands must leave at most one guest between them.',
+                                        $hole,
+                                        $ranges[$i]['min'],
+                                        $ranges[$i]['max'],
+                                        $ranges[$i + 1]['min'],
+                                        $ranges[$i + 1]['max']
+                                    ),
+                                ]);
+                            }
+                        }
                         break;
 
                     case 'custom_duration_pricing':
