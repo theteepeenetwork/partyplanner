@@ -15,7 +15,7 @@ final class AppBaseUrlTest extends CIUnitTestCase
     public function testShouldSyncWhenRequestHostDiffersFromConfigured(): void
     {
         $this->assertTrue(
-            AppBaseUrl::shouldSyncHost('http://partyplanner.test/', 'localhost:8888')
+            AppBaseUrl::shouldSyncHost('http://partyplanner.test/', '127.0.0.1:8888')
         );
     }
 

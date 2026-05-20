@@ -157,5 +157,5 @@ php spark serve --port 8888
 php vendor/bin/phpunit --testdox
 
 # Verify service view HTML
-curl -s http://localhost:8888/service/view/2 | grep -A20 "orderQuantity"
+curl -s http://127.0.0.1:8888/service/view/2 | grep -A20 "orderQuantity"
 ```

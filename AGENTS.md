@@ -15,7 +15,7 @@ This is a PHP CodeIgniter 4 event services marketplace. The CI4 framework is bun
    php spark serve --host 127.0.0.1 --port 8888
    ```
    Or one-shot: `CI_ENVIRONMENT=cloud php spark serve --host 127.0.0.1 --port 8888`
-   Browse at `http://127.0.0.1:8888/`. For local Valet/Herd use `development` in `.env` if you want the toolbar.
+   Browse at `http://127.0.0.1:8888/` (not `localhost` — set `app.baseURL` in `.env` to match). For local Valet/Herd use `development` in `.env` if you want the toolbar.
 
 ### Composer / dev dependencies
 

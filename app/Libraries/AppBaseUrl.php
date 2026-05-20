@@ -8,7 +8,7 @@ use Config\App;
  * Aligns Config\App::$baseURL with the incoming HTTP host when they differ.
  *
  * Prevents header/footer links from pointing at a stale hostname (e.g. partyplanner.test)
- * while the app is served on localhost:8888 or a cloud preview URL.
+ * while the app is served on 127.0.0.1:8888 (or another allowed host) or a cloud preview URL.
  */
 class AppBaseUrl
 {
