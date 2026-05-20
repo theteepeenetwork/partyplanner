@@ -7,6 +7,7 @@ use App\Models\ServiceGuestBasedPricingModel;
 use App\Models\ServiceOptionalExtrasModel;
 use App\Models\ServicePrivatePricingModel;
 use App\Models\ServicePublicEventPricingModel;
+use App\Models\ServiceQuantityPricingModel;
 use App\Models\ServiceTieredPackagesPricingModel;
 use App\Models\ServiceLocationModel;
 use App\Models\ServiceModel;
@@ -28,7 +29,8 @@ class EventQuoteBuilder
         array $event,
         ?string $pricingOption = null,
         array $selectedExtraIds = [],
-        array $extraQuantitiesById = []
+        array $extraQuantitiesById = [],
+        ?int $orderQuantity = null
     ): array {
         $serviceId = (int) ($service['id'] ?? 0);
         $locationModel = new ServiceLocationModel();
@@ -37,6 +39,7 @@ class EventQuoteBuilder
         $guestModel = new ServiceGuestBasedPricingModel();
         $durationModel = new ServiceCustomDurationPricingModel();
         $packageModel = new ServiceTieredPackagesPricingModel();
+        $quantityModel = new ServiceQuantityPricingModel();
         $extrasModel = new ServiceOptionalExtrasModel();
 
         $locationRow = $locationModel->where('service_id', $serviceId)->first();
@@ -48,6 +51,9 @@ class EventQuoteBuilder
         $guestTiers = $privateId ? $guestModel->where('private_event_pricing_id', $privateId)->findAll() : [];
         $durationTiers = $privateId ? $durationModel->where('private_event_pricing_id', $privateId)->findAll() : [];
         $packages = $privateId ? $packageModel->where('private_event_pricing_id', $privateId)->findAll() : [];
+        $quantityPricing = $privateId
+            ? $quantityModel->where('private_event_pricing_id', $privateId)->first()
+            : null;
 
         $extraRows = $extrasModel->where('service_id', $serviceId)->findAll();
         $extrasById = [];
@@ -70,6 +76,10 @@ class EventQuoteBuilder
         }
 
         $corporatePricing = $this->loadCorporatePricing($serviceId);
+        $quantityPricing = null;
+        if (($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing') {
+            $quantityPricing = $this->loadQuantityPricing($serviceId, $privateId);
+        }
 
         $availability = new ServiceAvailabilityChecker();
         $availErrors = $availability->check(
@@ -89,11 +99,14 @@ class EventQuoteBuilder
             $guestTiers,
             $durationTiers,
             $packages,
+            $quantityPricing,
             $extrasById,
             $selectedExtraIds,
             $pricingOption,
             $extraQuantitiesById,
-            $corporatePricing
+            $corporatePricing,
+            $orderQuantity,
+            $quantityPricing
         );
 
         if ($availErrors !== []) {
@@ -106,6 +119,26 @@ class EventQuoteBuilder
     /**
      * @return array<string,mixed>|null
      */
+    /**
+     * @return array<string,mixed>|null
+     */
+    public function loadQuantityPricing(int $serviceId, ?int $privatePricingId = null): ?array
+    {
+        $db = \Config\Database::connect();
+        if (!$db->tableExists('services_quantity_based_pricing')) {
+            return null;
+        }
+
+        $builder = $db->table('services_quantity_based_pricing')->where('service_id', $serviceId);
+        if ($privatePricingId !== null) {
+            $builder->where('private_event_pricing_id', $privatePricingId);
+        }
+
+        $row = $builder->get()->getRowArray();
+
+        return is_array($row) ? $row : null;
+    }
+
     public function loadCorporatePricing(int $serviceId): ?array
     {
         $db = \Config\Database::connect();
@@ -142,6 +175,7 @@ class EventQuoteBuilder
             'fulfillment_type' => 'in_person',
             'postal_fee' => null,
             'free_postage_above' => null,
+            'delivery_lead_time_days' => null,
         ];
         $row = $locationRow ?? [];
         $out = array_merge($base, $row);
@@ -149,6 +183,7 @@ class EventQuoteBuilder
             'latitude', 'longitude', 'all_travel_included', 'no_travel_limit',
             'free_coverage_radius', 'paid_coverage_radius', 'travel_fee_per_km',
             'strict_travel_radius', 'fulfillment_type', 'postal_fee', 'free_postage_above',
+            'delivery_lead_time_days',
         ];
         foreach ($keys as $k) {
             if (!isset($out[$k]) || $out[$k] === null || $out[$k] === '') {

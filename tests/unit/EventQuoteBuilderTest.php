@@ -17,8 +17,10 @@ final class EventQuoteBuilderTest extends CIUnitTestCase
             'strict_travel_radius' => 1,
             'fulfillment_type' => 'postal',
             'postal_fee' => 5.0,
+            'delivery_lead_time_days' => 7,
         ]);
         $this->assertSame(1, (int) $merged['strict_travel_radius']);
         $this->assertSame('postal', $merged['fulfillment_type']);
+        $this->assertSame(7, (int) $merged['delivery_lead_time_days']);
     }
 }

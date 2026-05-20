@@ -74,6 +74,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
+            null,
             [],
             [],
             'guest_1'
@@ -102,7 +103,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             'all_travel_included' => 1,
             'no_travel_limit' => 1,
         ];
-        $result = $calc->calculate($service, $event, $loc, $bands, null, [], [], [], [], [], null);
+        $result = $calc->calculate($service, $event, $loc, $bands, null, [], [], [], null, [], [], null);
         $this->assertSame([], $result['errors']);
         $this->assertEqualsWithDelta(300.0, $result['total'], 0.01);
     }
@@ -137,6 +138,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
+            null,
             $extrasById,
             [7],
             'guest_1',
@@ -176,6 +178,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
+            null,
             $extrasById,
             [7],
             'guest_1',
@@ -215,6 +218,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
+            null,
             $extrasById,
             [7],
             'guest_1',
@@ -248,6 +252,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
+            null,
             [],
             [],
             'guest_1',
@@ -280,6 +285,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             [],
             [],
             [],
+            null,
             [],
             [],
             null,
@@ -309,6 +315,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             [],
             [],
             [],
+            null,
             [],
             [],
             null
@@ -334,6 +341,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             [],
             [],
             [],
+            null,
             [],
             [],
             null
@@ -360,6 +368,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             [],
             [],
             [],
+            null,
             [],
             [],
             null
@@ -392,7 +401,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             'travel_fee_per_km' => 5.0,
             'strict_travel_radius' => 1,
         ];
-        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], [], [], null);
+        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], null, [], [], null);
         $codes = array_column($result['lines'], 'code');
         $this->assertNotContains('travel', $codes);
         $this->assertNull($result['distance_km']);
@@ -425,7 +434,105 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             'travel_fee_per_km' => 1.0,
             'strict_travel_radius' => 1,
         ];
-        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], [], [], null);
+        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], null, [], [], null);
         $this->assertNotEmpty($result['errors']);
+    }
+
+    public function testDeliveryLeadTimeWarningWhenEventTooSoon(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 50.0];
+        $event = [
+            'guest_count' => 5,
+            'event_setting' => 'private',
+            'date' => date('Y-m-d', strtotime('+2 days')),
+        ];
+        $loc = [
+            'fulfillment_type' => 'postal',
+            'postal_fee' => 5.0,
+            'delivery_lead_time_days' => 5,
+        ];
+        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], null, [], [], null);
+        $joined = implode(' ', $result['warnings']);
+        $this->assertStringContainsString('Allow at least 5 working days before your event date for dispatch', $joined);
+        $this->assertStringContainsString('too soon for postal dispatch', $joined);
+        $this->assertSame([], $result['errors']);
+    }
+
+    public function testQuantityBasedSubtotal(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 0.0, 'title' => 'Favours'];
+        $event = [
+            'guest_count' => 200,
+            'event_setting' => 'private',
+        ];
+        $quantityPricing = [
+            'unit_price' => 2.5,
+            'min_quantity' => 50,
+            'max_quantity' => 500,
+            'unit_label' => 'items',
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1],
+            [],
+            ['pricing_type' => 'quantity_based_pricing', 'id' => 3],
+            [],
+            [],
+            [],
+            $quantityPricing,
+            [],
+            [],
+            'qty_120'
+        );
+        $this->assertSame([], $result['errors']);
+        $this->assertEqualsWithDelta(300.0, $result['total'], 0.01);
+        $codes = array_column($result['lines'], 'code');
+        $this->assertContains('quantity_based', $codes);
+    }
+
+    public function testPerItemExtraUsesOrderQuantityNotGuests(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 0.0, 'title' => 'Favours'];
+        $event = [
+            'guest_count' => 200,
+            'event_setting' => 'private',
+        ];
+        $quantityPricing = [
+            'unit_price' => 2.0,
+            'min_quantity' => 100,
+            'max_quantity' => 300,
+            'unit_label' => 'items',
+        ];
+        $extrasById = [
+            7 => [
+                'price' => 1.5,
+                'name' => 'Gift wrap',
+                'pricing_type' => 'per_item',
+                'min_quantity' => 1,
+                'max_quantity' => 500,
+                'unit_label' => 'wraps',
+            ],
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1],
+            [],
+            ['pricing_type' => 'quantity_based_pricing', 'id' => 3],
+            [],
+            [],
+            [],
+            $quantityPricing,
+            $extrasById,
+            [7],
+            'qty_120',
+            []
+        );
+        $this->assertSame([], $result['errors']);
+        $this->assertEqualsWithDelta(420.0, $result['total'], 0.01);
     }
 }
