@@ -19,19 +19,28 @@
                     $pricingType = 'custom_duration_pricing';
                 } elseif (!empty($tieredPackages)) {
                     $pricingType = 'tiered_packages_pricing';
-                } elseif (!empty($quantityPricing)) {
+                } elseif (!empty($quantityTiers ?? $quantityPricing ?? null)) {
                     $pricingType = 'quantity_based_pricing';
                 }
             }
+            $quantityTiers = $quantityTiers ?? (isset($quantityPricing) && is_array($quantityPricing) ? [$quantityPricing] : []);
             $showGuest = $pricingType === 'guest_based_pricing';
             $showDuration = $pricingType === 'custom_duration_pricing';
             $showPackages = $pricingType === 'tiered_packages_pricing';
-            $showQuantity = $pricingType === 'quantity_based_pricing' && !empty($quantityPricing);
-            $qtyMin = max(1, (int) ($quantityPricing['min_quantity'] ?? 1));
-            $qtyMax = isset($quantityPricing['max_quantity'])
-                && $quantityPricing['max_quantity'] !== ''
-                && $quantityPricing['max_quantity'] !== null
-                ? (int) $quantityPricing['max_quantity'] : null;
+            $showQuantity = $pricingType === 'quantity_based_pricing' && $quantityTiers !== [];
+            $qtyMin = 1;
+            $qtyMax = null;
+            foreach ($quantityTiers as $qt) {
+                $tMin = max(1, (int) ($qt['min_quantity'] ?? 1));
+                $qtyMin = min($qtyMin, $tMin);
+                $tMaxRaw = $qt['max_quantity'] ?? null;
+                if ($tMaxRaw !== null && $tMaxRaw !== '') {
+                    $tMax = max($tMin, (int) $tMaxRaw);
+                    $qtyMax = $qtyMax === null ? $tMax : max($qtyMax, $tMax);
+                } else {
+                    $qtyMax = null;
+                }
+            }
             $qtyDefault = $qtyMin;
             ?>
             <div class="service-preview card">
@@ -116,11 +125,28 @@
                                     <div class="form-group">
                                         <label for="durationPricing">Duration-Based Pricing:</label>
                                         <select class="form-control" id="durationPricing" name="pricing_option" required>
-                                            <?php foreach ($durationPricing as $pricing): ?>
-                                                <option value="duration_<?= esc($pricing['id']) ?>">
-                                                    <?= esc($pricing['duration_hours'] ?? $pricing['duration'] ?? '') ?> Hour(s): £<?= esc($pricing['price']) ?>
-                                                </option>
-                                            <?php endforeach; ?>
+                                            <?php if (!empty($timeBlocks)): ?>
+                                                <optgroup label="Time slots">
+                                                    <?php foreach ($timeBlocks as $block): ?>
+                                                        <?php
+                                                        $start = preg_match('/^(\d{1,2}:\d{2})/', (string) ($block['start_time'] ?? ''), $sm) ? $sm[1] : '';
+                                                        $end = preg_match('/^(\d{1,2}:\d{2})/', (string) ($block['end_time'] ?? ''), $em) ? $em[1] : '';
+                                                        ?>
+                                                        <option value="timeblock_<?= esc($block['id']) ?>">
+                                                            <?= esc($start) ?> – <?= esc($end) ?>: £<?= esc(number_format((float) ($block['price'] ?? 0), 2)) ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </optgroup>
+                                            <?php endif; ?>
+                                            <?php if (!empty($durationPricing)): ?>
+                                                <optgroup label="Duration">
+                                                    <?php foreach ($durationPricing as $pricing): ?>
+                                                        <option value="duration_<?= esc($pricing['id']) ?>">
+                                                            <?= esc($pricing['duration_hours'] ?? $pricing['duration'] ?? '') ?> <?= (($pricing['duration_type'] ?? '') === 'day') ? 'Day(s)' : 'Hour(s)' ?>: £<?= esc(number_format((float) ($pricing['price'] ?? 0), 2)) ?>
+                                                        </option>
+                                                    <?php endforeach; ?>
+                                                </optgroup>
+                                            <?php endif; ?>
                                         </select>
                                     </div>
                                 <?php endif; ?>
@@ -138,24 +164,40 @@
                                     </div>
                                 <?php endif; ?>
 
-                                <?php if ($showQuantity && is_array($quantityPricing)): ?>
+                                <?php if ($showQuantity && $quantityTiers !== []): ?>
                                     <div class="form-group">
-                                        <label for="orderQuantity">Order quantity<?= !empty($quantityPricing['unit_label']) ? ' (' . esc($quantityPricing['unit_label']) . ')' : '' ?>:</label>
+                                        <?php $unitLabel = esc($quantityTiers[0]['unit_label'] ?? 'items'); ?>
+                                        <label for="orderQuantity">Order quantity (<?= $unitLabel ?>):</label>
+                                        <?php if (count($quantityTiers) > 1): ?>
+                                            <ul class="list-unstyled small border rounded p-3 bg-light mb-2">
+                                                <?php foreach ($quantityTiers as $qt): ?>
+                                                    <li class="mb-1">
+                                                        <?php
+                                                        $qMin = (int) ($qt['min_quantity'] ?? 1);
+                                                        $qMaxRaw = $qt['max_quantity'] ?? null;
+                                                        ?>
+                                                        <?php if ($qMaxRaw !== null && $qMaxRaw !== ''): ?>
+                                                            <?= $qMin ?>–<?= (int) $qMaxRaw ?>:
+                                                        <?php else: ?>
+                                                            <?= $qMin ?>+:
+                                                        <?php endif; ?>
+                                                        <strong>£<?= number_format((float) ($qt['unit_price'] ?? 0), 2) ?></strong> each
+                                                    </li>
+                                                <?php endforeach; ?>
+                                            </ul>
+                                        <?php endif; ?>
                                         <input type="number" class="form-control quote-refresh-input" id="orderQuantity"
                                             name="order_quantity"
                                             value="<?= (int) $qtyDefault ?>"
                                             min="<?= (int) $qtyMin ?>"
                                             <?= $qtyMax !== null ? 'max="' . (int) $qtyMax . '"' : '' ?>
                                             required>
-                                        <?php if (!empty($quantityPricing['unit_price'])): ?>
+                                        <?php if (count($quantityTiers) === 1 && !empty($quantityTiers[0]['unit_price'])): ?>
                                             <p class="text-muted small mb-0 mt-1">
-                                                £<?= number_format((float) $quantityPricing['unit_price'], 2) ?> per <?= esc($quantityPricing['unit_label'] ?? 'item') ?>
-                                                <?php if ($qtyMax !== null): ?>
-                                                    &middot; <?= (int) $qtyMin ?>–<?= (int) $qtyMax ?>
-                                                <?php elseif ($qtyMin > 1): ?>
-                                                    &middot; min <?= (int) $qtyMin ?>
-                                                <?php endif; ?>
+                                                £<?= number_format((float) $quantityTiers[0]['unit_price'], 2) ?> per <?= $unitLabel ?>
                                             </p>
+                                        <?php else: ?>
+                                            <p class="text-muted small mb-0 mt-1">Unit price depends on the band that matches your quantity.</p>
                                         <?php endif; ?>
                                         <input type="hidden" name="pricing_option" id="qtyPricingOption" value="qty_<?= (int) $qtyDefault ?>">
                                     </div>

@@ -74,7 +74,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
-            null,
+            [],
             [],
             [],
             'guest_1'
@@ -103,7 +103,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             'all_travel_included' => 1,
             'no_travel_limit' => 1,
         ];
-        $result = $calc->calculate($service, $event, $loc, $bands, null, [], [], [], null, [], [], null);
+        $result = $calc->calculate($service, $event, $loc, $bands, null, [], [], [], [], [], [], null);
         $this->assertSame([], $result['errors']);
         $this->assertEqualsWithDelta(300.0, $result['total'], 0.01);
     }
@@ -138,7 +138,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
-            null,
+            [],
             $extrasById,
             [7],
             'guest_1',
@@ -178,7 +178,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
-            null,
+            [],
             $extrasById,
             [7],
             'guest_1',
@@ -218,7 +218,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
-            null,
+            [],
             $extrasById,
             [7],
             'guest_1',
@@ -252,7 +252,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             $guestTiers,
             [],
             [],
-            null,
+            [],
             [],
             [],
             'guest_1',
@@ -287,6 +287,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             [],
             [],
             [],
+            [],
             null,
             [],
             $corporate
@@ -311,6 +312,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             ],
             [],
             null,
+            [],
             [],
             [],
             [],
@@ -341,6 +343,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             [],
             [],
             [],
+            [],
             null
         );
         $joined = strtolower(implode(' ', $result['warnings']));
@@ -362,6 +365,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             ],
             [],
             null,
+            [],
             [],
             [],
             [],
@@ -397,7 +401,7 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             'travel_fee_per_km' => 5.0,
             'strict_travel_radius' => 1,
         ];
-        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], [], [], null);
+        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], [], [], [], null);
         $codes = array_column($result['lines'], 'code');
         $this->assertNotContains('travel', $codes);
         $this->assertNull($result['distance_km']);
@@ -430,7 +434,292 @@ final class EventBookingQuoteTest extends CIUnitTestCase
             'travel_fee_per_km' => 1.0,
             'strict_travel_radius' => 1,
         ];
-        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], [], [], null);
+        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], [], [], [], null);
         $this->assertNotEmpty($result['errors']);
+    }
+
+    public function testDeliveryLeadTimeWarningWhenEventTooSoon(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 50.0];
+        $event = [
+            'guest_count' => 5,
+            'event_setting' => 'private',
+            'date' => date('Y-m-d', strtotime('+2 days')),
+        ];
+        $loc = [
+            'fulfillment_type' => 'postal',
+            'postal_fee' => 5.0,
+            'delivery_lead_time_days' => 5,
+        ];
+        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], [], [], [], null);
+        $joined = implode(' ', $result['warnings']);
+        $this->assertStringContainsString('Allow at least 5 working days before your event date for dispatch', $joined);
+        $this->assertStringContainsString('too soon for postal dispatch', $joined);
+        $this->assertSame([], $result['errors']);
+    }
+
+    public function testQuantityBasedSubtotal(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 0.0, 'title' => 'Favours'];
+        $event = [
+            'guest_count' => 200,
+            'event_setting' => 'private',
+        ];
+        $quantityTiers = [[
+            'unit_price' => 2.5,
+            'min_quantity' => 50,
+            'max_quantity' => 500,
+            'unit_label' => 'items',
+        ]];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1],
+            [],
+            ['pricing_type' => 'quantity_based_pricing', 'id' => 3],
+            [],
+            [],
+            [],
+            $quantityTiers,
+            [],
+            [],
+            'qty_120'
+        );
+        $this->assertSame([], $result['errors']);
+        $this->assertEqualsWithDelta(300.0, $result['total'], 0.01);
+        $codes = array_column($result['lines'], 'code');
+        $this->assertContains('quantity_based', $codes);
+    }
+
+    public function testGuestTierGapWarning(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 0.0];
+        $event = [
+            'guest_count' => 75,
+            'event_setting' => 'private',
+        ];
+        $guestTiers = [
+            ['id' => 1, 'min_guest' => 1, 'max_guest' => 50, 'guest_price' => 10.0],
+            ['id' => 2, 'min_guest' => 100, 'max_guest' => 200, 'guest_price' => 8.0],
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1],
+            [],
+            ['pricing_type' => 'guest_based_pricing', 'id' => 9],
+            $guestTiers,
+            [],
+            [],
+            [],
+            [],
+            [],
+            null
+        );
+        $joined = implode(' ', $result['warnings']);
+        $this->assertStringContainsString('falls between configured guest pricing bands', $joined);
+        $this->assertStringContainsString('1–50', $joined);
+        $this->assertStringContainsString('100–200', $joined);
+        $this->assertNotEmpty($result['errors']);
+        $errorsJoined = implode(' ', $result['errors']);
+        $this->assertStringContainsString('Configured bands:', $errorsJoined);
+    }
+
+    public function testGuestCountNearBandEdgeWarning(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 0.0];
+        $event = [
+            'guest_count' => 98,
+            'event_setting' => 'private',
+        ];
+        $guestTiers = [
+            ['id' => 1, 'min_guest' => 1, 'max_guest' => 100, 'guest_price' => 10.0],
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1],
+            [],
+            ['pricing_type' => 'guest_based_pricing', 'id' => 9],
+            $guestTiers,
+            [],
+            [],
+            [],
+            [],
+            [],
+            'guest_1'
+        );
+        $this->assertSame([], $result['errors']);
+        $joined = implode(' ', $result['warnings']);
+        $this->assertStringContainsString('near the edge of a pricing band', $joined);
+        $this->assertEqualsWithDelta(980.0, $result['total'], 0.01);
+    }
+
+    public function testPublicAttendanceGapWarning(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 100.0];
+        $event = [
+            'guest_count' => 75,
+            'event_setting' => 'public',
+            'latitude' => 51.5,
+            'longitude' => -0.12,
+        ];
+        $bands = [
+            ['min_attendance' => 1, 'max_attendance' => 50, 'max_pitch_fee' => 50.0],
+            ['min_attendance' => 100, 'max_attendance' => 200, 'max_pitch_fee' => 80.0],
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            [
+                'latitude' => 51.51,
+                'longitude' => -0.13,
+                'all_travel_included' => 1,
+                'no_travel_limit' => 1,
+            ],
+            $bands,
+            null,
+            [],
+            [],
+            [],
+            [],
+            [],
+            [],
+            null
+        );
+        $joined = implode(' ', $result['warnings']);
+        $this->assertStringContainsString('falls between configured public event bands', $joined);
+        $this->assertNotEmpty($result['errors']);
+        $errorsJoined = implode(' ', $result['errors']);
+        $this->assertStringContainsString('Configured bands:', $errorsJoined);
+    }
+
+    public function testPerItemExtraUsesOrderQuantityNotGuests(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 0.0, 'title' => 'Favours'];
+        $event = [
+            'guest_count' => 200,
+            'event_setting' => 'private',
+        ];
+        $quantityPricing = [
+            'unit_price' => 2.0,
+            'min_quantity' => 100,
+            'max_quantity' => 300,
+            'unit_label' => 'items',
+        ];
+        $extrasById = [
+            7 => [
+                'price' => 1.5,
+                'name' => 'Gift wrap',
+                'pricing_type' => 'per_item',
+                'min_quantity' => 1,
+                'max_quantity' => 500,
+                'unit_label' => 'wraps',
+            ],
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1],
+            [],
+            ['pricing_type' => 'quantity_based_pricing', 'id' => 3],
+            [],
+            [],
+            [],
+            [[
+                'unit_price' => 2.5,
+                'min_quantity' => 50,
+                'max_quantity' => 500,
+                'unit_label' => 'items',
+            ]],
+            $extrasById,
+            [7],
+            'qty_120',
+            []
+        );
+        $this->assertSame([], $result['errors']);
+        $this->assertEqualsWithDelta(480.0, $result['total'], 0.01);
+    }
+
+    public function testQuantityTierVolumeDiscount(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 0.0, 'title' => 'Favours'];
+        $event = ['guest_count' => 50, 'event_setting' => 'private'];
+        $tiers = [
+            ['unit_price' => 5.5, 'min_quantity' => 1, 'max_quantity' => 100, 'unit_label' => 'items'],
+            ['unit_price' => 4.75, 'min_quantity' => 101, 'max_quantity' => 500, 'unit_label' => 'items'],
+            ['unit_price' => 4.0, 'min_quantity' => 501, 'max_quantity' => null, 'unit_label' => 'items'],
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1],
+            [],
+            ['pricing_type' => 'quantity_based_pricing', 'id' => 1],
+            [],
+            [],
+            [],
+            $tiers,
+            [],
+            [],
+            'qty_150'
+        );
+        $this->assertSame([], $result['errors']);
+        $this->assertEqualsWithDelta(712.5, $result['total'], 0.01);
+    }
+
+    public function testTimeBlockPricingOption(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 0.0];
+        $event = [
+            'guest_count' => 10,
+            'event_setting' => 'private',
+        ];
+        $durationTiers = [
+            ['id' => 5, 'duration' => 3, 'duration_type' => 'hour', 'price' => 999.0],
+        ];
+        $timeBlocks = [
+            ['id' => 12, 'start_time' => '10:00:00', 'end_time' => '14:00:00', 'price' => 450.0],
+        ];
+        $result = $calc->calculate(
+            $service,
+            $event,
+            ['all_travel_included' => 1, 'no_travel_limit' => 1],
+            [],
+            ['pricing_type' => 'custom_duration_pricing', 'id' => 2],
+            [],
+            $durationTiers,
+            [],
+            [],
+            [],
+            [],
+            'timeblock_12',
+            [],
+            null,
+            null,
+            $timeBlocks
+        );
+        $this->assertSame([], $result['errors']);
+        $this->assertEqualsWithDelta(450.0, $result['total'], 0.01);
+        $codes = array_column($result['lines'], 'code');
+        $this->assertContains('time_block', $codes);
+        $durationLine = null;
+        foreach ($result['lines'] as $line) {
+            if (($line['code'] ?? '') === 'time_block') {
+                $durationLine = $line;
+                break;
+            }
+        }
+        $this->assertNotNull($durationLine);
+        $this->assertStringContainsString('10:00', $durationLine['label']);
+        $this->assertStringContainsString('14:00', $durationLine['label']);
     }
 }

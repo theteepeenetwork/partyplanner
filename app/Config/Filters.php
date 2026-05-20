@@ -15,6 +15,21 @@ use CodeIgniter\Filters\SecureHeaders;
 
 class Filters extends BaseFilters
 {
+    public function __construct()
+    {
+        parent::__construct();
+
+        $disableToolbar = in_array(ENVIRONMENT, ['cloud', 'production', 'testing'], true)
+            || filter_var(env('DISABLE_DEBUG_TOOLBAR', false), FILTER_VALIDATE_BOOLEAN);
+
+        if ($disableToolbar) {
+            $this->required['after'] = array_values(array_filter(
+                $this->required['after'],
+                static fn (string $filter): bool => $filter !== 'toolbar'
+            ));
+        }
+    }
+
     /**
      * Configures aliases for Filter classes to
      * make reading things nicer and simpler.

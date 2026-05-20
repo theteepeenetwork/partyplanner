@@ -669,6 +669,23 @@ class Service_Controller extends BaseController
                                 }
                             }
                         }
+
+                        usort($ranges, static fn (array $a, array $b): int => $a['min'] <=> $b['min']);
+                        for ($i = 0, $n = count($ranges); $i < $n - 1; $i++) {
+                            $hole = $ranges[$i + 1]['min'] - $ranges[$i]['max'] - 1;
+                            if ($hole > 1) {
+                                return redirect()->back()->withInput()->with('errors', [
+                                    'min_guest.' . ($i + 1) => sprintf(
+                                        'There is a gap of %d guests between band %d–%d and %d–%d. Adjacent bands must leave at most one guest between them.',
+                                        $hole,
+                                        $ranges[$i]['min'],
+                                        $ranges[$i]['max'],
+                                        $ranges[$i + 1]['min'],
+                                        $ranges[$i + 1]['max']
+                                    ),
+                                ]);
+                            }
+                        }
                         break;
 
                     case 'custom_duration_pricing':
@@ -2142,6 +2159,23 @@ class Service_Controller extends BaseController
             }
 
             $privatePricing = $servicePrivatePricingModel->where('service_id', $id)->first();
+            if (($privatePricing['pricing_type'] ?? '') === 'custom_duration_pricing') {
+                $starts = $this->request->getPost('timeblock_start') ?? [];
+                $ends = $this->request->getPost('timeblock_end') ?? [];
+                $prices = $this->request->getPost('timeblock_price') ?? [];
+                $blocks = [];
+                if (is_array($starts)) {
+                    foreach ($starts as $i => $start) {
+                        $blocks[] = [
+                            'start_time' => $start,
+                            'end_time' => $ends[$i] ?? '',
+                            'price' => $prices[$i] ?? '',
+                        ];
+                    }
+                }
+                $this->saveTimeBlocks((int) $id, $blocks);
+            }
+
             if (($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing') {
                 $unitPrice = $this->request->getPost('quantity_unit_price');
                 $minQty = $this->request->getPost('quantity_min_quantity');
@@ -2184,11 +2218,15 @@ class Service_Controller extends BaseController
         $durationPricing = [];
         $tieredPackages = [];
         $quantityPricing = null;
+        $timeBlocks = [];
         if ($privatePricing) {
             $guestPricing = $guestPricingModel->where('private_event_pricing_id', $privatePricing['id'])->findAll();
             $durationPricing = $durationPricingModel->where('private_event_pricing_id', $privatePricing['id'])->findAll();
             $tieredPackages = $tieredPricingModel->where('private_event_pricing_id', $privatePricing['id'])->findAll();
             $quantityPricing = $quantityPricingModel->where('private_event_pricing_id', $privatePricing['id'])->first();
+            if (($privatePricing['pricing_type'] ?? '') === 'custom_duration_pricing') {
+                $timeBlocks = (new ServiceTimeBlockModel())->getByServiceId((int) $id);
+            }
         }
 
         $categories = $this->buildCategoryTree();
@@ -2206,6 +2244,7 @@ class Service_Controller extends BaseController
             'durationPricing' => $durationPricing,
             'tieredPackages' => $tieredPackages,
             'quantityPricing' => $quantityPricing,
+            'timeBlocks' => $timeBlocks,
         ];
 
         return view('service_edit', $data);
@@ -2241,6 +2280,7 @@ class Service_Controller extends BaseController
         $quantityPricingModel = new ServiceQuantityPricingModel();
         $serviceLocationModel = new ServiceLocationModel();
         $optionalExtrasModel = new ServiceOptionalExtrasModel();
+        $timeBlockModel = new ServiceTimeBlockModel();
 
         // Fetch the service details
         $service = $serviceModel->find($id);
@@ -2277,10 +2317,14 @@ class Service_Controller extends BaseController
             ? $tieredPricingModel->where('private_event_pricing_id', $privatePricingId)->findAll()
             : [];
 
-        $quantityPricing = $privatePricingId
-            ? $quantityPricingModel->where('private_event_pricing_id', $privatePricingId)->first()
-            : null;
-        $showQuantity = ($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing';
+        $quantityTiers = $privatePricingId
+            ? $quantityPricingModel->where('private_event_pricing_id', $privatePricingId)->orderBy('min_quantity', 'ASC')->findAll()
+            : [];
+        $quantityPricing = $quantityTiers[0] ?? null;
+        $showQuantity = ($privatePricing['pricing_type'] ?? '') === 'quantity_based_pricing' && $quantityTiers !== [];
+        $timeBlocks = ($privatePricing['pricing_type'] ?? '') === 'custom_duration_pricing'
+            ? $timeBlockModel->getByServiceId((int) $id)
+            : [];
 
         // Fetch service location details
         $location = $serviceLocationModel->where('service_id', $id)->first();
@@ -2332,6 +2376,8 @@ class Service_Controller extends BaseController
             'durationPricing' => $durationPricing,
             'tieredPackages' => $tieredPackages,
             'quantityPricing' => $quantityPricing,
+            'quantityTiers' => $quantityTiers,
+            'timeBlocks' => $timeBlocks,
             'showQuantity' => $showQuantity,
             'location' => $location,
             'optional_extras' => $optionalExtras,
@@ -2636,19 +2682,12 @@ class Service_Controller extends BaseController
         return ($hours * 60) + $minutes;
     }
 
-    private function saveTimeBlocks($serviceId, $timeBlocks)
+    /**
+     * @param list<array{start_time?: string, end_time?: string, price?: float|string}> $timeBlocks
+     */
+    private function saveTimeBlocks(int $serviceId, array $timeBlocks): void
     {
-        $serviceTimeBlockModel = new ServiceTimeBlockModel();
-
-        // Clear existing time blocks before saving new ones
-        $serviceTimeBlockModel->where('service_id', $serviceId)->delete();
-
-        foreach ($timeBlocks as $timeBlock) {
-            $serviceTimeBlockModel->save([
-                'service_id' => $serviceId,
-                'time_length' => trim($timeBlock)
-            ]);
-        }
+        (new ServiceTimeBlockModel())->saveForService($serviceId, $timeBlocks);
     }
 
 
