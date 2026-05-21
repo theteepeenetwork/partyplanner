@@ -1,13 +1,5 @@
 <?= $this->include('header') ?>
 
-<?php if (!empty($cmsHome)): ?>
-<section class="border-bottom bg-white py-3">
-    <div class="container cms-intro">
-        <?= $cmsHome['content'] ?>
-    </div>
-</section>
-<?php endif; ?>
-
 <main class="full-width-container home-page">
     <!-- Hero -->
     <section class="hero-section d-flex flex-column" aria-labelledby="home-hero-heading">
