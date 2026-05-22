@@ -48,10 +48,6 @@ class Home extends BaseController
             $builder = $builder->where('deleted_at', null);
         }
 
-        if (in_array('price', $cols, true)) {
-            $builder = $builder->where('price >', 0);
-        }
-
         $services = $builder
             ->orderBy('rand()')
             ->limit(9)
@@ -76,6 +72,33 @@ class Home extends BaseController
             'serviceFallbackImage' => 'fallback-service-card.jpg',
             'vendorCtaImage'       => 'vendor-cta.jpg',
             'isHomePage'           => true,
+            'inspirationBrowseUrl' => base_url('browse-services'),
+            'inspirationCards'     => [
+                [
+                    'title' => 'Wedding planning essentials',
+                    'text'  => 'Photography, venues, catering and more.',
+                    'href'  => base_url('browse-services?q=wedding'),
+                    'icon'  => 'fas fa-heart',
+                ],
+                [
+                    'title' => 'Birthday party supplier ideas',
+                    'text'  => 'Entertainment, cakes and styling.',
+                    'href'  => base_url('browse-services?q=birthday'),
+                    'icon'  => 'fas fa-cake-candles',
+                ],
+                [
+                    'title' => 'Corporate event services',
+                    'text'  => 'Venues, catering and AV support.',
+                    'href'  => base_url('browse-services?q=corporate'),
+                    'icon'  => 'fas fa-briefcase',
+                ],
+                [
+                    'title' => 'Christening celebration inspiration',
+                    'text'  => 'Catering, photography and venues.',
+                    'href'  => base_url('browse-services?q=christening'),
+                    'icon'  => 'fas fa-champagne-glasses',
+                ],
+            ],
         ];
 
         return view('home', $data);

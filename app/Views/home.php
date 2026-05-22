@@ -3,6 +3,8 @@ $fallbackImage = base_url('assets/images/' . esc($serviceFallbackImage ?? 'fallb
 $heroBg        = base_url('assets/images/' . esc($heroImage ?? 'hero-event-planning.jpg'));
 $vendorImg     = base_url('assets/images/' . esc($vendorCtaImage ?? 'vendor-cta.jpg'));
 $planUrl       = session()->has('user_id') ? base_url('event/create') : base_url('register');
+$inspirationCards = $inspirationCards ?? [];
+$inspirationBrowseUrl = $inspirationBrowseUrl ?? base_url('browse-services');
 ?>
 <?= $this->include('header') ?>
 
@@ -20,16 +22,16 @@ $planUrl       = session()->has('user_id') ? base_url('event/create') : base_url
                     </p>
                     <div class="hero-cta-group d-flex flex-wrap gap-2 justify-content-center">
                         <a href="<?= $planUrl ?>" class="btn btn-home-primary btn-lg">Start planning</a>
-                        <a href="<?= base_url('browse-services') ?>" class="btn btn-home-outline-light btn-lg">Browse suppliers</a>
+                        <a href="<?= base_url('browse-services') ?>" class="btn btn-home-outline-light btn-lg">Browse services</a>
                     </div>
 
                     <form class="search-form hero-search d-none d-lg-flex justify-content-center"
                         action="<?= base_url('search') ?>" method="get" role="search">
                         <div class="hero-search-inner hero-search-inner--simple">
-                            <label class="visually-hidden" for="home-search-q">Search suppliers</label>
+                            <label class="visually-hidden" for="home-search-q">Search services</label>
                             <input type="search" class="form-control hero-search-q" id="home-search-q" name="q"
                                 placeholder="Search photographers, venues, catering…" autocomplete="off">
-                            <button class="btn btn-primary hero-search-btn" type="submit">Search</button>
+                            <button class="btn btn-primary hero-search-btn" type="submit">Search services</button>
                         </div>
                     </form>
                 </div>
@@ -38,16 +40,16 @@ $planUrl       = session()->has('user_id') ? base_url('event/create') : base_url
         <div class="search-form-container d-lg-none">
             <form class="search-form py-3 px-2" action="<?= base_url('search') ?>" method="get" role="search">
                 <div class="hero-search-inner hero-search-inner--simple hero-search-inner--stacked mx-auto">
-                    <label class="visually-hidden" for="home-search-q-mobile">Search suppliers</label>
+                    <label class="visually-hidden" for="home-search-q-mobile">Search services</label>
                     <input type="search" class="form-control" id="home-search-q-mobile" name="q"
                         placeholder="Search photographers, venues, catering…" autocomplete="off">
-                    <button class="btn btn-primary w-100 hero-search-btn" type="submit">Search</button>
+                    <button class="btn btn-primary w-100 hero-search-btn" type="submit">Search services</button>
                 </div>
             </form>
         </div>
     </section>
 
-    <section class="trust-strip-compact home-trust-strip" aria-label="Why planners trust us">
+    <section class="home-trust-strip" aria-label="Marketplace benefits">
         <div class="container">
             <ul class="home-trust-grid">
                 <li class="home-trust-item">
@@ -80,10 +82,10 @@ $planUrl       = session()->has('user_id') ? base_url('event/create') : base_url
 
     <section class="home-section section-surface text-center" aria-labelledby="home-categories-heading">
         <div class="container">
-            <p class="section-eyebrow mb-2">Browse by category</p>
-            <h2 id="home-categories-heading" class="section-heading mb-2">What does your event need?</h2>
+            <p class="section-eyebrow mb-2">Explore services</p>
+            <h2 id="home-categories-heading" class="section-heading mb-2">Everything you need for your event</h2>
             <p class="section-lead mx-auto mb-4">
-                From intimate celebrations to large corporate gatherings—explore trusted UK suppliers by service type.
+                From photographers and catering to venues, styling and entertainment, discover trusted suppliers for every kind of celebration.
             </p>
         </div>
         <?php if (! empty($homeCategoryTiles)): ?>
@@ -91,10 +93,10 @@ $planUrl       = session()->has('user_id') ? base_url('event/create') : base_url
             <?php foreach ($homeCategoryTiles as $tile): ?>
                 <a class="category-card category-card-link"
                     href="<?= esc($tile['href']) ?>"
-                    aria-label="Browse <?= esc($tile['name']) ?>">
+                    aria-label="Browse <?= esc($tile['name']) ?> services">
                     <div class="category-card-media">
                         <img src="<?= base_url('assets/images/' . esc($tile['image'])) ?>"
-                            alt="<?= esc($tile['name']) ?> suppliers"
+                            alt="<?= esc($tile['name']) ?> services"
                             class="category-card-image"
                             width="400"
                             height="400"
@@ -109,14 +111,17 @@ $planUrl       = session()->has('user_id') ? base_url('event/create') : base_url
         </div>
         <?php endif; ?>
         <div class="container mt-4">
-            <a href="<?= base_url('browse-services') ?>" class="btn btn-home-secondary">View all categories</a>
+            <a href="<?= base_url('browse-services') ?>" class="btn btn-home-secondary">View all services</a>
         </div>
     </section>
 
     <section class="home-section how-it-works" aria-labelledby="home-how-heading">
         <div class="container text-center">
-            <p class="section-eyebrow mb-2">Simple process</p>
-            <h2 id="home-how-heading" class="section-heading mb-4">How it works</h2>
+            <p class="section-eyebrow mb-2">How it works</p>
+            <h2 id="home-how-heading" class="section-heading mb-2">Plan with less back-and-forth</h2>
+            <p class="section-lead mx-auto mb-4">
+                Create your event once, then discover suitable suppliers, request quotes and manage your bookings from one calm planning space.
+            </p>
             <div class="how-it-works-steps">
                 <div class="how-it-works-card">
                     <div class="icon-wrapper">
@@ -124,15 +129,15 @@ $planUrl       = session()->has('user_id') ? base_url('event/create') : base_url
                     </div>
                     <span class="step-number">Step 1</span>
                     <h3 class="card-title">Create your event</h3>
-                    <p class="card-description">Add your date, location, and occasion so suppliers understand your brief.</p>
+                    <p class="card-description">Tell us the date, location, guest numbers and type of event.</p>
                 </div>
                 <div class="how-it-works-card">
                     <div class="icon-wrapper">
                         <i class="fas fa-compass" aria-hidden="true"></i>
                     </div>
                     <span class="step-number">Step 2</span>
-                    <h3 class="card-title">Discover suppliers</h3>
-                    <p class="card-description">Browse verified listings, compare services, and save your favourites.</p>
+                    <h3 class="card-title">Discover services</h3>
+                    <p class="card-description">Browse suppliers that match what you need.</p>
                 </div>
                 <div class="how-it-works-card">
                     <div class="icon-wrapper">
@@ -140,29 +145,28 @@ $planUrl       = session()->has('user_id') ? base_url('event/create') : base_url
                     </div>
                     <span class="step-number">Step 3</span>
                     <h3 class="card-title">Request quotes</h3>
-                    <p class="card-description">Message vendors and receive quotes in one organised inbox.</p>
+                    <p class="card-description">Send enquiries and compare responses in one place.</p>
                 </div>
                 <div class="how-it-works-card">
                     <div class="icon-wrapper">
-                        <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                        <i class="fas fa-clipboard-list" aria-hidden="true"></i>
                     </div>
                     <span class="step-number">Step 4</span>
-                    <h3 class="card-title">Book with confidence</h3>
-                    <p class="card-description">Confirm bookings and keep every detail in your planning dashboard.</p>
+                    <h3 class="card-title">Manage bookings</h3>
+                    <p class="card-description">Keep services, messages and payments organised as your plans come together.</p>
                 </div>
             </div>
-            <a href="<?= $planUrl ?>" class="btn btn-home-primary btn-lg mt-4">Start planning</a>
         </div>
     </section>
 
     <section class="home-section section-surface-alt" aria-labelledby="home-services-heading">
         <div class="container d-flex flex-column flex-md-row align-items-md-end justify-content-md-between gap-3 mb-4 text-md-start text-center">
             <div>
-                <p class="section-eyebrow mb-2">Featured listings</p>
-                <h2 id="home-services-heading" class="section-heading mb-0">Popular services</h2>
-                <p class="section-lead mt-2 mb-0">Hand-picked suppliers to inspire your next celebration.</p>
+                <p class="section-eyebrow mb-2">Featured services</p>
+                <h2 id="home-services-heading" class="section-heading mb-0">Popular services for upcoming events</h2>
+                <p class="section-lead mt-2 mb-0">Browse a selection of suppliers ready to help with weddings, private parties and corporate occasions.</p>
             </div>
-            <a href="<?= base_url('browse-services') ?>" class="btn btn-home-primary align-self-center align-self-md-end">See all services</a>
+            <a href="<?= base_url('browse-services') ?>" class="btn btn-home-primary align-self-center align-self-md-end">View all services</a>
         </div>
         <div class="service-card-container">
             <?php foreach ($services as $service): ?>
@@ -183,7 +187,7 @@ $planUrl       = session()->has('user_id') ? base_url('event/create') : base_url
                 $isVerified = ! empty($service['license']);
                 ?>
                 <article class="service-card">
-                    <a href="<?= $serviceUrl ?>" class="service-card-media d-block text-decoration-none">
+                    <a href="<?= $serviceUrl ?>" class="service-card-media">
                         <img src="<?= $thumb ?>"
                             alt="<?= esc($service['title']) ?>"
                             class="service-card-image"
@@ -207,6 +211,8 @@ $planUrl       = session()->has('user_id') ? base_url('event/create') : base_url
                             </span>
                             <?php if ($price !== null && $price > 0): ?>
                                 <span class="service-card-price">From £<?= number_format($price, 0) ?></span>
+                            <?php else: ?>
+                                <span class="service-card-quote">Request a quote</span>
                             <?php endif; ?>
                         </div>
                         <p class="service-card-description">
@@ -234,12 +240,12 @@ $planUrl       = session()->has('user_id') ? base_url('event/create') : base_url
                     </p>
                     <div class="d-flex flex-wrap gap-2">
                         <a href="<?= base_url('register/vendor') ?>" class="btn btn-home-primary">Become a vendor</a>
-                        <a href="<?= base_url('vendor-info') ?>" class="btn btn-home-secondary">How it works for vendors</a>
+                        <a href="<?= base_url('vendor-info') ?>" class="btn btn-home-secondary">Learn how it works</a>
                     </div>
                 </div>
                 <div class="vendor-cta-media">
                     <img src="<?= $vendorImg ?>"
-                        alt="Event supplier preparing a celebration"
+                        alt="Event supplier preparing services for a celebration"
                         width="600"
                         height="400"
                         loading="lazy"
@@ -250,52 +256,54 @@ $planUrl       = session()->has('user_id') ? base_url('event/create') : base_url
         </div>
     </section>
 
-    <section class="home-section social-proof-section text-center" aria-labelledby="home-proof-heading">
+    <section class="home-section trust-value-section text-center" aria-labelledby="home-trust-heading">
         <div class="container">
-            <p class="section-eyebrow mb-2" style="color: var(--home-gold, #c4a574);">Social proof</p>
-            <h2 id="home-proof-heading" class="section-heading">Trusted by planners across the UK</h2>
-            <p class="section-lead mx-auto">Couples, families, and corporate teams use one calm space to plan with confidence.</p>
-
-            <?php /* TEMP: placeholder stats until live metrics are wired — replace with real counts */ ?>
-            <div class="proof-stats" data-stats-temporary="true">
-                <div class="proof-stat-card">
-                    <p class="proof-stat-value">500+</p>
-                    <p class="proof-stat-label">supplier listings</p>
-                </div>
-                <div class="proof-stat-card">
-                    <p class="proof-stat-value">UK-wide</p>
-                    <p class="proof-stat-label">coverage</p>
-                </div>
-                <div class="proof-stat-card">
-                    <p class="proof-stat-value">One place</p>
-                    <p class="proof-stat-label">organised planning space</p>
-                </div>
-            </div>
-
-            <div class="testimonial-grid">
-                <blockquote class="testimonial-card">
-                    <p class="testimonial-quote">“We compared photographers and caterers without endless spreadsheets—everything stayed in one place.”</p>
-                    <footer><p class="testimonial-author">Emma &amp; James, wedding</p></footer>
-                </blockquote>
-                <blockquote class="testimonial-card">
-                    <p class="testimonial-quote">“Our team event came together quickly. Quotes arrived in the inbox and we booked with clear pricing.”</p>
-                    <footer><p class="testimonial-author">Priya K., corporate organiser</p></footer>
-                </blockquote>
-                <blockquote class="testimonial-card">
-                    <p class="testimonial-quote">“Listing our DJ service was straightforward. Enquiries land in the dashboard and we reply the same day.”</p>
-                    <footer><p class="testimonial-author">Marcus T., entertainment vendor</p></footer>
-                </blockquote>
+            <p class="section-eyebrow mb-2">Why use us</p>
+            <h2 id="home-trust-heading" class="section-heading">A calmer way to organise important events</h2>
+            <div class="trust-value-grid">
+                <article class="trust-value-card">
+                    <h3>Trusted suppliers</h3>
+                    <p>Browse services from event professionals across the UK.</p>
+                </article>
+                <article class="trust-value-card">
+                    <h3>One organised space</h3>
+                    <p>Keep quotes, messages and bookings together.</p>
+                </article>
+                <article class="trust-value-card">
+                    <h3>Built for every occasion</h3>
+                    <p>Plan weddings, christenings, birthdays, parties and corporate events.</p>
+                </article>
             </div>
         </div>
     </section>
 
-    <section class="home-final-cta text-white home-section" aria-labelledby="home-cta-heading">
+    <section class="home-section inspiration-section text-center" aria-labelledby="home-inspiration-heading">
+        <div class="container">
+            <p class="section-eyebrow mb-2">Inspiration</p>
+            <h2 id="home-inspiration-heading" class="section-heading">Ideas for your next event</h2>
+            <div class="inspiration-grid">
+                <?php foreach ($inspirationCards as $card): ?>
+                    <a href="<?= esc($card['href']) ?>" class="inspiration-card">
+                        <span class="inspiration-card-icon" aria-hidden="true"><i class="<?= esc($card['icon']) ?>"></i></span>
+                        <h3 class="inspiration-card-title"><?= esc($card['title']) ?></h3>
+                        <p class="inspiration-card-text"><?= esc($card['text']) ?></p>
+                    </a>
+                <?php endforeach; ?>
+            </div>
+            <?php /* No dedicated inspiration/blog route yet — links to browse-services filtered views */ ?>
+            <a href="<?= esc($inspirationBrowseUrl) ?>" class="btn btn-home-secondary mt-4">Read inspiration</a>
+        </div>
+    </section>
+
+    <section class="home-final-cta home-section" aria-labelledby="home-cta-heading">
         <div class="container text-center cta-inner">
             <h2 id="home-cta-heading" class="cta-heading">Ready to start planning?</h2>
-            <p class="cta-lead mb-4">Create your event, browse suppliers, and keep every quote and message beautifully organised.</p>
+            <p class="cta-lead mb-4">
+                Create your event, discover services and keep every supplier enquiry in one beautifully organised place.
+            </p>
             <div class="d-flex flex-wrap gap-2 justify-content-center">
                 <a href="<?= base_url('event/create') ?>" class="btn btn-light btn-lg px-4">Create your event</a>
-                <a href="<?= base_url('browse-services') ?>" class="btn btn-home-outline-light btn-lg px-4">Browse suppliers</a>
+                <a href="<?= base_url('browse-services') ?>" class="btn btn-home-ghost-light btn-lg px-4">Browse services</a>
             </div>
         </div>
     </section>
