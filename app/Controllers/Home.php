@@ -47,7 +47,11 @@ class Home extends BaseController
             $builder = $builder->where('deleted_at', null);
         }
 
-        // Retrieve 9 random active services
+        if (in_array('price', $cols, true)) {
+            $builder = $builder->where('price >', 0);
+        }
+
+        // Retrieve 9 random active services (exclude zero-price listings)
         $services = $builder
             ->orderBy('rand()')
             ->limit(9)

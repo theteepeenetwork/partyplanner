@@ -353,7 +353,7 @@ class EventController extends BaseController
         }
 
         $quoteBuilder = new EventQuoteBuilder();
-        $quote = $quoteBuilder->build($service, $event, $pricingOption, $selectedExtras, $extraQtyMap);
+        $quote = $quoteBuilder->build($service, $event, $pricingOption, $selectedExtras, $extraQtyMap, $orderQuantity);
 
         if (!empty($quote['errors'])) {
             return redirect()->to('/service/view/' . $serviceId)
@@ -433,6 +433,10 @@ class EventController extends BaseController
         }
 
         $pricingOption = $this->request->getGet('pricing_option');
+        $orderQuantity = $this->resolveOrderQuantity(
+            $pricingOption,
+            $this->request->getGet('order_quantity')
+        );
         $extrasRaw = $this->request->getGet('extras');
         $selectedExtras = [];
         if (is_string($extrasRaw) && $extrasRaw !== '') {
@@ -442,7 +446,7 @@ class EventController extends BaseController
         }
         $extraQtyMap = $this->normalizeExtraQtyMap($this->request->getGet('extra_qty'));
 
-        $quote = (new EventQuoteBuilder())->build($service, $event, $pricingOption, $selectedExtras, $extraQtyMap);
+        $quote = (new EventQuoteBuilder())->build($service, $event, $pricingOption, $selectedExtras, $extraQtyMap, $orderQuantity);
         $depositPercent = 0.15;
 
         return $this->response->setJSON([
@@ -484,6 +488,29 @@ class EventController extends BaseController
         }
 
         return $out;
+    }
+
+    /**
+     * Normalise order quantity from form input and qty_* pricing options.
+     *
+     * @param mixed $rawQty
+     */
+    private function resolveOrderQuantity(?string $pricingOption, $rawQty): ?int
+    {
+        $qty = null;
+
+        if ($rawQty !== null && $rawQty !== '') {
+            $parsed = (int) $rawQty;
+            if ($parsed > 0) {
+                $qty = $parsed;
+            }
+        }
+
+        if ($qty === null && $pricingOption !== null && preg_match('/^qty_(\d+)$/', $pricingOption, $m)) {
+            $qty = (int) $m[1];
+        }
+
+        return ($qty !== null && $qty > 0) ? $qty : null;
     }
 
     // =========================================================
