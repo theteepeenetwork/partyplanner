@@ -5,29 +5,30 @@ use App\Models\ServiceModel;
 use App\Models\ServiceImageModel;
 use App\Models\CategoryModel;
 use App\Models\CmsPageModel;
-use Config\Branding;
 
 class Home extends BaseController
 {
-    /** @var list<array{image: string, keywords: list<string>}> */
-    private const CATEGORY_TILE_DEFS = [
-        ['image' => 'category_photography_v1.webp', 'keywords' => ['photo', 'photograph']],
-        ['image' => 'category_catering_v1.webp', 'keywords' => ['cater', 'food', 'kitchen']],
-        ['image' => 'category_planning_v1.webp', 'keywords' => ['plan', 'coord']],
-        ['image' => 'category_florist_v1.webp', 'keywords' => ['flor', 'flower']],
-        ['image' => 'category_entertainment_v1.webp', 'keywords' => ['music', 'dj', 'entertain']],
-        ['image' => 'category_beauty_v1.webp', 'keywords' => ['hair', 'makeup', 'beauty']],
-        ['image' => 'category_transport_v1.webp', 'keywords' => ['transport', 'car', 'limo']],
-        ['image' => 'category_venues_v1.webp', 'keywords' => ['venue', 'hall', 'space']],
-        ['image' => 'category_supplies_v1.webp', 'keywords' => ['suppl', 'decor', 'hire']],
-        ['image' => 'category_cakes_v1.webp', 'keywords' => ['cake', 'dessert', 'sweet']],
+    /**
+     * Editorial category tiles for the homepage (fixed labels + art; IDs resolved from DB).
+     *
+     * @var list<array{label: string, image: string, keywords: list<string>}>
+     */
+    private const HOMEPAGE_CATEGORY_TILES = [
+        ['label' => 'Photography & Video', 'image' => 'category-photography-video.jpg', 'keywords' => ['photo', 'photograph', 'video']],
+        ['label' => 'Catering & Drinks', 'image' => 'category-catering-drinks.jpg', 'keywords' => ['cater', 'food', 'drink', 'kitchen']],
+        ['label' => 'Venues', 'image' => 'category-venues.jpg', 'keywords' => ['venue', 'hall', 'space']],
+        ['label' => 'Flowers & Styling', 'image' => 'category-flowers-styling.jpg', 'keywords' => ['flor', 'flower', 'styl', 'decor']],
+        ['label' => 'Entertainment', 'image' => 'category-entertainment.jpg', 'keywords' => ['music', 'dj', 'entertain']],
+        ['label' => 'Cakes & Desserts', 'image' => 'category-cakes-desserts.jpg', 'keywords' => ['cake', 'dessert', 'sweet', 'baker']],
+        ['label' => 'Beauty & Personal Care', 'image' => 'category-beauty-personal-care.jpg', 'keywords' => ['hair', 'makeup', 'beauty']],
+        ['label' => 'Event Planning Support', 'image' => 'category-event-planning-support.jpg', 'keywords' => ['plan', 'coord', 'planner']],
     ];
 
     public function index()
     {
-        $serviceModel = new ServiceModel();
+        $serviceModel      = new ServiceModel();
         $serviceImageModel = new ServiceImageModel();
-        $categoryModel = new CategoryModel();
+        $categoryModel     = new CategoryModel();
 
         $db = \Config\Database::connect();
 
@@ -51,74 +52,73 @@ class Home extends BaseController
             $builder = $builder->where('price >', 0);
         }
 
-        // Retrieve 9 random active services (exclude zero-price listings)
         $services = $builder
             ->orderBy('rand()')
             ->limit(9)
             ->findAll();
 
-        // Fetch associated images for each service
         foreach ($services as &$service) {
-            $service['images'] = $serviceImageModel
+            $service['images']           = $serviceImageModel
                 ->where(['service_id' => $service['id'], 'is_primary' => 1])
                 ->findAll();
+            $service['category_label'] = $categoryModel->getServiceCategoryLabel($service);
         }
+        unset($service);
 
-        // Top-level categories only (sub-tiers load in browse / service flows)
         $categories = $categoryModel->getRootCategories();
 
-        // Homepage tiles: pair stock art with real category IDs when names align
-        $homeCategoryTiles = [];
-        $usedIds           = [];
-        foreach (self::CATEGORY_TILE_DEFS as $td) {
+        $data = [
+            'services'             => $services,
+            'categories'           => $categories,
+            'homeCategoryTiles'    => $this->buildCategoryTiles($categories),
+            'cmsHome'              => $cmsHome,
+            'heroImage'            => 'hero-event-planning.jpg',
+            'serviceFallbackImage' => 'fallback-service-card.jpg',
+            'vendorCtaImage'       => 'vendor-cta.jpg',
+            'isHomePage'           => true,
+        ];
+
+        return view('home', $data);
+    }
+
+    /**
+     * @param list<array<string, mixed>> $categories
+     *
+     * @return list<array{id: int|null, name: string, image: string, href: string}>
+     */
+    private function buildCategoryTiles(array $categories): array
+    {
+        $tiles   = [];
+        $usedIds = [];
+
+        foreach (self::HOMEPAGE_CATEGORY_TILES as $def) {
+            $matchedId = null;
             foreach ($categories as $cat) {
                 $name = strtolower((string) ($cat['name'] ?? ''));
-                foreach ($td['keywords'] as $kw) {
-                    if ($kw === '') {
-                        continue;
-                    }
-                    if (str_contains($name, strtolower($kw))) {
+                foreach ($def['keywords'] as $kw) {
+                    if ($kw !== '' && str_contains($name, strtolower($kw))) {
                         $cid = (int) $cat['id'];
                         if (! isset($usedIds[$cid])) {
-                            $usedIds[$cid]           = true;
-                            $homeCategoryTiles[]      = [
-                                'id'    => $cid,
-                                'name'  => $cat['name'],
-                                'image' => $td['image'],
-                            ];
+                            $matchedId     = $cid;
+                            $usedIds[$cid] = true;
                         }
                         break 2;
                     }
                 }
             }
-        }
-        foreach ($categories as $cat) {
-            if (count($homeCategoryTiles) >= 12) {
-                break;
-            }
-            $cid = (int) $cat['id'];
-            if (isset($usedIds[$cid])) {
-                continue;
-            }
-            $usedIds[$cid]      = true;
-            $homeCategoryTiles[] = [
-                'id'    => $cid,
-                'name'  => $cat['name'],
-                'image' => 'category_default_v1.webp',
+
+            $href = $matchedId !== null
+                ? base_url('browse-services?category=' . $matchedId)
+                : base_url('browse-services');
+
+            $tiles[] = [
+                'id'    => $matchedId,
+                'name'  => $def['label'],
+                'image' => $def['image'],
+                'href'  => $href,
             ];
         }
 
-        $branding = config(Branding::class);
-
-        $data = [
-            'services' => $services,
-            'categories' => $categories,
-            'homeCategoryTiles' => $homeCategoryTiles,
-            'cmsHome' => $cmsHome,
-            'heroSubtitle' => $branding->heroSubtitle(),
-            'heroImage' => 'hero_wedding_evening_v1.webp',
-        ];
-
-        return view('home', $data);
+        return $tiles;
     }
 }

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <?= csrf_meta() ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#2c3e50">
+    <meta name="theme-color" content="#1a2332">
     <title>For Your Events</title>
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -18,6 +18,9 @@
 
     <link rel="stylesheet" href="/assets/css/style.css">
     <link rel="stylesheet" href="/assets/css/dashboard.css">
+    <?php if (! empty($isHomePage)): ?>
+    <link rel="stylesheet" href="/assets/css/home.css">
+    <?php endif; ?>
 
     <!-- Slick Carousel CSS (pages with carousels) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slick-carousel/slick/slick.css">
@@ -43,7 +46,7 @@
     <script src="https://cdn.jsdelivr.net/gh/christianbayer/image-uploader@master/dist/image-uploader.min.js"></script>
 </head>
 
-<body>
+<body<?= ! empty($isHomePage) ? ' class="home-page-body"' : '' ?>>
 
     <header>
         <nav class="navbar navbar-expand-lg fixed-top shadow-sm">
@@ -69,6 +72,9 @@
                         <li class="nav-item">
                             <a class="nav-link text-end" href="/vendor-info">For Vendors</a>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-end" href="/browse-services">Inspiration</a>
+                        </li>
 
                         <?php if (session()->has('user_id')): ?>
                             <li class="nav-item dropdown">
@@ -93,12 +99,17 @@
                             </li>
                         <?php else: ?>
                             <li class="nav-item">
-                                <a class="nav-link text-end" href="/login">Login</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="btn btn-gradient ms-lg-2 mt-2 mt-lg-0" href="/register">Get Started</a>
+                                <a class="nav-link text-end" href="/login">My Account</a>
                             </li>
                         <?php endif; ?>
+                        <li class="nav-item">
+                            <?php
+                            $navPlanUrl = session()->has('user_id')
+                                ? '/event/create'
+                                : '/register';
+                            ?>
+                            <a class="btn btn-nav-cta ms-lg-2 mt-2 mt-lg-0" href="<?= $navPlanUrl ?>">Start planning</a>
+                        </li>
                     </ul>
                 </div>
 
