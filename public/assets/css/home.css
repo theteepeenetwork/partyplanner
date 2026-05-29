@@ -37,32 +37,6 @@ body.home-page-body .trust-value-card h3 {
     color: var(--colour-heading);
 }
 
-body.home-page-body header .navbar {
-    background: var(--colour-espresso);
-    backdrop-filter: blur(8px);
-    box-shadow: 0 2px 20px rgba(34, 27, 24, 0.12);
-    border-bottom: 1px solid rgba(255, 253, 252, 0.06);
-}
-
-body.home-page-body .navbar-nav .nav-link {
-    color: var(--colour-warm-white);
-    font-weight: 500;
-    letter-spacing: 0.02em;
-}
-
-body.home-page-body .navbar-nav .nav-link:hover,
-body.home-page-body .navbar-nav .nav-link:focus {
-    color: var(--colour-champagne);
-}
-
-body.home-page-body .logo-line--muted {
-    color: rgba(255, 253, 252, 0.75);
-}
-
-body.home-page-body .logo-accent {
-    color: var(--colour-champagne);
-}
-
 body.home-page-body .btn-nav-cta {
     background: var(--colour-terracotta);
     border: none;
@@ -75,10 +49,6 @@ body.home-page-body .btn-nav-cta {
 
 body.home-page-body .btn-nav-cta:hover {
     background: var(--colour-terracotta-dark);
-    color: var(--colour-warm-white);
-}
-
-body.home-page-body .navbar-toggler {
     color: var(--colour-warm-white);
 }
 
