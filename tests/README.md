@@ -93,6 +93,7 @@ HTML code coverage reports.
 
 Every test needs a *test case*, or class that your tests extend. CodeIgniter 4
 provides one class that you may use directly:
+
 * `CodeIgniter\Test\CIUnitTestCase`
 
 Most of the time you will want to write your own test cases that extend `CIUnitTestCase`
