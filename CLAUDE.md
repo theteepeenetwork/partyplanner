@@ -86,3 +86,14 @@ See:
 - @app/Config/Routes.php for route definitions
 - @composer.json for dependencies and scripts
 ```
+
+## Workflow Expectations
+
+- Do not commit, push, or open PRs unless I explicitly ask.
+- Before any git write action, explain what will change.
+- Prefer batching related shell commands into one script or one chained command.
+- Use existing project scripts before writing one-off Bash.
+- Do not recreate this CLAUDE.md unless I ask. Edit it instead.
+- For setup tasks, use the bootstrap script.
+- For review tasks, use the review script.
+- For git tasks, use the safe git script.
