@@ -2,6 +2,10 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+## Documentation
+
+This project uses Markdown for documentation; keep CLAUDE.md and docs concise and well-structured.
+
 ## What This Is
 
 A UK-based event services marketplace built on **PHP CodeIgniter 4**. Customers create events, get automated quotes from vendors, and pay via Stripe. Vendors define structured pricing rules once; quotes are generated automatically.
@@ -75,6 +79,10 @@ php spark quote:expire-stale
 **Service creation**: Three separate view files are imported based on context: `service_create_public.php`, `service_create_private.php`, `service_create_corporate.php`. This separation is intentional.
 
 **Auth**: Session-based. Roles: customer and vendor (set at registration). Admin routes are under `/admin/`.
+
+## Git Workflow
+
+After completing changes, commit, push, and open a draft PR following the git hook workflow.
 
 ## Caveats
 
