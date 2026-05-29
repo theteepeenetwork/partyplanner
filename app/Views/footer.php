@@ -1,63 +1,62 @@
-<footer class="site-footer mt-4">
+<?php
+$footerClass = 'site-footer mt-0';
+if (! empty($isHomePage)) {
+    $footerClass .= ' site-footer--home';
+}
+$vendorDashboardUrl = '/register/vendor';
+if (session()->has('user_id') && session()->get('role') === 'vendor') {
+    $vendorDashboardUrl = '/profile/services';
+}
+?>
+<footer class="<?= $footerClass ?>">
     <div class="container p-4 py-lg-5">
-        <p class="site-footer-trust text-center text-lg-start mb-4 mb-lg-5">
-            Helping people plan unforgettable events across the UK.
-        </p>
         <div class="row g-4">
-            <div class="col-lg-3 col-md-6">
-                <h5>About us</h5>
+            <div class="col-lg-4 col-md-6">
+                <h5>For Your Events</h5>
                 <p class="site-footer-muted">
-                    We connect you with trusted suppliers to make your event unforgettable—one calm place for planning, messaging, and bookings.
+                    A UK marketplace to discover event services, request quotes and manage bookings—from weddings and christenings to birthdays and corporate occasions.
                 </p>
-                <a href="/about" class="site-footer-link">Learn more about us</a>
             </div>
 
-            <div class="col-lg-3 col-md-6">
+            <div class="col-lg-2 col-md-6">
                 <h5>Quick links</h5>
                 <ul class="list-unstyled site-footer-links">
-                    <li class="mb-2"><a href="/">Home</a></li>
                     <li class="mb-2"><a href="/browse-services">Find suppliers</a></li>
                     <li class="mb-2"><a href="/how-it-works">How it works</a></li>
-                    <li class="mb-2"><a href="/contact">Contact</a></li>
-                    <li class="mb-2"><a href="/faq">FAQ</a></li>
+                    <li class="mb-2"><a href="/browse-services">Inspiration</a></li>
+                    <li class="mb-2"><a href="/login">My account</a></li>
                 </ul>
             </div>
 
             <div class="col-lg-3 col-md-6">
-                <h5>Featured locations</h5>
-                <ul class="list-unstyled site-footer-links site-footer-links--columns">
-                    <li><a href="/browse-services?q=London">London</a></li>
-                    <li><a href="/browse-services?q=Manchester">Manchester</a></li>
-                    <li><a href="/browse-services?q=Birmingham">Birmingham</a></li>
-                    <li><a href="/browse-services?q=Edinburgh">Edinburgh</a></li>
-                    <li><a href="/browse-services?q=Cardiff">Cardiff</a></li>
-                    <li><a href="/browse-services?q=Belfast">Belfast</a></li>
-                </ul>
-            </div>
-
-            <div class="col-lg-3 col-md-6">
-                <h5>Popular searches</h5>
+                <h5>Popular services</h5>
                 <ul class="list-unstyled site-footer-links">
-                    <li class="mb-2"><a href="/browse-services?category=11">Photography</a></li>
-                    <li class="mb-2"><a href="/browse-services?q=catering">Catering</a></li>
-                    <li class="mb-2"><a href="/browse-services?q=DJ">DJ &amp; entertainment</a></li>
-                    <li class="mb-2"><a href="/browse-services?q=florist">Florists</a></li>
+                    <li class="mb-2"><a href="/browse-services?q=photography">Photography &amp; video</a></li>
+                    <li class="mb-2"><a href="/browse-services?q=catering">Catering &amp; drinks</a></li>
                     <li class="mb-2"><a href="/browse-services?q=venue">Venues</a></li>
+                    <li class="mb-2"><a href="/browse-services?q=entertainment">Entertainment</a></li>
+                </ul>
+            </div>
+
+            <div class="col-lg-3 col-md-6">
+                <h5>For vendors</h5>
+                <ul class="list-unstyled site-footer-links">
+                    <li class="mb-2"><a href="/register/vendor">Become a vendor</a></li>
+                    <li class="mb-2"><a href="<?= esc($vendorDashboardUrl) ?>">Vendor dashboard</a></li>
+                    <li class="mb-2"><a href="/vendor-info">Supplier support</a></li>
                 </ul>
             </div>
         </div>
 
-        <div class="row g-4 mt-2">
-            <div class="col-lg-6 col-md-6">
-                <h5>For vendors</h5>
-                <p class="site-footer-muted">List your services and reach planners who are ready to book.</p>
-                <p class="mb-2"><a href="/vendor-info" class="site-footer-link">How selling works</a></p>
-                <a href="/register/vendor" class="btn btn-outline-light btn-sm">Become a vendor</a>
+        <div class="row g-4 mt-2 pt-3 site-footer-divider">
+            <div class="col-md-8">
+                <h5>Contact</h5>
+                <p class="site-footer-muted mb-2">
+                    <a href="/contact" class="site-footer-link">Get in touch</a> for help with services, quotes or listing your business.
+                </p>
             </div>
-
-            <div class="col-lg-6 col-md-6">
+            <div class="col-md-4">
                 <h5>Follow us</h5>
-                <p class="site-footer-muted">Inspiration and planning tips for your next celebration.</p>
                 <div class="site-footer-social">
                     <a href="https://www.instagram.com/" class="site-footer-social-link" rel="noopener noreferrer" target="_blank" aria-label="Instagram">
                         <i class="fab fa-instagram" aria-hidden="true"></i>
@@ -69,7 +68,6 @@
                         <i class="fab fa-pinterest-p" aria-hidden="true"></i>
                     </a>
                 </div>
-                <a href="/contact" class="btn btn-outline-light btn-sm mt-3">Contact us</a>
             </div>
         </div>
     </div>

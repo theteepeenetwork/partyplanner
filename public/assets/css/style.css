@@ -645,6 +645,10 @@ a.service-card-link:focus-visible {
     transform: translateY(-2px);
 }
 
+.site-footer-divider {
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
 .site-footer-bottom {
     border-top: 1px solid rgba(255, 255, 255, 0.08);
     color: rgba(236, 240, 241, 0.65);
