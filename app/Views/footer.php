@@ -8,6 +8,7 @@ if (session()->has('user_id') && session()->get('role') === 'vendor') {
     $vendorDashboardUrl = '/profile/services';
 }
 ?>
+</div>
 <footer class="<?= $footerClass ?>">
     <div class="container p-4 py-lg-5">
         <div class="row g-4">

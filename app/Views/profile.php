@@ -21,10 +21,7 @@
             </div>
         </div>
 
-        <?= $this->include('header') ?>
-
-        <main class="container mt-4">
-    <h2>My Bookings</h2>
+        <h2 class="mt-4">My Bookings</h2>
 
     <?php if (!empty($bookings)): ?>
         <ul class="list-group">
@@ -134,8 +131,6 @@
 
 
 </main>
-
-    </main>
 
     <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/popper.js@1.16.1/dist/umd/popper.min.js"></script>

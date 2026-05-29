@@ -159,10 +159,10 @@
                     <a href="<?= base_url('service/view/' . esc($service['id'])) ?>" class="service-card-link text-decoration-none text-body">
                         <?php if (!empty($service['images'])): ?>
                             <img src="<?= base_url(esc($service['images'][0]['thumbnail_path'])) ?>"
-                                alt="<?= esc($service['title']) ?>" class="service-card-image">
+                                alt="<?= esc($service['title']) ?>" class="service-card-image" loading="lazy" decoding="async">
                         <?php else: ?>
                             <img src="<?= base_url('assets/images/no-image.png') ?>" alt="No image available"
-                                class="service-card-image">
+                                class="service-card-image" loading="lazy" decoding="async">
                         <?php endif; ?>
 
                         <div class="service-card-content">

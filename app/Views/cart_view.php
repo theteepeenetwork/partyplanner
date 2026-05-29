@@ -13,6 +13,11 @@
         ?>
         <table class="table">
             <thead>
+                <tr>
+                    <th scope="col">Service</th>
+                    <th scope="col">Price</th>
+                    <th scope="col">Action</th>
+                </tr>
             </thead>
             <tbody>
                 <?php foreach ($cartItems as $item): 
