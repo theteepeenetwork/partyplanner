@@ -13,8 +13,14 @@ use Config\Email as EmailConfig;
 class QuoteNotifier
 {
     /**
+     * Notify a vendor of a new booking request by posting a chat message and sending an email.
+     *
+     * @param int $vendorId    ID of the vendor to notify.
+     * @param int $customerId  ID of the customer who placed the request.
+     * @param int $serviceId   ID of the booked service.
      * @param array<string,mixed> $bookingItem
      * @param array{lines?: list<array>, warnings?: list<string>, total?: float} $breakdown
+     * @return void
      */
     public function sendVendorNewQuoteNotification(
         int $vendorId,
@@ -37,7 +43,13 @@ class QuoteNotifier
     }
 
     /**
+     * Confirm to a customer that their booking request was submitted via chat message and email.
+     *
+     * @param int $customerId  ID of the customer to notify.
+     * @param int $vendorId    ID of the vendor involved in the request.
+     * @param int $serviceId   ID of the booked service.
      * @param array{lines?: list<array>, warnings?: list<string>} $breakdown
+     * @return void
      */
     public function sendCustomerQuoteConfirmed(int $customerId, int $vendorId, int $serviceId, array $breakdown): void
     {

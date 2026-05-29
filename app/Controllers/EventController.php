@@ -28,12 +28,20 @@ use App\Libraries\UKAddressGeocoder;
 use App\Models\PaymentScheduleModel;
 use App\Models\ServiceTieredPackagesPricingModel;
 
+/**
+ * Manages multi-step event creation, the service basket, and event checkout flow.
+ */
 class EventController extends BaseController
 {
     // =========================================================
     // MULTI-STEP EVENT CREATION
     // =========================================================
 
+    /**
+     * Entry point for event creation — redirects to step 1.
+     *
+     * @return \CodeIgniter\HTTP\RedirectResponse
+     */
     public function create()
     {
         if ($r = $this->requireCustomerAccount('/event/create')) {
@@ -43,6 +51,11 @@ class EventController extends BaseController
         return redirect()->to('/event/create/step1');
     }
 
+    /**
+     * Display or process step 1 of event creation (title, type, setting, date, guest count).
+     *
+     * @return \CodeIgniter\HTTP\RedirectResponse|\CodeIgniter\HTTP\ResponseInterface
+     */
     public function createStep1()
     {
         if ($r = $this->requireCustomerAccount('/event/create/step1')) {
@@ -80,6 +93,11 @@ class EventController extends BaseController
         return view('event/create_step1', ['old' => $data, 'errors' => []]);
     }
 
+    /**
+     * Display or process step 2 of event creation (venue, postcode, indoor/outdoor, pitch fee).
+     *
+     * @return \CodeIgniter\HTTP\RedirectResponse|\CodeIgniter\HTTP\ResponseInterface
+     */
     public function createStep2()
     {
         if ($r = $this->requireCustomerAccount('/event/create/step2')) {
@@ -107,6 +125,11 @@ class EventController extends BaseController
         ]);
     }
 
+    /**
+     * Display or process step 3 of event creation (budget, style/theme, notes).
+     *
+     * @return \CodeIgniter\HTTP\RedirectResponse|\CodeIgniter\HTTP\ResponseInterface
+     */
     public function createStep3()
     {
         if ($r = $this->requireCustomerAccount('/event/create/step3')) {
@@ -129,6 +152,11 @@ class EventController extends BaseController
         return view('event/create_step3', ['old' => $data]);
     }
 
+    /**
+     * Display the review page summarising all event creation steps before final submission.
+     *
+     * @return \CodeIgniter\HTTP\RedirectResponse|\CodeIgniter\HTTP\ResponseInterface
+     */
     public function createReview()
     {
         if ($r = $this->requireCustomerAccount('/event/create/review')) {
@@ -147,6 +175,11 @@ class EventController extends BaseController
         ]);
     }
 
+    /**
+     * Persist the new event from session-stored wizard data and redirect to the events list or pending basket action.
+     *
+     * @return \CodeIgniter\HTTP\RedirectResponse
+     */
     public function store()
     {
         if ($r = $this->requireCustomerAccount('/event/create/review')) {
@@ -218,6 +251,12 @@ class EventController extends BaseController
     // ADD TO EVENT FLOW
     // =========================================================
 
+    /**
+     * Display the event-selection page so the customer can choose which event to add a service to.
+     *
+     * @param int|string $serviceId The service primary key.
+     * @return \CodeIgniter\HTTP\RedirectResponse|\CodeIgniter\HTTP\ResponseInterface
+     */
     public function addToEvent($serviceId)
     {
         $serviceModel = new ServiceModel();
@@ -281,6 +320,12 @@ class EventController extends BaseController
         ]);
     }
 
+    /**
+     * Build a quote for the service/event pair and save it as a basket item.
+     *
+     * @param int|string $serviceId The service primary key.
+     * @return \CodeIgniter\HTTP\RedirectResponse
+     */
     public function addToBasket($serviceId)
     {
         if ($r = $this->requireCustomerAccount('/event/add-to-basket/' . $serviceId)) {
@@ -416,6 +461,13 @@ class EventController extends BaseController
     /**
      * Live quote preview (JSON) for service page AJAX.
      */
+    /**
+     * Return a live quote breakdown as JSON for the service-page AJAX preview panel.
+     *
+     * @param int|string $serviceId The service primary key.
+     * @param int|string $eventId   The event primary key.
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
     public function quotePreview($serviceId, $eventId)
     {
         if (!session()->has('user_id')) {
@@ -517,6 +569,12 @@ class EventController extends BaseController
     // EVENT BASKET
     // =========================================================
 
+    /**
+     * Display the event basket page showing all queued services and deposit totals.
+     *
+     * @param int|string $eventId The event primary key.
+     * @return \CodeIgniter\HTTP\RedirectResponse|\CodeIgniter\HTTP\ResponseInterface
+     */
     public function basket($eventId)
     {
         if ($r = $this->requireCustomerAccount('/event/basket/' . $eventId)) {
@@ -560,6 +618,12 @@ class EventController extends BaseController
         ]);
     }
 
+    /**
+     * Remove a single item from the event basket and redirect back to it.
+     *
+     * @param int|string $itemId The basket item primary key.
+     * @return \CodeIgniter\HTTP\RedirectResponse
+     */
     public function removeFromBasket($itemId)
     {
         if ($r = $this->requireCustomerAccount()) {
@@ -581,6 +645,12 @@ class EventController extends BaseController
     // CHECKOUT
     // =========================================================
 
+    /**
+     * Display the checkout page with deposit summary and, when Stripe is configured, a PaymentIntent client secret.
+     *
+     * @param int|string $eventId The event primary key.
+     * @return \CodeIgniter\HTTP\RedirectResponse|\CodeIgniter\HTTP\ResponseInterface
+     */
     public function checkout($eventId)
     {
         if ($r = $this->requireCustomerAccount('/event/checkout/' . $eventId)) {
@@ -637,6 +707,12 @@ class EventController extends BaseController
         ]);
     }
 
+    /**
+     * Verify the Stripe payment, create booking records for all basket items, trigger automation and notifications, then clear the basket.
+     *
+     * @param int|string $eventId The event primary key.
+     * @return \CodeIgniter\HTTP\RedirectResponse
+     */
     public function processCheckout($eventId)
     {
         if ($r = $this->requireCustomerAccount('/event/checkout/' . $eventId)) {
@@ -793,6 +869,12 @@ class EventController extends BaseController
         return redirect()->to('/event/checkout/success/' . $bookingId);
     }
 
+    /**
+     * Display the post-checkout confirmation page listing all booked services.
+     *
+     * @param int|string $bookingId The booking primary key.
+     * @return \CodeIgniter\HTTP\RedirectResponse|\CodeIgniter\HTTP\ResponseInterface
+     */
     public function checkoutSuccess($bookingId)
     {
         if ($r = $this->requireCustomerAccount()) {

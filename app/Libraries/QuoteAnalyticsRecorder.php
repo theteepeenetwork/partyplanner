@@ -15,6 +15,14 @@ class QuoteAnalyticsRecorder
         ]);
     }
 
+    /**
+     * Increment the accepted-quote counter for the given vendor and optionally mark it as auto-accepted.
+     *
+     * @param int      $vendorId     The vendor user primary key.
+     * @param int|null $serviceId    The service primary key, or null for vendor-level recording.
+     * @param bool     $autoAccepted Whether the quote was accepted automatically by the automation rules.
+     * @return void
+     */
     public function recordAccepted(int $vendorId, ?int $serviceId, bool $autoAccepted = false): void
     {
         $data = ['quotes_accepted' => 1];

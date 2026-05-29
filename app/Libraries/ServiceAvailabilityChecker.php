@@ -11,6 +11,11 @@ use App\Models\UnavailableDateModel;
 class ServiceAvailabilityChecker
 {
     /**
+     * Check whether a service and vendor are available on the given event date.
+     *
+     * @param int $serviceId  ID of the service to check.
+     * @param int $vendorId   ID of the vendor who owns the service.
+     * @param string|null $eventDate Date string (any strtotime-compatible format), or null to skip checks.
      * @return list<string> Error messages (empty if available)
      */
     public function check(int $serviceId, int $vendorId, ?string $eventDate): array

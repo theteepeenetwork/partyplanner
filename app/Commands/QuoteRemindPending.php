@@ -7,12 +7,21 @@ use App\Models\BookingItemModel;
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
 
+/**
+ * CLI command that sends reminder notifications to vendors for booking requests pending over 24 hours.
+ */
 class QuoteRemindPending extends BaseCommand
 {
     protected $group = 'Quote';
     protected $name = 'quote:remind-pending';
     protected $description = 'Email vendors about pending booking requests older than 24 hours';
 
+    /**
+     * Query for overdue pending booking items and dispatch a reminder notification to each vendor.
+     *
+     * @param array<int, string> $params Unused; reserved for future CLI argument support.
+     * @return void
+     */
     public function run(array $params)
     {
         $model = new BookingItemModel();
