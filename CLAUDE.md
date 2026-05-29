@@ -1,104 +1,99 @@
 # CLAUDE.md
 
-This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+## Workflow
 
-## Project Overview
+* ALWAYS run `php -l` on modified PHP files before claiming work is complete.
+* ALWAYS test affected pages in the browser after making changes.
+* Do not mark tasks complete based solely on code inspection.
+* Prefer fixing issues immediately rather than creating TODOs.
+* Never modify unrelated files.
 
-UK-based event services marketplace built on **CodeIgniter 4** (PHP). Customers plan events and receive automated quotes from vendors based on structured pricing rules. Vendors accept/decline bookings without manual quoting.
-
-## Commands
-
-### Dev Server
+## Development Commands
 
 ```bash
-# First time only
-cp -n env.example .env
-
-# Start MariaDB (no password, database: event_marketplace)
-sudo mkdir -p /run/mysqld && sudo chown mysql:mysql /run/mysqld
-sudo mysqld_safe --skip-grant-tables &
-
-# Start app (use cloud env to prevent Kint injecting into HTML)
+# Start development server
 CI_ENVIRONMENT=cloud php spark serve --host 127.0.0.1 --port 8888
-```
 
-### Tests
-
-```bash
-composer install        # required first; must be dev deps (Kint 5.1.1, PHPUnit)
-php vendor/bin/phpunit --testdox
-
-# Single test file
-php vendor/bin/phpunit --testdox tests/unit/EventBookingQuoteTest.php
-```
-
-Tests use SQLite3 in-memory — MySQL does not need to run for unit tests.
-
-### Linting / Syntax
-
-```bash
-# Fast syntax check (~5 seconds)
+# Fast validation
 find app -name "*.php" -exec php -l {} \;
 
-# Dry-run style check (slow on full app/ scan)
-php vendor/bin/php-cs-fixer fix --dry-run --diff app/
-```
+# Run all tests
+php vendor/bin/phpunit --testdox
 
-### Scheduled Commands (Spark CLI)
+# Run a single test file
+php vendor/bin/phpunit tests/unit/SomeTest.php
 
-```bash
+# Scheduled commands
 php spark quote:remind-pending
 php spark quote:expire-stale
 ```
-These are in `app/Commands/`.
 
 ## Architecture
 
-### Framework
+* Controllers should remain thin.
+* Business logic belongs in `app/Libraries/`.
+* Do not duplicate pricing calculations across controllers.
+* Use existing pricing models before creating new pricing systems.
+* Follow existing patterns before introducing new architecture.
+* Admin functionality belongs under `/admin/`.
 
-CI4 is bundled in `system/` (not Composer-managed). The `createvent/` directory at the root is a legacy copy — ignore it.
+## Pricing System
 
-### Database Setup Order
+* Every service uses exactly one pricing model.
+* Existing pricing models should be extended before creating new ones.
+* Booking items store pricing details in `quote_breakdown` JSON.
+* Public and private pricing are intentionally separate systems.
 
-Run SQL files in this order on a fresh database:
+## Service Creation
 
-1. `database_update.sql` — adds columns/tables (`ADD COLUMN IF NOT EXISTS` safe)
-2. `event_marketplace.sql` — full schema + seed data (~26 tables)
-3. `database_quote_automation.sql` — quote breakdown, auto-accept settings, counter-offers, analytics
-4. `database_fulfillment_extras.sql`, `database_quantity_pricing.sql` — additional features
-5. `categories_comprehensive.sql` — category seed data
+* `service_create_public.php`
+* `service_create_private.php`
+* `service_create_corporate.php`
 
-### Key App Layers
+These files are intentionally separate. Do not merge them unless explicitly instructed.
 
-- **Controllers** (`app/Controllers/`) — HTTP entry points; `BaseController` extends CI4's base
-- **Models** (`app/Models/`) — ~30 models covering services, bookings, quotes, chat, payments, CMS
-- **Libraries** (`app/Libraries/`) — business logic: `EventBookingQuote`, `EventQuoteBuilder`, `VendorQuoteAutomation`, `QuoteNotifier`, `StripeCheckoutHelper`, `UKAddressGeocoder`, etc.
-- **Views** (`app/Views/`) — PHP templates; service creation uses three separate views: `service_create_public.php`, `service_create_private.php`, `service_create_corporate.php`
-- **Commands** (`app/Commands/`) — Spark CLI commands for quote lifecycle
-- **Config** (`app/Config/`) — `Routes.php`, `Branding.php`, `SiteNav.php` are the most project-specific configs
+## UI Rules
 
-### Core Domain Concepts
+* This is a marketplace, not an event planning agency.
+* Users book services, not consultations.
+* Vendor and customer journeys must remain distinct.
+* Premium appearance must not reduce usability.
+* Reuse existing UI patterns before creating new ones.
 
-- **Event** — a customer's planned occasion (wedding, birthday, etc.) with guest count, date, location
-- **Service** — a vendor listing with one pricing model: guest-based, duration-based, or tiered packages
-- **Quote** — auto-generated price for a service against an event; stored in `booking_items` with `quote_breakdown` JSON
-- **Booking** — confirmed quote; deposit is **15%** (legacy cart used 10%)
-- **Basket/Cart** — `EventBasketItemModel` / `CartModel` — pre-booking stage
+## Testing Rules
 
-### Pricing Models
+* When a route returns 404, determine whether the page should exist before reporting a bug.
+* If a missing page is clearly intended by the application flow, create the page rather than logging an issue.
+* Verify browser console errors after significant UI changes.
 
-Services choose exactly one: guest-based ranges (`ServiceGuestBasedPricingModel`), custom duration blocks (`ServiceCustomDurationPricingModel`), quantity pricing (`ServiceQuantityPricingModel`), or tiered packages (`ServiceTieredPackagesPricingModel`). Optional extras are always additive.
+## Gotchas
 
-### Payments
+* Event checkout uses a 15% deposit.
+* Legacy cart uses a 10% deposit.
+* Stripe is optional and the application must function without Stripe keys.
+* `CI_ENVIRONMENT=cloud` disables the debug toolbar.
+* Kint must remain on version 5.1.1.
+* Vendor coverage areas affect service availability and search results.
+* Customer and vendor permissions are separate and must remain separate.
 
-Stripe is optional — set `STRIPE_SECRET_KEY`, `STRIPE_PUBLISHABLE_KEY`, `STRIPE_WEBHOOK_SECRET` in `.env`. The app runs fully without them for browsing, registration, login, and service creation. `WebhookController` handles Stripe events.
+```
 
-### Coverage / Location
+## Additional Context
 
-`UKAddressGeocoder` + `ServiceLocationModel` — vendors set a base location and radius. `ServiceAvailabilityChecker` validates coverage before a quote is generated.
+See:
 
-## Key Caveats
+- @README.md for project overview
+- @app/Config/Routes.php for route definitions
+- @composer.json for dependencies and scripts
+```
 
-- If `Class "Kint\Zval\InstanceValue" not found`: remove `vendor/` and run `composer install` (Kint must be exactly **5.1.1**)
-- `baseURL` in `app/Config/App.php` defaults to `http://partyplanner.test/`; override in `.env` for cloud/agent environments
-- `php-cs-fixer` on `app/` can hang for several minutes — prefer the `php -l` syntax check for quick validation
+## Workflow Expectations
+
+- Do not commit, push, or open PRs unless I explicitly ask.
+- Before any git write action, explain what will change.
+- Prefer batching related shell commands into one script or one chained command.
+- Use existing project scripts before writing one-off Bash.
+- Do not recreate this CLAUDE.md unless I ask. Edit it instead.
+- For setup tasks, use the bootstrap script.
+- For review tasks, use the review script.
+- For git tasks, use the safe git script.

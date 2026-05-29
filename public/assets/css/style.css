@@ -1,27 +1,27 @@
 /* ==================== Design tokens ==================== */
 :root {
-    --primary-blue-dark: #2c3e50;
-    --primary-blue-medium: #34495e;
-    --primary-blue-light: #ecf0f1;
-    --accent-orange: #72383d;
-    --dark-blue: #1c2833;
-    --surface-page: #f0f2f5;
+    --primary-blue-dark: #2D4A3E;
+    --primary-blue-medium: #FDFAF6;
+    --primary-blue-light: #E8F0EC;
+    --accent-orange: #C4956A;
+    --dark-blue: #1A2E27;
+    --surface-page: #FAF7F2;
     --surface-elevated: #ffffff;
-    --surface-warm: #f7f4ef;
-    --surface-warm-card: linear-gradient(180deg, #fdfbf8 0%, #f4f0e9 100%);
-    --text-muted-custom: #5c6670;
+    --surface-warm: #F5EFE6;
+    --surface-warm-card: linear-gradient(180deg, #FDFAF6 0%, #F5EDE0 100%);
+    --text-muted-custom: #6B6560;
     --font-sans: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
     --site-header-height: 72px;
-    --shadow-soft: 0 8px 30px rgba(28, 40, 51, 0.08);
-    --shadow-premium: 0 18px 48px rgba(28, 40, 51, 0.12);
-    --shadow-lift: 0 12px 36px rgba(28, 40, 51, 0.14);
+    --shadow-soft: 0 8px 30px rgba(26, 46, 39, 0.08);
+    --shadow-premium: 0 18px 48px rgba(26, 46, 39, 0.12);
+    --shadow-lift: 0 12px 36px rgba(26, 46, 39, 0.14);
     --radius-card: 16px;
     --radius-button: 12px;
     --section-spacing-y: 4.5rem;
     --section-spacing-y-lg: 7.5rem;
-    --bs-primary: #72383d;
-    --bs-primary-rgb: 114, 56, 61;
+    --bs-primary: #C4956A;
+    --bs-primary-rgb: 196, 149, 106;
 }
 
 * {
@@ -72,14 +72,14 @@ main.container {
 .navbar {
     z-index: 1030;
     background-color: var(--primary-blue-medium);
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 2px 12px rgba(26, 46, 39, 0.08);
 }
 
 .navbar-brand {
     font-size: 1.5rem;
     /* Adjust overall size */
     font-weight: bold;
-    color: white;
+    color: var(--dark-blue);
     text-align: center;
     line-height: 1.2;
     /* Adjust spacing between lines */
@@ -115,12 +115,12 @@ main.container {
 }
 
 .logo-line--muted {
-    color: var(--primary-blue-light);
+    color: var(--text-muted-custom);
 }
 
 /* Navbar Left Links */
 .navbar-nav .nav-link {
-    color: white;
+    color: var(--dark-blue);
     font-size: 1rem;
     margin-right: 1rem;
     transition: color 0.3s ease;
@@ -155,7 +155,7 @@ main.container {
 
 .navbar-toggler {
     border: none;
-    color: var(--primary-blue-light);
+    color: var(--dark-blue);
 }
 
 .btn-outline-success {
