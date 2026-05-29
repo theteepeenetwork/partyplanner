@@ -1,282 +1,239 @@
-# Event Services Marketplace
+# PartyPlanner
 
-## Overview
+A UK event services marketplace that enables customers to create events, discover suppliers, receive automated quotes, and manage bookings in one place.
 
-This project is a **UK-based event services marketplace** designed to allow customers to **plan and book multiple event services in one place**, with the option for **a single consolidated payment or flexible payment structure**.
-
-The platform focuses on **clarity, fairness, and scalability**, offering a structured alternative to existing event-hire platforms. It is designed to support both **local vendors** and **national-level growth**, without becoming pay-to-win or overly complex.
+Unlike traditional event directories that focus on enquiries, PartyPlanner focuses on structured pricing and automated quote generation. Vendors define pricing rules once, allowing customers to receive instant pricing and build complete event packages with minimal back-and-forth communication.
 
 ---
 
-## Core Value Proposition
+## Key Features
 
-- One platform for multiple event services  
-- Clear, structured pricing  
-- Transparent coverage rules  
-- Fair vendor exposure  
-- Reduced friction for customers planning events  
+### Customers
 
----
+* Create and manage events
+* Browse and search suppliers
+* Build packages containing multiple services
+* Receive automated pricing
+* Request and manage bookings
+* Communicate with suppliers
+* Manage payments
 
-## Supported Event Types
+### Vendors
 
-The platform supports a wide range of events, including:
+* Create service listings
+* Configure structured pricing models
+* Define coverage areas
+* Manage bookings and enquiries
+* Configure automated quote handling
+* View booking activity
 
-- Weddings  
-- Birthdays  
-- Christenings  
-- Corporate events  
-- Conferences  
-- Summer fairs  
-- Private parties  
-- Community and public events  
+### Administrators
 
-**Note:**  
-Event type selection happens during **event creation**, not on public vendor listings.
-
----
-
-## Services & Categories
-
-### Supported Service Types
-
-- Food services (e.g. burger vans, catering)
-- Photography (photographers, videographers, photobooths)
-- Transport
-- Makeup and beauty
-- Entertainment
-- Stationery
-- Gifts
-- LED dance floors
-- Large illuminated lettering
-- Chair covers
-- Amusement rides
-
-### Category Rules
-
-- Categories are **centrally managed**
-- Vendors **cannot create their own categories**
-- Categories are primarily used for:
-  - Vendor onboarding
-  - Search filtering
-  - Data consistency
+* Manage users
+* Manage services
+* Review bookings
+* Monitor platform activity
+* Manage marketplace content
 
 ---
 
-## Vendor & Service Model
+## Technology Stack
 
-### Required Service Fields
-
-Each service listing must include:
-
-- Title  
-- Subtitle  
-- Description  
-- Images  
-- Category (from predefined list)  
-- Base price  
-- Optional extras  
-- Location  
-- Coverage area  
-- Cancellation policy  
+* PHP 8.3+
+* CodeIgniter 4
+* MariaDB / MySQL
+* Bootstrap
+* JavaScript
+* Stripe
 
 ---
 
-## Pricing Models
+## Local Development
 
-Each service must choose **one** pricing structure.
+### Install Dependencies
 
-### 1. Guest-Based Pricing
+```bash
+composer install
+```
 
-- Uses **fixed numeric guest ranges**
-- No vague terms such as “up to” or “more than”
-- Designed to be **algorithm-friendly**
-- Typically used for catering and food services
+### Database
 
-### 2. Duration-Based Pricing
+Create a database named:
 
-- Custom hourly or daily rates
-- Flexible time blocks
-- Common for DJs, photobooths, and equipment hire
+```sql
+event_marketplace
+```
 
-Some services do not require guest-based pricing at all.
+Import database files in this order:
 
----
+1. database_update.sql
+2. event_marketplace.sql
+3. database_quote_automation.sql
+4. database_fulfillment_extras.sql (optional)
+5. database_quantity_pricing.sql (optional)
 
-## Packages
+### Environment
 
-Vendors can optionally define tiered packages:
+```bash
+cp env.example .env
+```
 
-- Standard  
-- Premium  
-- Deluxe  
+Update database credentials as required.
 
-Each package may vary by:
-- Price
-- Duration
-- Inclusions
+### Start Development Server
 
----
+```bash
+CI_ENVIRONMENT=cloud php spark serve --host 127.0.0.1 --port 8888
+```
 
-## Coverage & Location Logic
+Application URL:
 
-- Vendors define:
-  - Base location
-  - Coverage radius
-  - Optional mileage charges
-- Vendors outside a customer’s coverage area:
-  - Are excluded from search results
-  - May still be accessible via direct link
-  - Display a warning that booking may be declined
-- Coverage details are **not displayed** on the public service page
+```text
+http://127.0.0.1:8888
+```
 
 ---
 
-## Search & Discovery
+## Testing
 
-Search results are filtered by:
+Run all tests:
 
-- Service category
-- Coverage area
-- Event requirements
+```bash
+php vendor/bin/phpunit --testdox
+```
 
-Premium vendors receive **enhanced visibility**, but not guaranteed dominance.
+Run a single test:
 
----
+```bash
+php vendor/bin/phpunit tests/unit/SomeTest.php
+```
 
-## Monetisation Model
+Quick syntax validation:
 
-The platform uses a **hybrid revenue model**:
-
-- Commission per booking
-- Booking fees
-- Optional vendor subscriptions
-
-### Premium Features
-
-Premium vendors may receive:
-
-- Improved search ranking
-- Featured placements
-- Inclusion in Instagram advertising
-- Platform-led marketing promotions
-
-### Fair Exposure System
-
-- Featured listings use an **automatic rotation system**
-- Prevents repeated promotion of the same vendors
-- Ensures equitable visibility for premium subscribers
+```bash
+find app -name "*.php" -exec php -l {} \;
+```
 
 ---
 
-## UI / UX Design Principles
+## Core Business Concepts
 
-- Card-based layout
-- No visible card borders
-- Service details displayed **below** customisation options
-- Placeholder area for reviews
-- Clear visual separation between form sections
-- Context-specific service creation flows:
-  - Public
-  - Private
-  - Corporate
+### Automated Quotes
 
----
+Suppliers define pricing rules once.
 
-## Technical Stack
+The platform automatically calculates pricing using:
 
-- Backend: **PHP (CodeIgniter 4)**
-- Frontend: HTML, CSS, JavaScript
-- Database-driven service listings
+* Guest numbers
+* Duration
+* Packages
+* Optional extras
+* Quantity pricing
+* Coverage rules
 
-### Service Creation Architecture
+This reduces manual quoting and allows suppliers to quickly accept or decline opportunities.
 
-Service creation uses imported PHP views:
+### Pricing Models
 
-- `service_create_public.php`
-- `service_create_private.php`
-- `service_create_corporate.php`
+Each service uses one pricing structure:
 
-This approach is intentionally retained for clarity and separation of logic.
+* Guest-Based Pricing
+* Duration-Based Pricing
+* Package-Based Pricing
+* Quantity-Based Pricing
+* Public Event Pricing
+* Private Event Pricing
 
----
+### Coverage Areas
 
-## Business Constraints
+Suppliers define:
 
-- Development is done evenings and weekends
-- Target launch: **February 2025**
-- Designed to scale nationally while supporting local vendors
-- Prioritises consistency and clarity over unrestricted vendor freedom
+* Base location
+* Coverage radius
+* Travel charges
 
----
-
-## Guiding Principles
-
-- Reduce cognitive load for customers
-- Keep pricing structured and machine-readable
-- Prevent ambiguity and misuse
-- Ensure fair vendor exposure
-- Build trust through transparency
-- Design for long-term scalability
+Coverage rules influence service visibility and booking eligibility.
 
 ---
 
-## Status
+## Architecture
 
-Service onboarding is largely complete.  
-Current focus is on **vendor acquisition**, **UI refinement**, and **pre-launch readiness**.
+### Key Directories
 
+```text
+app/
+├── Commands/
+├── Config/
+├── Controllers/
+│   └── Admin/
+├── Libraries/
+├── Models/
+├── Views/
+├── Filters/
+└── Helpers/
+```
 
-## Core USP: Automated Event Quotes
+### Important Components
 
-The primary aim of this platform is to **automate event quoting**.
+#### Libraries
 
-Instead of manual enquiries, emails, and back-and-forth conversations, the website generates **structured, instant quotes** based on vendor-defined rules. Vendors can then **accept or decline events with minimal time investment**, without needing to repeatedly price custom requests.
+Core business logic is contained within:
 
-### How It Works
+* EventQuoteBuilder
+* VendorQuoteAutomation
+* QuoteNotifier
+* QuoteAnalyticsRecorder
 
-#### For Customers
-- Customers create an event and select the services they need
-- Pricing is calculated automatically using:
-  - Guest numbers
-  - Duration
-  - Packages
-  - Optional extras
-  - Location and coverage rules
-- Customers can:
-  - Build a full package of services
-  - See clear, upfront pricing
-  - Pay in **one single payment** or via **monthly instalments**
+#### Service Creation
 
-This removes uncertainty, delays, and the need to chase multiple vendors.
+Service creation intentionally uses separate views:
 
-#### For Vendors
-- Vendors define their pricing once using structured rules
-- Quotes are generated automatically when a customer builds an event
-- Vendors receive a complete event request with:
-  - Clear pricing
-  - Event details
-  - Coverage validation already applied
-- Vendors simply **accept or decline** the booking
+* service_create_public.php
+* service_create_private.php
+* service_create_corporate.php
 
-This avoids:
-- Time-consuming enquiries
-- Repeated custom quotes
-- Non-viable leads outside coverage or budget
+This separation is deliberate and should not be merged without a clear architectural reason.
 
 ---
 
-## Why This Matters
+## Scheduled Commands
 
-Traditional event platforms focus on listings and enquiries.
-This platform focuses on **decision efficiency**.
+Quote reminders:
 
-- Customers get instant clarity and fewer surprises
-- Vendors only engage with realistic, fully-priced requests
-- The platform scales without increasing admin burden
+```bash
+php spark quote:remind-pending
+```
 
-Automated quotes are the foundation that enables:
-- Fair vendor exposure
-- Algorithm-friendly pricing
-- Consolidated payments
-- Reduced operational friction on both sides
+Expire stale quotes:
+
+```bash
+php spark quote:expire-stale
+```
+
+---
+
+## Payments
+
+Stripe integration is supported but optional.
+
+The platform should remain fully usable without Stripe credentials configured.
+
+Current payment behaviour:
+
+* Event checkout: 15% deposit
+* Legacy cart checkout: 10% deposit
+
+---
+
+## Documentation
+
+Additional documentation can be found in:
+
+* docs/product.md
+* CLAUDE.md
+
+---
+
+## Licence
+
+Private project. All rights reserved.

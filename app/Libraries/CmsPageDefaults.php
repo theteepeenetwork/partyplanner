@@ -100,6 +100,12 @@ class CmsPageDefaults
         return $inserted;
     }
 
+    /**
+     * Ensure a single default CMS page exists for the given slug, inserting it if absent.
+     *
+     * @param string $slug The page slug to ensure (must be a key in definitions()).
+     * @return bool True if the page already existed or was inserted; false if the slug is not a known default.
+     */
     public static function ensureSlug(string $slug): bool
     {
         if (! isset(self::definitions()[$slug])) {

@@ -35,6 +35,11 @@ class AppBaseUrl
         return true;
     }
 
+    /**
+     * Rewrite Config\App::$baseURL to match the current HTTP host if they differ and the host is permitted.
+     *
+     * @return void
+     */
     public static function syncFromRequest(): void
     {
         if (is_cli() || ENVIRONMENT === 'testing') {

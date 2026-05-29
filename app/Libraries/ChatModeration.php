@@ -68,6 +68,12 @@ class ChatModeration
         ];
     }
 
+    /**
+     * Recalculate and persist the flagged_for_review flag for a chat room based on pending messages.
+     *
+     * @param int $roomId The chat room primary key.
+     * @return void
+     */
     public static function refreshRoomModerationFlag(int $roomId): void
     {
         $db = db_connect();
