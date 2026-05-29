@@ -2,7 +2,7 @@
 <link rel="stylesheet" href="<?= base_url('assets/css/service-form.css'); ?>">
 
 <main class="container mt-4">
-    <h2>Login</h2>
+    <h1>Login</h1>
 
     <?php if (session()->has('error')): ?>
         <div class="alert alert-danger">

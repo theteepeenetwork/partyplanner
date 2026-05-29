@@ -1,7 +1,7 @@
 <?= $this->include('header') ?>
 
 <main class="container mt-4">
-    <h2>Create Your Account</h2>
+    <h1>Create Your Account</h1>
     <p class="text-muted mb-4">Register to start browsing and booking event services.</p>
 
     <?php if (session()->has('errors')): ?>

@@ -6,7 +6,27 @@
     <?= csrf_meta() ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="theme-color" content="<?= ! empty($isHomePage) ? '#3A312D' : '#2c3e50' ?>">
-    <title>For Your Events</title>
+    <?php
+    $ogTitle       = $pageTitle ?? 'For Your Events';
+    $ogDescription = $metaDescription ?? 'A UK marketplace to discover event services, request quotes and manage bookings.';
+    $ogImage       = $ogImage ?? base_url('assets/images/hero-event-planning.jpg');
+    ?>
+    <title><?= esc($ogTitle) ?></title>
+    <meta name="description" content="<?= esc($ogDescription) ?>">
+    <link rel="canonical" href="<?= current_url() ?>">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="<?= esc($ogTitle) ?>">
+    <meta property="og:description" content="<?= esc($ogDescription) ?>">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="<?= current_url() ?>">
+    <meta property="og:image" content="<?= esc($ogImage) ?>">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="<?= esc($ogTitle) ?>">
+    <meta name="twitter:description" content="<?= esc($ogDescription) ?>">
+    <meta name="twitter:image" content="<?= esc($ogImage) ?>">
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -34,23 +54,25 @@
     <link rel="stylesheet"
         href="https://cdn.jsdelivr.net/gh/christianbayer/image-uploader@master/dist/image-uploader.min.css">
 
-    <!-- jQuery -->
+    <!-- jQuery (loaded synchronously: inline view scripts use $ at parse time) -->
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"
         integrity="sha384-MrcW6ZMFYlzcLA8Nl+NtUVF0sA7MsXsP1UyJoMp4YLEuNSfAP+JcXn/tWtIaxVXM"
-        crossorigin="anonymous"></script>
+        crossorigin="anonymous" defer></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 
     <!-- Slick Carousel JS -->
-    <script src="https://cdn.jsdelivr.net/npm/slick-carousel/slick/slick.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/slick-carousel/slick/slick.min.js" defer></script>
 
     <!-- Image Uploader JS -->
-    <script src="https://cdn.jsdelivr.net/gh/christianbayer/image-uploader@master/dist/image-uploader.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/gh/christianbayer/image-uploader@master/dist/image-uploader.min.js" defer></script>
 </head>
 
 <body<?= ! empty($isHomePage) ? ' class="home-page-body"' : '' ?>>
+
+    <a href="#main-content" class="skip-link">Skip to main content</a>
 
     <header>
         <nav class="navbar navbar-expand-lg fixed-top shadow-sm">
@@ -121,6 +143,7 @@
         </nav>
     </header>
 
+    <div id="main-content" tabindex="-1">
 
     <script>
         document.addEventListener('DOMContentLoaded', function () {
