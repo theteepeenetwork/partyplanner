@@ -34,16 +34,19 @@ VALUES
 ## QA Checklist Results
 
 ### ✅ 1. Browse Services
+
 - **Status:** PASS
 - **Details:** Services browse page (`/services`) loads and displays services correctly
 - **Evidence:** Successfully accessed service listing, saw 3 services including "Sweetie Sweet Cart"
 
 ### ✅ 2. Service with Quantity-Based Pricing
+
 - **Status:** PASS
 - **Details:** Service ID 2 now has quantity-based pricing configured with 3 price tiers
 - **Evidence:** Database query confirms data exists and is correctly structured
 
 ### ✅ 3. Service View Renders Quantity Input
+
 - **Status:** PASS
 - **Details:** Service view page (`/service/view/2`) correctly renders quantity input field with:
   - Label: "Order quantity (items):"
@@ -56,40 +59,47 @@ VALUES
 - **Evidence:** HTML verification via curl shows complete quantity pricing UI rendered correctly
 
 ### ✅ 4. Backend Logic - Unit Tests
+
 - **Status:** PASS
 - **Details:** All PHPUnit tests pass (41 tests, 112 assertions, 1 skipped)
 - **Relevant Test:** "Quantity based subtotal" test passes ✔
 - **Command:** `php vendor/bin/phpunit --testdox`
 
 ### ⚠️ 5. Live Quote Updates (JavaScript)
+
 - **Status:** NOT TESTED (Environment Issue)
 - **Details:** JavaScript testing blocked due to browser hang issue (see Known Issues below)
 - **Mitigation:** Backend logic verified through unit tests
 
 ### ⚠️ 6. Add to Basket with Quantity
+
 - **Status:** NOT TESTED (Environment Issue)
 - **Details:** Requires login which encounters browser hang
 - **Mitigation:** HTML form structure verified - quantity field name="order_quantity" properly configured
 
 ### ✅ 7. Event Switcher
+
 - **Status:** N/A
 - **Details:** Test user has no events, so event switcher not applicable for this test
 
 ## Code Inspection Results
 
 ### Controller: `Service_Controller::view()`
+
 - ✅ Correctly initializes `ServiceQuantityPricingModel`
 - ✅ Fetches quantity pricing data: `$quantityPricingModel->where('private_event_pricing_id', $privatePricingId)->first()`
 - ✅ Sets `$showQuantity` flag based on pricing type
 - ✅ Passes data to view correctly
 
 ### View: `service_view.php`
+
 - ✅ Conditional rendering: `<?php if ($showQuantity && is_array($quantityPricing)): ?>`
 - ✅ Quantity input field properly configured with min/max validation
 - ✅ Unit price display with range information
 - ✅ Hidden field for pricing option
 
-### Models:
+### Models
+
 - ✅ `ServiceQuantityPricingModel` exists and is properly used
 - ✅ Database table `services_quantity_pricing` schema correct
 
@@ -97,7 +107,8 @@ VALUES
 
 **NONE** - The quantity-based pricing feature is working as designed.
 
-### Minor Cosmetic Issue (Not a Bug):
+### Minor Cosmetic Issue (Not a Bug)
+
 - Display shows "£5.50 per items" (plural "items" even for singular pricing)
 - This is acceptable as it matches the `unit_label` field value
 - Could be enhanced with pluralization logic if desired, but not required
@@ -105,6 +116,7 @@ VALUES
 ## Known Issues (Unrelated to Quantity Pricing)
 
 ### Browser Hang Issue
+
 - **Symptom:** Pages hang when loaded in Chrome browser
 - **Affected:** Login POST, service detail view
 - **Root Cause:** Development environment issue (likely Kint debugbar, external CDN resources, or session handling)
@@ -113,6 +125,7 @@ VALUES
 - **Workaround:** Testing performed via curl and unit tests
 
 ### Login Controller Performance
+
 - **Symptom:** Login POST hangs
 - **Potential Cause:** `UserModel` query using `orWhere('email', $email)` may be slow without proper index
 - **Impact:** Does not block quantity pricing feature testing

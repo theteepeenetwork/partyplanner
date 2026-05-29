@@ -1,8 +1,7 @@
 <?= $this->include('header') ?>
-<?= $this->include('service_create/css.php') ?>
 
 <main class="container">
-    <section>
+    <section class="service-view-section">
         <?php if (session()->getFlashdata('error')): ?>
             <div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div>
         <?php endif; ?>
@@ -43,8 +42,8 @@
             }
             $qtyDefault = $qtyMin;
             ?>
-            <div class="service-preview card">
-                <div class="row">
+            <div class="service-preview card service-view-card">
+                <div class="row g-0">
                     <!-- Left: Gallery -->
                     <div class="col-md-6">
                         <div class="gallery">
@@ -53,19 +52,21 @@
                     </div>
 
                     <!-- Right: Service Details -->
-                    <div class="col-md-6">
+                    <div class="col-md-6 service-view-details">
                         <h2 class="service-title"><?= esc($service['title']) ?></h2>
-                        <h5 class="service-short-description text-muted"><?= esc($service['short_description']) ?></h5>
+                        <p class="service-short-description"><?= esc($service['short_description']) ?></p>
                         <p class="service-description"><?= nl2br(esc($service['description'])) ?></p>
 
                         <!-- Categories -->
-                        <p><strong>Category:</strong> <?= esc($category_names['main'] ?? 'Not Selected') ?></p>
-                        <?php if (!empty($category_names['sub'])): ?>
-                            <p><strong>Subcategory:</strong> <?= esc($category_names['sub']) ?></p>
-                        <?php endif; ?>
-                        <?php if (!empty($category_names['third'])): ?>
-                            <p><strong>Further Subcategory:</strong> <?= esc($category_names['third']) ?></p>
-                        <?php endif; ?>
+                        <ul class="service-meta">
+                            <li><strong>Category:</strong> <?= esc($category_names['main'] ?? 'Not Selected') ?></li>
+                            <?php if (!empty($category_names['sub'])): ?>
+                                <li><strong>Subcategory:</strong> <?= esc($category_names['sub']) ?></li>
+                            <?php endif; ?>
+                            <?php if (!empty($category_names['third'])): ?>
+                                <li><strong>Style:</strong> <?= esc($category_names['third']) ?></li>
+                            <?php endif; ?>
+                        </ul>
 
                         <?php if (!empty($service['price'])): ?>
                             <p class="service-price mt-2">From £<?= number_format((float) $service['price'], 2) ?></p>
@@ -96,10 +97,10 @@
                         <?php endif; ?>
 
                         <!-- Pricing Options -->
-                        <div class="pricing-options">
+                        <div class="pricing-panel">
                             <?php $hasPricing = $showGuest || $showDuration || $showPackages || $showQuantity; ?>
                             <?php if ($hasPricing): ?>
-                                <h4>Pricing Options</h4>
+                                <h5 class="pricing-panel-heading">Pricing Options</h5>
                             <?php endif; ?>
 
                             <form action="<?= site_url('event/add-to-event/' . $service['id']) ?>" method="post">
@@ -271,7 +272,7 @@
                                 <?php endif; ?>
 
                                 <!-- Action Buttons -->
-                                <div class="mt-3">
+                                <div class="service-view-actions mt-4">
                                     <?php if (session()->has('user_id') && session()->get('role') === 'vendor' && $service['vendor_id'] == session()->get('user_id')): ?>
                                         <a href="<?= base_url('service/edit/' . $service['id']) ?>" class="btn btn-primary">
                                             Edit Service
@@ -282,17 +283,17 @@
                                         </button>
                                     <?php endif; ?>
                                     <?php if (!empty($message_vendor_eligible) && !empty($message_vendor_url)): ?>
-                                        <a href="<?= esc($message_vendor_url) ?>" class="btn btn-outline-primary btn-lg ms-2">
+                                        <a href="<?= esc($message_vendor_url) ?>" class="btn btn-outline-primary btn-lg">
                                             <i class="fas fa-comment-dots me-1"></i>Message vendor
                                         </a>
                                     <?php elseif (session()->has('user_id') && session()->get('role') === 'customer' && (int) $service['vendor_id'] !== (int) session()->get('user_id')): ?>
-                                        <span class="d-inline-block ms-2 small text-muted align-middle" title="Complete a booking request for this listing first">
+                                        <span class="small text-muted align-middle" title="Complete a booking request for this listing first">
                                             <i class="fas fa-lock me-1"></i>Messaging unlocks after you book
                                         </span>
                                     <?php elseif (!session()->has('user_id')): ?>
-                                        <a href="/login" class="btn btn-outline-secondary btn-lg ms-2">Log in to book</a>
+                                        <a href="/login" class="btn btn-outline-secondary btn-lg">Log in to book</a>
                                     <?php endif; ?>
-                                    <a href="/browse-services" class="btn btn-outline-secondary ms-2">Back to Services</a>
+                                    <a href="/browse-services" class="btn btn-outline-secondary">Back to Services</a>
                                 </div>
 
                             </form>

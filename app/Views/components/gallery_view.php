@@ -17,7 +17,7 @@
                 $primaryImage = $images[0]; // Default to the first image if no primary is set
             }
             ?>
-            <img id="current-image" src="<?= base_url($primaryImage['image_path']) ?>" alt="Main Service Image" style="width:100%; max-height: 500px;">
+            <img id="current-image" src="<?= base_url($primaryImage['image_path']) ?>" alt="Main Service Image" class="gallery-main-image">
         <?php else: ?>
             <p>No images available for this service.</p>
         <?php endif;  ?>
@@ -28,10 +28,10 @@
         <div class="thumbnails mt-3">
             <?php foreach ($images as $image): ?>
                 
-                <img class="thumbnail-image <?= $image['id'] == $primaryImage['id'] ? 'active-thumbnail' : '' ?>" 
-                     src="<?= base_url($image['thumbnail_path']) ?>" 
-                     data-full-image="<?= base_url($image['image_path']) ?>" 
-                     alt="Thumbnail" style="width:100px; cursor:pointer; margin-right: 10px;">
+                <img class="thumbnail-image <?= $image['id'] == $primaryImage['id'] ? 'active-thumbnail' : '' ?>"
+                     src="<?= base_url($image['thumbnail_path']) ?>"
+                     data-full-image="<?= base_url($image['image_path']) ?>"
+                     alt="Thumbnail">
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
@@ -41,30 +41,49 @@
     .service-gallery {
         display: flex;
         flex-direction: column;
-        align-items: center;
+        align-items: stretch;
+        height: 100%;
     }
 
     .main-image {
-        margin-bottom: 15px;
+        flex: 1;
+        overflow: hidden;
+    }
+
+    .gallery-main-image {
+        width: 100%;
+        height: 100%;
+        min-height: 320px;
+        max-height: 520px;
+        object-fit: cover;
+        display: block;
     }
 
     .thumbnails {
         display: flex;
         justify-content: center;
-        gap: 10px;
+        gap: 8px;
+        padding: 0.75rem 1rem;
+        background: rgba(255,255,255,0.6);
     }
 
     .thumbnail-image {
+        width: 72px;
+        height: 72px;
+        object-fit: cover;
+        border-radius: 6px;
         border: 2px solid transparent;
-        transition: border 0.3s ease;
+        cursor: pointer;
+        transition: border-color 0.25s ease, transform 0.2s ease;
     }
 
     .thumbnail-image:hover {
-        border: 2px solid #007bff; /* Highlight the thumbnail on hover */
+        border-color: #C4956A;
+        transform: translateY(-2px);
     }
 
     .active-thumbnail {
-        border: 2px solid #007bff; /* Highlight the active thumbnail */
+        border-color: #C4956A;
     }
 </style>
 

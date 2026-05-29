@@ -10,10 +10,12 @@ This is a PHP CodeIgniter 4 event services marketplace. The CI4 framework is bun
 
 1. **MariaDB**: `sudo mysqld_safe --skip-grant-tables &` (runs as root, no password, database: `event_marketplace`)
 2. **Dev server**: from the workspace root, use the **cloud** environment so Kint/debug toolbar do not inject into HTML (browser QA hangs otherwise):
+
    ```bash
    cp -n env.example .env   # first time only
    php spark serve --host 127.0.0.1 --port 8888
    ```
+
    Or one-shot: `CI_ENVIRONMENT=cloud php spark serve --host 127.0.0.1 --port 8888`
    Browse at `http://127.0.0.1:8888/`. For local Valet/Herd use `development` in `.env` if you want the toolbar.
 
@@ -38,6 +40,7 @@ Tests use SQLite3 in-memory (configured in `app/Config/Database.php` under the `
 ### Linting
 
 No `.php-cs-fixer.dist.php` config exists yet, but the tool is available:
+
 ```bash
 php vendor/bin/php-cs-fixer fix --dry-run --diff app/
 ```
