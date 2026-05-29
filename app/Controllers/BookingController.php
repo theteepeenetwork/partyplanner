@@ -9,9 +9,18 @@ use App\Models\ServiceModel;
 use CodeIgniter\Controller;
 use DateTime;
  
+/**
+ * Handles vendor booking calendar views and legacy booking submission.
+ */
 class BookingController extends Controller
 {
-    // Method to display a month-to-view calendar with bookings
+    /**
+     * Render the monthly calendar view showing all bookings for the authenticated vendor.
+     *
+     * @param int|null $year  Calendar year; defaults to the current year.
+     * @param int|null $month Calendar month (1–12); defaults to the current month.
+     * @return \CodeIgniter\HTTP\RedirectResponse|\CodeIgniter\HTTP\ResponseInterface
+     */
     public function calendarView($year = null, $month = null)
     {
         if (!session()->has('user_id')) {
@@ -55,7 +64,11 @@ class BookingController extends Controller
 
 
 
-    // Method to handle booking requests
+    /**
+     * Handle a legacy booking form submission, check for time conflicts, and create a pending booking.
+     *
+     * @return \CodeIgniter\HTTP\RedirectResponse
+     */
     public function bookService()
     {
         $bookingModel = new BookingModel();
@@ -104,6 +117,13 @@ class BookingController extends Controller
         return redirect()->to('/service/view/' . $serviceId)->with('success', 'Service booked successfully!');
     }
 
+    /**
+     * Return JSON calendar data for a given month, organised by date, for AJAX calendar rendering.
+     *
+     * @param int|string $year  The calendar year.
+     * @param int|string $month The calendar month (1–12).
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
     public function calendarData($year, $month)
     {
         if (!session()->has('user_id')) {
@@ -170,6 +190,12 @@ class BookingController extends Controller
     }
 
 
+    /**
+     * Display the post-payment success page for a completed booking.
+     *
+     * @param int $bookingId The booking primary key.
+     * @return \CodeIgniter\HTTP\RedirectResponse|\CodeIgniter\HTTP\ResponseInterface
+     */
     public function paymentSuccess(int $bookingId)
     {
         if (!session()->has('user_id')) {

@@ -59,6 +59,12 @@ class AdminAccountPurge
         }
     }
 
+    /**
+     * Delete all chat messages and rooms returned by the given query callable.
+     *
+     * @param callable $roomIdQuery Callable that returns a query result with an `id` column.
+     * @return void
+     */
     public function deleteChatRoomsByQuery(callable $roomIdQuery): void
     {
         $rooms = $roomIdQuery()->getResultArray();
@@ -107,6 +113,12 @@ class AdminAccountPurge
         return array_values(array_unique(array_map('intval', $bids)));
     }
 
+    /**
+     * Delete all pricing, availability, and metadata rows belonging to a service, excluding the service row itself.
+     *
+     * @param int $serviceId The service primary key.
+     * @return void
+     */
     public function purgeServiceChildren(int $serviceId): void
     {
         $this->db->table('services_service_tags')->where('service_id', $serviceId)->delete();
@@ -131,6 +143,12 @@ class AdminAccountPurge
         $this->deleteServiceImageFiles($serviceId);
     }
 
+    /**
+     * Completely remove a service and all dependent data including bookings, images, and pricing.
+     *
+     * @param int $serviceId The service primary key.
+     * @return void
+     */
     public function purgeServiceFully(int $serviceId): void
     {
         $touchedBookings = $this->detachServiceFromBookingsAndRelated($serviceId);
@@ -145,6 +163,12 @@ class AdminAccountPurge
         $this->db->table('services')->where('id', $serviceId)->delete();
     }
 
+    /**
+     * Delete a customer account and all associated events, bookings, basket items, and chat rooms.
+     *
+     * @param int $userId The customer user primary key.
+     * @return void
+     */
     public function purgeCustomer(int $userId): void
     {
         $eventRows = $this->db->table('events')->select('id')->where('user_id', $userId)->get()->getResultArray();
@@ -164,6 +188,12 @@ class AdminAccountPurge
         $this->db->table('users')->where('id', $userId)->delete();
     }
 
+    /**
+     * Delete a vendor account and all associated services, chat rooms, and unavailability records.
+     *
+     * @param int $userId The vendor user primary key.
+     * @return void
+     */
     public function purgeVendor(int $userId): void
     {
         $svcRows = $this->db->table('services')->select('id')->where('vendor_id', $userId)->get()->getResultArray();

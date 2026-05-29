@@ -19,6 +19,8 @@ use App\Models\ServiceModel;
 class EventQuoteBuilder
 {
     /**
+     * Load all pricing data for the given service and build a complete quote.
+     *
      * @param array<string,mixed> $service
      * @param array<string,mixed> $event
      * @param list<int|string> $selectedExtraIds
@@ -124,6 +126,9 @@ class EventQuoteBuilder
     }
 
     /**
+     * Load decoded corporate pricing details for a service, or null when not configured.
+     *
+     * @param int $serviceId Primary key of the service.
      * @return array<string,mixed>|null
      */
     public function loadCorporatePricing(int $serviceId): ?array
@@ -144,6 +149,8 @@ class EventQuoteBuilder
     }
 
     /**
+     * Merge service-level location fields with a dedicated services_locations row.
+     *
      * @param array<string,mixed> $service
      * @param array<string,mixed>|null $locationRow
      * @return array<string,mixed>
@@ -183,6 +190,12 @@ class EventQuoteBuilder
         return $out;
     }
 
+    /**
+     * Load a service row by its primary key.
+     *
+     * @param int $serviceId Primary key of the service.
+     * @return array<string,mixed>|null
+     */
     public function loadService(int $serviceId): ?array
     {
         $serviceModel = new ServiceModel();

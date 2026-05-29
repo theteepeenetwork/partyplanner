@@ -7,12 +7,21 @@ use App\Models\VendorQuoteModel;
 use CodeIgniter\CLI\BaseCommand;
 use CodeIgniter\CLI\CLI;
 
+/**
+ * CLI command that auto-declines stale pending booking items and expires overdue vendor quotes.
+ */
 class QuoteExpireStale extends BaseCommand
 {
     protected $group = 'Quote';
     protected $name = 'quote:expire-stale';
     protected $description = 'Auto-decline pending bookings older than 14 days and expire sent vendor quotes';
 
+    /**
+     * Decline booking items pending longer than the given number of days and mark expired vendor quotes.
+     *
+     * @param array<int, string> $params Optional: first element overrides the default 14-day threshold.
+     * @return void
+     */
     public function run(array $params)
     {
         $days = (int) ($params[0] ?? 14);

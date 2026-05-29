@@ -804,6 +804,15 @@ class EventBookingQuote
         return round(self::haversineKm($vLat, $vLon, $eLat, $eLon), 1);
     }
 
+    /**
+     * Calculate the great-circle distance in kilometres between two coordinate pairs using the Haversine formula.
+     *
+     * @param float $lat1 Latitude of the first point in decimal degrees.
+     * @param float $lon1 Longitude of the first point in decimal degrees.
+     * @param float $lat2 Latitude of the second point in decimal degrees.
+     * @param float $lon2 Longitude of the second point in decimal degrees.
+     * @return float Distance in kilometres.
+     */
     public static function haversineKm(float $lat1, float $lon1, float $lat2, float $lon2): float
     {
         $earth = 6371.0;

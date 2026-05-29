@@ -4,8 +4,17 @@ namespace App\Libraries;
 
 use Config\Database;
 
+/**
+ * Provides aggregated metrics for the vendor dashboard overview page.
+ */
 class VendorDashboardMetrics
 {
+    /**
+     * Return the total number of service-page views across all of a vendor's active services.
+     *
+     * @param int $vendorId The vendor user primary key.
+     * @return int Total view count, or 0 if the service_views table does not exist.
+     */
     public static function profileViewsCount(int $vendorId): int
     {
         $db = Database::connect();

@@ -5,8 +5,16 @@ namespace App\Controllers;
 use Stripe\Stripe;
 use Stripe\PaymentIntent;
 
+/**
+ * Handles Stripe PaymentIntent creation for the legacy cart checkout flow.
+ */
 class PaymentController extends BaseController
 {
+    /**
+     * Create a Stripe PaymentIntent for a fixed deposit amount and return the client secret as JSON.
+     *
+     * @return \CodeIgniter\HTTP\ResponseInterface
+     */
     public function createPaymentIntent()
     {
         \Stripe\Stripe::setApiKey(getenv('STRIPE_SECRET_KEY'));

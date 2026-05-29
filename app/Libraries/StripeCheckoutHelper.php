@@ -7,6 +7,11 @@ namespace App\Libraries;
  */
 class StripeCheckoutHelper
 {
+    /**
+     * Return true when the Stripe secret key environment variable is present.
+     *
+     * @return bool
+     */
     public function isConfigured(): bool
     {
         $key = getenv('STRIPE_SECRET_KEY');
@@ -15,6 +20,10 @@ class StripeCheckoutHelper
     }
 
     /**
+     * Create a Stripe PaymentIntent in GBP for the given pence amount.
+     *
+     * @param int $amountPence Amount in pence (e.g. 1500 = £15.00).
+     * @param array<string,mixed> $metadata Optional metadata key/value pairs to attach to the intent.
      * @return array{success: bool, payment_intent_id?: string, client_secret?: string, error?: string}
      */
     public function createPaymentIntent(int $amountPence, array $metadata = []): array
@@ -47,6 +56,9 @@ class StripeCheckoutHelper
     }
 
     /**
+     * Retrieve a PaymentIntent from Stripe and confirm it has succeeded or is processing.
+     *
+     * @param string $paymentIntentId Stripe PaymentIntent ID to verify.
      * @return array{success: bool, status?: string, error?: string}
      */
     public function verifyPaymentIntent(string $paymentIntentId): array

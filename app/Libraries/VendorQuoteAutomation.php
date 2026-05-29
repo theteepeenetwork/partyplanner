@@ -12,8 +12,12 @@ use App\Models\VendorQuoteSettingsModel;
 class VendorQuoteAutomation
 {
     /**
+     * Apply vendor auto-accept rules to a newly created booking item and accept it when all pass.
+     *
      * @param array<string,mixed> $bookingItem Row with booking + event fields joined
      * @param array{lines: list<array>, total: float, warnings: list<string>, errors: list<string>, distance_km: ?float} $quote
+     * @param int $vendorId ID of the vendor who owns the service.
+     * @param int $serviceId ID of the service being booked.
      * @return array{auto_accepted: bool, reason: string}
      */
     public function evaluateAfterCheckout(array $bookingItem, array $quote, int $vendorId, int $serviceId): array
