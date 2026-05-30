@@ -31,7 +31,8 @@
         <ul class="list-unstyled">
             <?php foreach ($services as $service): ?>
                 <li class="media mb-3">
-                    <img src="<?= base_url('uploads/' . esc($service['image'])) ?>" class="mr-3" alt="<?= esc($service['title']) ?>" style="max-width: 100px;">
+                    <img src="<?= base_url('uploads/' . esc($service['image'])) ?>" class="mr-3" alt="<?= esc($service['title']) ?>" style="max-width: 100px;"
+                         onerror="this.onerror=null;this.src='<?= base_url('assets/images/fallback-service-card.jpg') ?>';">
 
                     <div class="media-body">
                         <h5 class="mt-0 mb-1"><?= esc($service['title']) ?></h5>

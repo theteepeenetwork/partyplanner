@@ -34,7 +34,7 @@ class EventBookingQuote
         array $guestTiers,
         array $durationTiers,
         array $packages,
-        array $quantityTiers = [],
+        array $quantityTiers,
         array $extrasById,
         array $selectedExtraIds,
         ?string $pricingOption,
@@ -247,7 +247,7 @@ class EventBookingQuote
         array $durationTiers,
         array $timeBlocks,
         array $packages,
-        array $quantityTiers = [],
+        array $quantityTiers,
         int $guestCount,
         ?string $pricingOption,
         ?int $orderQuantity = null

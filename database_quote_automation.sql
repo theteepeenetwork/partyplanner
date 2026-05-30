@@ -1,5 +1,32 @@
 -- Vendor quote automation schema (idempotent)
--- Run after database_update.sql so event_marketplace_add_column_if_missing exists.
+-- Run after event_marketplace.sql (base tables must already exist).
+-- Self-contained: defines its own copy of the column helper so it no longer
+-- depends on database_update.sql leaving the procedure in place.
+
+DROP PROCEDURE IF EXISTS `event_marketplace_add_column_if_missing`;
+DELIMITER $$
+CREATE PROCEDURE `event_marketplace_add_column_if_missing`(
+  IN p_table VARCHAR(64),
+  IN p_column VARCHAR(64),
+  IN p_definition VARCHAR(4096)
+)
+BEGIN
+  DECLARE col_count INT DEFAULT 0;
+
+  SELECT COUNT(*) INTO col_count
+  FROM information_schema.COLUMNS
+  WHERE TABLE_SCHEMA = DATABASE()
+    AND TABLE_NAME = p_table
+    AND COLUMN_NAME = p_column;
+
+  IF col_count = 0 THEN
+    SET @evm_sql := CONCAT('ALTER TABLE `', p_table, '` ADD COLUMN ', p_definition);
+    PREPARE evm_stmt FROM @evm_sql;
+    EXECUTE evm_stmt;
+    DEALLOCATE PREPARE evm_stmt;
+  END IF;
+END$$
+DELIMITER ;
 
 CALL `event_marketplace_add_column_if_missing`('services_locations', 'strict_travel_radius', '`strict_travel_radius` TINYINT(1) NOT NULL DEFAULT 0 AFTER `travel_fee_per_km`');
 CALL `event_marketplace_add_column_if_missing`('booking_items', 'quote_breakdown', '`quote_breakdown` JSON NULL AFTER `price`');
@@ -88,3 +115,6 @@ CREATE TABLE IF NOT EXISTS `quote_analytics_daily` (
   PRIMARY KEY (`id`),
   UNIQUE KEY `vendor_service_date` (`vendor_id`,`service_id`,`metric_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+-- Clean up the helper procedure now that all columns are in place.
+DROP PROCEDURE IF EXISTS `event_marketplace_add_column_if_missing`;

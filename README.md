@@ -64,13 +64,20 @@ Create a database named:
 event_marketplace
 ```
 
-Import database files in this order:
+Import database files in this order (the base schema must come first so the
+update/migration scripts have tables to alter):
 
-1. database_update.sql
-2. event_marketplace.sql
+1. event_marketplace.sql
+2. database_update.sql
 3. database_quote_automation.sql
 4. database_fulfillment_extras.sql (optional)
 5. database_quantity_pricing.sql (optional)
+
+Import each file with a UTF-8 client so accented characters are preserved, e.g.:
+
+```bash
+mysql --default-character-set=utf8mb4 event_marketplace < event_marketplace.sql
+```
 
 ### Environment
 
