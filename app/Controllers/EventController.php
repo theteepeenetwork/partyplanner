@@ -17,6 +17,7 @@ use App\Models\ServiceGuestBasedPricingModel;
 use App\Models\ServiceCustomDurationPricingModel;
 use App\Models\ServiceLocationModel;
 use App\Models\ServiceOptionalExtrasModel;
+use App\Models\ServiceImageModel;
 use App\Libraries\EventBookingQuote;
 use App\Libraries\EventQuoteBuilder;
 use App\Libraries\QuoteAnalyticsRecorder;
@@ -312,11 +313,33 @@ class EventController extends BaseController
             session()->remove('preferred_basket_event_id');
         }
 
+        // Which of the user's events already contain this exact service?
+        $basketModel = new EventBasketItemModel();
+        $existingRows = $basketModel
+            ->where('user_id', $userId)
+            ->where('service_id', $serviceId)
+            ->findAll();
+        $eventsWithService = array_map('intval', array_column($existingRows, 'event_id'));
+
+        // Which events already have ANY service from this vendor? (vendor-level lock)
+        $vendorRows = $basketModel
+            ->where('user_id', $userId)
+            ->where('vendor_id', $service['vendor_id'])
+            ->findAll();
+        $eventsWithVendor = array_map('intval', array_column($vendorRows, 'event_id'));
+
+        // Service thumbnail for the summary card.
+        $imageModel = new ServiceImageModel();
+        $serviceThumbnail = $this->primaryThumbnailPath($imageModel, (int) $serviceId);
+
         // User has events — show event selection
         return view('event/select_event', [
-            'service' => $service,
-            'events' => $events,
-            'selectedOptions' => $selectedOptions,
+            'service'          => $service,
+            'events'           => $events,
+            'selectedOptions'  => $selectedOptions,
+            'eventsWithService' => $eventsWithService,
+            'eventsWithVendor' => $eventsWithVendor,
+            'serviceThumbnail' => $serviceThumbnail,
         ]);
     }
 
@@ -347,6 +370,30 @@ class EventController extends BaseController
 
         if (!$service || !$event || $event['user_id'] != $userId) {
             return redirect()->to('/browse-services')->with('error', 'Invalid service or event.');
+        }
+
+        // Prevent adding the same service to the same event more than once.
+        $alreadyInBasket = $basketModel
+            ->where('event_id', $eventId)
+            ->where('service_id', $serviceId)
+            ->where('user_id', $userId)
+            ->first();
+        if ($alreadyInBasket) {
+            session()->remove('pending_add_to_event');
+            return redirect()->to('/event/basket/' . $eventId)
+                ->with('info', '"' . $service['title'] . '" is already in this event\'s basket.');
+        }
+
+        // Prevent adding a second service from the same vendor to the same event.
+        $vendorAlreadyBooked = $basketModel
+            ->where('event_id', $eventId)
+            ->where('vendor_id', $service['vendor_id'])
+            ->where('user_id', $userId)
+            ->first();
+        if ($vendorAlreadyBooked) {
+            session()->remove('pending_add_to_event');
+            return redirect()->to('/event/basket/' . $eventId)
+                ->with('info', 'This vendor already has a service booked for this event. Remove it first to add a different one.');
         }
 
         $pendingAdd = session()->get('pending_add_to_event') ?? [];
@@ -409,16 +456,10 @@ class EventController extends BaseController
         $depositPercent = 0.15;
         $depositAmount = round($estimated * $depositPercent, 2);
 
-        $packageLabel = $pricingOption;
-        if ($privatePricing && !empty($privatePricing['pricing_type']) && $privatePricing['pricing_type'] === 'tiered_packages_pricing'
-            && is_string($pricingOption) && preg_match('/^package_(\d+)$/', $pricingOption, $m)) {
-            foreach ($packages as $p) {
-                if ((int) $p['id'] === (int) $m[1]) {
-                    $packageLabel = $p['package_name'] ?? $pricingOption;
-                    break;
-                }
-            }
-        }
+        // Store a human-readable label for the chosen pricing option (e.g.
+        // "Duration (1 day(s))" rather than the raw "duration_1" token). The
+        // quote already produces friendly labels for every pricing type.
+        $packageLabel = $this->pricingOptionLabelFromLines($quote['lines']) ?? $pricingOption;
 
         $breakdownPayload = json_encode([
             'lines' => $quote['lines'],
@@ -447,6 +488,65 @@ class EventController extends BaseController
         }
 
         return redirect()->to('/event/basket/' . $eventId);
+    }
+
+    /**
+     * Extract the human-readable label for the chosen pricing option from a
+     * quote's line items (e.g. "Duration (1 day(s))", "Package: Gold").
+     *
+     * @param list<array<string,mixed>> $lines
+     */
+    private function pricingOptionLabelFromLines(array $lines): ?string
+    {
+        $optionCodes = ['guest_based', 'quantity_based', 'time_block', 'duration', 'package'];
+        foreach ($lines as $line) {
+            if (in_array($line['code'] ?? '', $optionCodes, true)) {
+                $label = trim((string) ($line['label'] ?? ''));
+                if ($label !== '') {
+                    return $label;
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Resolve a friendly pricing-option label for a basket line. New items
+     * store a clean label in package_name, but legacy rows may hold a raw
+     * token such as "duration_1"; in that case fall back to the quote
+     * breakdown lines so the user sees something meaningful.
+     *
+     * @param array<string,mixed> $item
+     */
+    private function basketOptionLabel(array $item): ?string
+    {
+        $raw = trim((string) ($item['package_name'] ?? ''));
+
+        // Already a human-readable label — use as-is.
+        if ($raw !== '' && !preg_match('/^(duration|timeblock|package|qty|guest)_\d+$/', $raw)) {
+            return $raw;
+        }
+
+        $lines = $item['quote_detail']['lines'] ?? [];
+
+        return is_array($lines) ? $this->pricingOptionLabelFromLines($lines) : null;
+    }
+
+    /**
+     * Fetch the primary image thumbnail path for a service, falling back to
+     * the first available image. Returns null when the service has no images.
+     */
+    private function primaryThumbnailPath(ServiceImageModel $imageModel, int $serviceId): ?string
+    {
+        $image = $imageModel->where('service_id', $serviceId)->where('is_primary', 1)->first();
+        if (!$image) {
+            $image = $imageModel->where('service_id', $serviceId)->first();
+        }
+
+        $path = $image['thumbnail_path'] ?? $image['image_path'] ?? null;
+
+        return ($path !== null && $path !== '') ? $path : null;
     }
 
     /**
@@ -586,6 +686,7 @@ class EventController extends BaseController
         $basketModel = new EventBasketItemModel();
         $serviceModel = new ServiceModel();
         $userModel = new UserModel();
+        $imageModel = new ServiceImageModel();
 
         $event = $eventModel->find($eventId);
         if (!$event || $event['user_id'] != $userId) {
@@ -603,8 +704,10 @@ class EventController extends BaseController
             $item['service_title'] = $service ? $service['title'] : 'Unknown Service';
             $item['service_description'] = $service ? ($service['short_description'] ?? '') : '';
             $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown Vendor';
+            $item['thumbnail_path'] = $this->primaryThumbnailPath($imageModel, (int) $item['service_id']);
             $qd = json_decode($item['quote_breakdown'] ?? '', true);
             $item['quote_detail'] = is_array($qd) ? $qd : null;
+            $item['option_label'] = $this->basketOptionLabel($item);
             $totalDeposit += (float)$item['deposit_amount'];
             $totalEstimated += (float)$item['estimated_total'];
             $basketItems[] = $item;

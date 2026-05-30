@@ -1,5 +1,22 @@
 <?= $this->include('header') ?>
 
+<style>
+    .basket-item-thumb {
+        width: 72px;
+        height: 72px;
+        object-fit: cover;
+        border-radius: 8px;
+        flex-shrink: 0;
+    }
+    .basket-item-thumb--placeholder {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: var(--surface-warm, #f1ece4);
+        border: 1px solid rgba(0, 0, 0, 0.06);
+    }
+</style>
+
 <main class="page-main">
 <div class="dashboard-wrapper">
     <div class="container">
@@ -26,16 +43,29 @@
                 <div class="dash-card mb-3">
                     <div class="row align-items-center">
                         <div class="col-md-7">
-                            <h6 class="mb-1"><?= esc($item['service_title']) ?></h6>
-                            <div class="text-muted small">
-                                <i class="fas fa-store me-1"></i><?= esc($item['vendor_name']) ?>
-                                <?php if (!empty($item['package_name'])): ?>
-                                    <span class="ms-2"><i class="fas fa-box me-1"></i><?= esc($item['package_name']) ?></span>
+                            <div class="d-flex align-items-start">
+                                <?php if (!empty($item['thumbnail_path'])): ?>
+                                    <img src="<?= base_url($item['thumbnail_path']) ?>"
+                                         alt="<?= esc($item['service_title']) ?>"
+                                         class="basket-item-thumb me-3">
+                                <?php else: ?>
+                                    <div class="basket-item-thumb basket-item-thumb--placeholder me-3">
+                                        <i class="fas fa-concierge-bell text-muted"></i>
+                                    </div>
                                 <?php endif; ?>
+                                <div class="flex-grow-1">
+                                    <h6 class="mb-1"><?= esc($item['service_title']) ?></h6>
+                                    <div class="text-muted small">
+                                        <i class="fas fa-store me-1"></i><?= esc($item['vendor_name']) ?>
+                                        <?php if (!empty($item['option_label'])): ?>
+                                            <span class="ms-2"><i class="fas fa-tag me-1"></i><?= esc($item['option_label']) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <?php if (!empty($item['service_description'])): ?>
+                                        <p class="small text-muted mt-1 mb-0"><?= esc(substr($item['service_description'], 0, 100)) ?></p>
+                                    <?php endif; ?>
+                                </div>
                             </div>
-                            <?php if (!empty($item['service_description'])): ?>
-                                <p class="small text-muted mt-1 mb-0"><?= esc(substr($item['service_description'], 0, 100)) ?></p>
-                            <?php endif; ?>
                             <?php if (!empty($item['quote_detail']['lines'])): ?>
                                 <div class="mt-2 small">
                                     <div class="text-muted fw-semibold mb-1">Quote breakdown</div>
