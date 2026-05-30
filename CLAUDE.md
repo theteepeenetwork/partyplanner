@@ -97,22 +97,3 @@ See:
 * For setup tasks, use the bootstrap script.
 * For review tasks, use the review script.
 * For git tasks, use the safe git script.
-
-
-## Test customers
-Customer 1
-email: customer1@c.com
-password: password
-
-Customer 2
-email: customer2@c.com
-password: password
-
-## Test vendors
-Vendor 1
-email: vendor1@v.com
-password: password
-
-Vendor 2
-email: vendor2@v.com
-password: password
