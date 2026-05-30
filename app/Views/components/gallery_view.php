@@ -17,7 +17,8 @@
                 $primaryImage = $images[0]; // Default to the first image if no primary is set
             }
             ?>
-            <img id="current-image" src="<?= base_url($primaryImage['image_path']) ?>" alt="Main Service Image" class="gallery-main-image">
+            <img id="current-image" src="<?= base_url($primaryImage['image_path']) ?>" alt="Main Service Image" class="gallery-main-image"
+                 onerror="this.onerror=null;this.src='<?= base_url('assets/images/fallback-service-card.jpg') ?>';">
         <?php else: ?>
             <p>No images available for this service.</p>
         <?php endif;  ?>
@@ -31,7 +32,8 @@
                 <img class="thumbnail-image <?= $image['id'] == $primaryImage['id'] ? 'active-thumbnail' : '' ?>"
                      src="<?= base_url($image['thumbnail_path']) ?>"
                      data-full-image="<?= base_url($image['image_path']) ?>"
-                     alt="Thumbnail">
+                     alt="Thumbnail"
+                     onerror="this.onerror=null;this.src='<?= base_url('assets/images/fallback-service-card.jpg') ?>';">
             <?php endforeach; ?>
         </div>
     <?php endif; ?>
