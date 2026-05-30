@@ -1,17 +1,21 @@
-## Test customers 
-Customer 1 email: 
-customer1@c.com 
-password: password 
+# Test Accounts
 
-Customer 2 
-email: customer2@c.com 
-password: password 
+## Customers
 
-## Test vendors 
-Vendor 1
-email: vendor1@v.com 
-password: password
+Customer 1  
+Email: customer1@c.com  
+Password: password
 
-Vendor 2 
-email: vendor2@v.com 
-password: password
+Customer 2  
+Email: customer2@c.com  
+Password: password
+
+## Vendors
+
+Vendor 1  
+Email: vendor1@v.com  
+Password: password
+
+Vendor 2  
+Email: vendor2@v.com  
+Password: password
