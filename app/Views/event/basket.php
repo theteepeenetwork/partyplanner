@@ -84,8 +84,13 @@
                             <?php endif; ?>
                         </div>
                         <div class="col-md-3 text-md-end mt-2 mt-md-0">
-                            <div class="fw-bold text-primary">£<?= number_format($item['estimated_total'], 2) ?></div>
-                            <div class="small text-muted">Deposit: £<?= number_format($item['deposit_amount'], 2) ?></div>
+                            <?php if (($item['package_name'] ?? '') === 'Price on request' || ((float) $item['estimated_total'] <= 0 && (float) $item['deposit_amount'] <= 0)): ?>
+                                <div class="fw-bold text-primary">Price on request</div>
+                                <div class="small text-muted">The supplier will send a quote</div>
+                            <?php else: ?>
+                                <div class="fw-bold text-primary">£<?= number_format($item['estimated_total'], 2) ?></div>
+                                <div class="small text-muted">Deposit: £<?= number_format($item['deposit_amount'], 2) ?></div>
+                            <?php endif; ?>
                         </div>
                         <div class="col-md-2 text-md-end mt-2 mt-md-0">
                             <a href="/event/basket/remove/<?= $item['id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove this service?');">

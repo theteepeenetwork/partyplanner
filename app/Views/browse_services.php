@@ -174,8 +174,10 @@
                             <p class="service-card-description">
                                 <?= esc($service['short_description'] ?? 'No description available.') ?>
                             </p>
-                            <?php if (!empty($service['price'])): ?>
+                            <?php if ((float) ($service['price'] ?? 0) > 0): ?>
                                 <p class="service-price">From &pound;<?= number_format((float) $service['price'], 2) ?></p>
+                            <?php else: ?>
+                                <p class="service-price text-muted">Price on request</p>
                             <?php endif; ?>
                         </div>
                     </a>

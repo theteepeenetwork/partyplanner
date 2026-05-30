@@ -508,7 +508,7 @@ class Service_Controller extends BaseController
             // Only require `pricing_type` if 'private' is one of the selected event types
             $eventTypes = $this->request->getPost('event_types');
             if (is_array($eventTypes) && in_array('private', $eventTypes)) {
-                $rules['pricing_type'] = 'required|in_list[guest_based_pricing,custom_duration_pricing,tiered_packages_pricing,quantity_based_pricing]';
+                $rules['pricing_type'] = 'required|in_list[guest_based_pricing,custom_duration_pricing,tiered_packages_pricing,quantity_based_pricing,custom_quote]';
             }
 
             if (!$this->validate($rules)) {
