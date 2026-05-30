@@ -43,7 +43,11 @@
         || !empty($selectedCategory)
         || !empty($selectedSubcategory)
         || !empty($selectedThirdCategory)
-        || (!empty($selectedSort) && $selectedSort !== 'newest');
+        || (!empty($selectedSort) && $selectedSort !== 'newest')
+        || (isset($selectedPriceMin) && $selectedPriceMin !== '' && $selectedPriceMin !== null)
+        || (isset($selectedPriceMax) && $selectedPriceMax !== '' && $selectedPriceMax !== null)
+        || (isset($selectedGuests) && $selectedGuests !== '' && $selectedGuests !== null)
+        || !empty($selectedEventType);
     $clearUrl = '/browse-services' . ($formEventId ? '?event_id=' . esc($formEventId) : '');
     ?>
 
@@ -100,6 +104,31 @@
                         <option value="price_asc" <?= (($selectedSort ?? '') === 'price_asc') ? 'selected' : '' ?>>Price: low to high</option>
                         <option value="price_desc" <?= (($selectedSort ?? '') === 'price_desc') ? 'selected' : '' ?>>Price: high to low</option>
                         <option value="title" <?= (($selectedSort ?? '') === 'title') ? 'selected' : '' ?>>Title A–Z</option>
+                    </select>
+                </div>
+
+                <div class="col-6 col-md-3 col-xl-2">
+                    <label for="browse-price-min" class="form-label">Min price (£)</label>
+                    <input type="number" min="0" step="1" class="form-control" id="browse-price-min" name="price_min"
+                        value="<?= esc($selectedPriceMin ?? '') ?>" placeholder="0">
+                </div>
+                <div class="col-6 col-md-3 col-xl-2">
+                    <label for="browse-price-max" class="form-label">Max price (£)</label>
+                    <input type="number" min="0" step="1" class="form-control" id="browse-price-max" name="price_max"
+                        value="<?= esc($selectedPriceMax ?? '') ?>" placeholder="Any">
+                </div>
+                <div class="col-6 col-md-3 col-xl-2">
+                    <label for="browse-guests" class="form-label">Guests</label>
+                    <input type="number" min="1" step="1" class="form-control" id="browse-guests" name="guests"
+                        value="<?= esc($selectedGuests ?? '') ?>" placeholder="e.g. 80">
+                </div>
+                <div class="col-6 col-md-3 col-xl-2">
+                    <label for="browse-event-type" class="form-label">Event type</label>
+                    <select class="form-select" id="browse-event-type" name="event_type">
+                        <option value="">Any</option>
+                        <option value="private" <?= (($selectedEventType ?? '') === 'private') ? 'selected' : '' ?>>Private events</option>
+                        <option value="public" <?= (($selectedEventType ?? '') === 'public') ? 'selected' : '' ?>>Public events</option>
+                        <option value="corporate" <?= (($selectedEventType ?? '') === 'corporate') ? 'selected' : '' ?>>Corporate events</option>
                     </select>
                 </div>
 

@@ -83,6 +83,15 @@ class Service_Controller extends BaseController
             $sort = 'newest';
         }
 
+        // Attribute filters (price / capacity / event type).
+        $priceMin  = $this->request->getGet('price_min');
+        $priceMax  = $this->request->getGet('price_max');
+        $guests    = $this->request->getGet('guests');
+        $eventType = (string) $this->request->getGet('event_type');
+        if (! in_array($eventType, ['public', 'private', 'corporate'], true)) {
+            $eventType = '';
+        }
+
         $cols = $this->getServicesTableColumns();
 
         $builder = $this->applyPublicServiceCatalogFilters($serviceModel, $cols);
@@ -94,6 +103,13 @@ class Service_Controller extends BaseController
             $subcategoryFilter !== null ? (string) $subcategoryFilter : '',
             $thirdCategoryFilter !== null ? (string) $thirdCategoryFilter : ''
         );
+
+        $builder = $this->applyBrowseAttributeFilters($builder, $cols, [
+            'price_min'  => $priceMin,
+            'price_max'  => $priceMax,
+            'guests'     => $guests,
+            'event_type' => $eventType,
+        ]);
 
         if ($searchQuery !== '') {
             $builder = $this->applyBrowseSearch($builder, $searchQuery, $cols);
@@ -139,6 +155,10 @@ class Service_Controller extends BaseController
             'selectedSubcategory' => $subcategoryFilter,
             'selectedThirdCategory' => $thirdCategoryFilter,
             'selectedSort' => $sort,
+            'selectedPriceMin' => $priceMin,
+            'selectedPriceMax' => $priceMax,
+            'selectedGuests' => $guests,
+            'selectedEventType' => $eventType,
             'searchQuery' => $searchQuery ?? '',
             'basketEventId' => $basketEventId,
             'message_eligible_by_service_id' => $messageEligibleByServiceId,
@@ -324,6 +344,60 @@ class Service_Controller extends BaseController
                     return $builder->orderBy('services.id', 'DESC');
                 }
                 break;
+        }
+
+        return $builder;
+    }
+
+    /**
+     * Apply price / capacity / event-type attribute filters to the browse query.
+     * Each filter is skipped when its value is empty, and capacity/event-type
+     * filters are only applied when the supporting columns/tables exist, so the
+     * method is safe on older schemas.
+     *
+     * @param list<string>         $cols
+     * @param array<string,mixed>  $filters
+     */
+    private function applyBrowseAttributeFilters(ServiceModel $builder, array $cols, array $filters): ServiceModel
+    {
+        $db = \Config\Database::connect();
+
+        // Price range (ignore non-numeric input).
+        if (in_array('price', $cols, true)) {
+            $min = $filters['price_min'];
+            $max = $filters['price_max'];
+            if ($min !== null && $min !== '' && is_numeric($min)) {
+                $builder->where('services.price >=', (float) $min);
+            }
+            if ($max !== null && $max !== '' && is_numeric($max)) {
+                $builder->where('services.price <=', (float) $max);
+            }
+        }
+
+        // Capacity: a service "fits" N guests when its min/max capacity bracket
+        // covers N. NULL bounds mean "no limit", so unset services are kept.
+        $guests = $filters['guests'];
+        if ($guests !== null && $guests !== '' && is_numeric($guests)
+            && in_array('min_capacity', $cols, true) && in_array('max_capacity', $cols, true)) {
+            $g = (int) $guests;
+            $builder->groupStart()
+                ->where('services.min_capacity IS NULL')
+                ->orWhere('services.min_capacity <=', $g)
+            ->groupEnd();
+            $builder->groupStart()
+                ->where('services.max_capacity IS NULL')
+                ->orWhere('services.max_capacity >=', $g)
+            ->groupEnd();
+        }
+
+        // Event type: service must opt in via services_event_types.
+        $eventType = $filters['event_type'];
+        if ($eventType !== '' && $db->tableExists('services_event_types')) {
+            $builder->where(
+                'services.id IN (SELECT service_id FROM services_event_types WHERE event_type = ' . $db->escape($eventType) . ')',
+                null,
+                false
+            );
         }
 
         return $builder;
@@ -987,6 +1061,14 @@ class Service_Controller extends BaseController
                 'paid_coverage_radius' => 'permit_empty|integer|greater_than_equal_to[0]',
                 'travel_fee_per_km'    => 'permit_empty|decimal|greater_than_equal_to[0]',
                 'postal_fee'           => 'permit_empty|decimal|greater_than_equal_to[0]',
+                // Capacity, logistics & requirements (all optional).
+                'min_capacity'      => 'permit_empty|is_natural',
+                'max_capacity'      => 'permit_empty|is_natural',
+                'setup_minutes'     => 'permit_empty|is_natural',
+                'breakdown_minutes' => 'permit_empty|is_natural',
+                'min_notice_days'   => 'permit_empty|is_natural',
+                'space_required'    => 'permit_empty|max_length[120]',
+                'indoor_outdoor'    => 'permit_empty|in_list[indoor,outdoor,both]',
             ];
             if ($requiresLocation) {
                 $rules['service_location'] = 'required';
@@ -1039,6 +1121,18 @@ class Service_Controller extends BaseController
                 'postal_fee'              => $this->request->getPost('postal_fee') !== '' ? $this->request->getPost('postal_fee') : null,
                 'free_postage_above'      => ($freePostageAbove !== '' && $freePostageAbove !== null) ? $freePostageAbove : null,
                 'delivery_lead_time_days' => ($deliveryLeadTime !== '' && $deliveryLeadTime !== null) ? (int) $deliveryLeadTime : null,
+                // Capacity, logistics & on-site requirements (stored on the service row).
+                'min_capacity'            => $this->request->getPost('min_capacity') !== '' ? $this->request->getPost('min_capacity') : null,
+                'max_capacity'            => $this->request->getPost('max_capacity') !== '' ? $this->request->getPost('max_capacity') : null,
+                'setup_minutes'           => $this->request->getPost('setup_minutes') !== '' ? $this->request->getPost('setup_minutes') : null,
+                'breakdown_minutes'       => $this->request->getPost('breakdown_minutes') !== '' ? $this->request->getPost('breakdown_minutes') : null,
+                'min_notice_days'         => $this->request->getPost('min_notice_days') !== '' ? $this->request->getPost('min_notice_days') : null,
+                'space_required'          => $this->request->getPost('space_required') ?: null,
+                'indoor_outdoor'          => in_array($this->request->getPost('indoor_outdoor'), ['indoor', 'outdoor', 'both'], true) ? $this->request->getPost('indoor_outdoor') : 'both',
+                'power_required'          => $this->request->getPost('power_required') ? 1 : 0,
+                'water_required'          => $this->request->getPost('water_required') ? 1 : 0,
+                'vehicle_access_required' => $this->request->getPost('vehicle_access_required') ? 1 : 0,
+                'equipment_provided'      => $this->request->getPost('equipment_provided') ? 1 : 0,
             ];
             session()->set('step4_data', $step4Data);
 
@@ -1241,7 +1335,9 @@ class Service_Controller extends BaseController
                 $tagsModel = new TagsModel();
                 $serviceTagsModel = new ServiceTagsModel();
 
-                $serviceId = $serviceModel->insert([
+                // Capacity / logistics / requirements captured on step 4.
+                $step4ForService = session('step4_data') ?? [];
+                $serviceInsert = [
                     'vendor_id' => $step1Data['vendor_id'],
                     'title' => $step1Data['title'],
                     'short_description' => $step1Data['short_description'],
@@ -1249,7 +1345,18 @@ class Service_Controller extends BaseController
                     'category_id' => $step1Data['category_id'],
                     'subcategory_id' => $step1Data['subcategory_id'] ?? null,
                     'third_category_id' => $step1Data['third_category_id'] ?? null,
-                ]);
+                ];
+                foreach ([
+                    'min_capacity', 'max_capacity', 'setup_minutes', 'breakdown_minutes',
+                    'min_notice_days', 'space_required', 'indoor_outdoor', 'power_required',
+                    'water_required', 'vehicle_access_required', 'equipment_provided',
+                ] as $reqField) {
+                    if (array_key_exists($reqField, $step4ForService)) {
+                        $serviceInsert[$reqField] = $step4ForService[$reqField];
+                    }
+                }
+
+                $serviceId = $serviceModel->insert($serviceInsert);
 
                 if (!$serviceId) {
                     throw new \Exception('Failed to insert service (Step 1).');

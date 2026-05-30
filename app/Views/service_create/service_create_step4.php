@@ -151,6 +151,63 @@
                 <div id="map" style="width: 100%; height: 400px;"></div>
             </div>
 
+            <div class="form-section mt-4">
+                <h4>Logistics, capacity &amp; requirements</h4>
+                <p class="text-muted small">Tell customers what your service needs on site and who it suits. All optional.</p>
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label" for="min_capacity">Minimum capacity (guests)</label>
+                        <input type="number" min="0" class="form-control" id="min_capacity" name="min_capacity" value="<?= old('min_capacity') ?>" placeholder="e.g. 20">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="max_capacity">Maximum capacity (guests)</label>
+                        <input type="number" min="0" class="form-control" id="max_capacity" name="max_capacity" value="<?= old('max_capacity') ?>" placeholder="e.g. 200">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="setup_minutes">Setup time (minutes)</label>
+                        <input type="number" min="0" class="form-control" id="setup_minutes" name="setup_minutes" value="<?= old('setup_minutes') ?>" placeholder="e.g. 60">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="breakdown_minutes">Breakdown time (minutes)</label>
+                        <input type="number" min="0" class="form-control" id="breakdown_minutes" name="breakdown_minutes" value="<?= old('breakdown_minutes') ?>" placeholder="e.g. 45">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label" for="min_notice_days">Minimum notice (days)</label>
+                        <input type="number" min="0" class="form-control" id="min_notice_days" name="min_notice_days" value="<?= old('min_notice_days') ?>" placeholder="e.g. 14">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label" for="space_required">Space required</label>
+                        <input type="text" maxlength="120" class="form-control" id="space_required" name="space_required" value="<?= old('space_required') ?>" placeholder="e.g. 5m x 5m flat ground">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label" for="indoor_outdoor">Suitable for</label>
+                        <select class="form-select" id="indoor_outdoor" name="indoor_outdoor">
+                            <option value="both" <?= old('indoor_outdoor') === 'indoor' || old('indoor_outdoor') === 'outdoor' ? '' : 'selected' ?>>Indoor &amp; outdoor</option>
+                            <option value="indoor" <?= old('indoor_outdoor') === 'indoor' ? 'selected' : '' ?>>Indoor only</option>
+                            <option value="outdoor" <?= old('indoor_outdoor') === 'outdoor' ? 'selected' : '' ?>>Outdoor only</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="d-flex flex-wrap gap-4 mt-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="power_required" name="power_required" value="1" <?= old('power_required') ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="power_required">Mains power required</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="water_required" name="water_required" value="1" <?= old('water_required') ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="water_required">Water access required</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="vehicle_access_required" name="vehicle_access_required" value="1" <?= old('vehicle_access_required') ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="vehicle_access_required">Vehicle access required</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="equipment_provided" name="equipment_provided" value="1" <?= old('equipment_provided') ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="equipment_provided">We provide our own equipment</label>
+                    </div>
+                </div>
+            </div>
+
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary">
                     <?= empty($step5_data) ? "Next" : "Save &amp; Review" ?>
