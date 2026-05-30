@@ -2046,10 +2046,27 @@ class Service_Controller extends BaseController
                 'title' => 'required|min_length[3]|max_length[255]',
                 'short_description' => 'required|max_length[200]',
                 'description' => 'required',
+                // Capacity, logistics & requirements (all optional, additive).
+                'min_capacity'      => 'permit_empty|is_natural',
+                'max_capacity'      => 'permit_empty|is_natural',
+                'setup_minutes'     => 'permit_empty|is_natural',
+                'breakdown_minutes' => 'permit_empty|is_natural',
+                'min_notice_days'   => 'permit_empty|is_natural',
+                'space_required'    => 'permit_empty|max_length[120]',
+                'indoor_outdoor'    => 'permit_empty|in_list[indoor,outdoor,both]',
             ];
 
             if (!$this->validate($rules)) {
                 return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
+            }
+
+            // Capacity sanity: max must not be below min when both are given.
+            $minCap = $this->request->getPost('min_capacity');
+            $maxCap = $this->request->getPost('max_capacity');
+            if ($minCap !== null && $minCap !== '' && $maxCap !== null && $maxCap !== ''
+                && (int) $maxCap < (int) $minCap) {
+                return redirect()->back()->withInput()
+                    ->with('errors', ['max_capacity' => 'Maximum capacity cannot be lower than minimum capacity.']);
             }
 
             $catErr = $categoryModel->validateAssignment(
@@ -2073,6 +2090,18 @@ class Service_Controller extends BaseController
                 'subcategory_id' => $this->request->getPost('subcategory_id') ?: null,
                 'third_category_id' => $this->request->getPost('third_category_id') ?: null,
                 'service_tags' => $this->request->getPost('service_tags'),
+                // Capacity, logistics & on-site requirements.
+                'min_capacity'            => $this->request->getPost('min_capacity') !== '' ? ($this->request->getPost('min_capacity') ?? null) : null,
+                'max_capacity'            => $this->request->getPost('max_capacity') !== '' ? ($this->request->getPost('max_capacity') ?? null) : null,
+                'setup_minutes'           => $this->request->getPost('setup_minutes') !== '' ? ($this->request->getPost('setup_minutes') ?? null) : null,
+                'breakdown_minutes'       => $this->request->getPost('breakdown_minutes') !== '' ? ($this->request->getPost('breakdown_minutes') ?? null) : null,
+                'min_notice_days'         => $this->request->getPost('min_notice_days') !== '' ? ($this->request->getPost('min_notice_days') ?? null) : null,
+                'space_required'          => $this->request->getPost('space_required') ?: null,
+                'indoor_outdoor'          => in_array($this->request->getPost('indoor_outdoor'), ['indoor', 'outdoor', 'both'], true) ? $this->request->getPost('indoor_outdoor') : 'both',
+                'power_required'          => $this->request->getPost('power_required') ? 1 : 0,
+                'water_required'          => $this->request->getPost('water_required') ? 1 : 0,
+                'vehicle_access_required' => $this->request->getPost('vehicle_access_required') ? 1 : 0,
+                'equipment_provided'      => $this->request->getPost('equipment_provided') ? 1 : 0,
             ];
             $serviceModel->update($id, $serviceData);
 

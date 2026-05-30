@@ -333,6 +333,67 @@
                 </div>
             </div>
 
+            <!-- SECTION 4b: Logistics, Capacity & Requirements -->
+            <div class="dash-card mb-4">
+                <h5><i class="fas fa-clipboard-check text-danger me-2"></i>Logistics, Capacity &amp; Requirements</h5>
+                <p class="text-muted small mb-3">Tell customers what your service needs on site and who it suits. All optional — leave blank if not relevant.</p>
+
+                <div class="row g-3">
+                    <div class="col-md-3">
+                        <label class="form-label small">Minimum capacity (guests)</label>
+                        <input type="number" min="0" class="form-control" name="min_capacity" value="<?= esc($service['min_capacity'] ?? '') ?>" placeholder="e.g. 20">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Maximum capacity (guests)</label>
+                        <input type="number" min="0" class="form-control" name="max_capacity" value="<?= esc($service['max_capacity'] ?? '') ?>" placeholder="e.g. 200">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Setup time (minutes)</label>
+                        <input type="number" min="0" class="form-control" name="setup_minutes" value="<?= esc($service['setup_minutes'] ?? '') ?>" placeholder="e.g. 60">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Breakdown time (minutes)</label>
+                        <input type="number" min="0" class="form-control" name="breakdown_minutes" value="<?= esc($service['breakdown_minutes'] ?? '') ?>" placeholder="e.g. 45">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label small">Minimum notice (days)</label>
+                        <input type="number" min="0" class="form-control" name="min_notice_days" value="<?= esc($service['min_notice_days'] ?? '') ?>" placeholder="e.g. 14">
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small">Space required</label>
+                        <input type="text" maxlength="120" class="form-control" name="space_required" value="<?= esc($service['space_required'] ?? '') ?>" placeholder="e.g. 5m x 5m flat ground">
+                    </div>
+                    <div class="col-md-4">
+                        <label class="form-label small">Suitable for</label>
+                        <?php $io = $service['indoor_outdoor'] ?? 'both'; ?>
+                        <select class="form-select" name="indoor_outdoor">
+                            <option value="both" <?= $io === 'both' ? 'selected' : '' ?>>Indoor &amp; outdoor</option>
+                            <option value="indoor" <?= $io === 'indoor' ? 'selected' : '' ?>>Indoor only</option>
+                            <option value="outdoor" <?= $io === 'outdoor' ? 'selected' : '' ?>>Outdoor only</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="d-flex flex-wrap gap-4 mt-3">
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="power_required" name="power_required" value="1" <?= !empty($service['power_required']) ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="power_required">Mains power required</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="water_required" name="water_required" value="1" <?= !empty($service['water_required']) ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="water_required">Water access required</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="vehicle_access_required" name="vehicle_access_required" value="1" <?= !empty($service['vehicle_access_required']) ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="vehicle_access_required">Vehicle access required</label>
+                    </div>
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" id="equipment_provided" name="equipment_provided" value="1" <?= !empty($service['equipment_provided']) ? 'checked' : '' ?>>
+                        <label class="form-check-label" for="equipment_provided">We provide our own equipment</label>
+                    </div>
+                </div>
+            </div>
+
             <!-- SECTION 5: Optional Extras -->
             <div class="dash-card mb-4">
                 <h5><i class="fas fa-plus-circle text-info me-2"></i>Optional Extras</h5>
