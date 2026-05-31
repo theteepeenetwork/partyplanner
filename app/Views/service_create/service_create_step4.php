@@ -151,6 +151,114 @@
                 <div id="map" style="width: 100%; height: 400px;"></div>
             </div>
 
+            <div class="form-section mt-4">
+                <h4>Logistics, capacity &amp; requirements</h4>
+                <p class="text-muted">Tell customers what your service needs on site and who it suits. Everything in this section is optional.</p>
+
+                <!-- Capacity -->
+                <h5 class="fw-semibold border-bottom pb-2 mt-4">Capacity</h5>
+                <div class="row g-3" style="max-width:640px">
+                    <div class="col-sm-6">
+                        <label class="form-label small text-muted mb-1" for="min_capacity">Minimum capacity</label>
+                        <div class="input-group">
+                            <input type="number" min="0" class="form-control" id="min_capacity" name="min_capacity" value="<?= old('min_capacity') ?>">
+                            <span class="input-group-text">guests</span>
+                        </div>
+                        <div class="form-text">Smallest event you'll take on. Leave blank for no minimum.</div>
+                    </div>
+                    <div class="col-sm-6">
+                        <label class="form-label small text-muted mb-1" for="max_capacity">Maximum capacity</label>
+                        <div class="input-group">
+                            <input type="number" min="0" class="form-control" id="max_capacity" name="max_capacity" value="<?= old('max_capacity') ?>">
+                            <span class="input-group-text">guests</span>
+                        </div>
+                        <div class="form-text">Largest event you can cater for. Leave blank for no limit.</div>
+                    </div>
+                </div>
+
+                <!-- Timing -->
+                <h5 class="fw-semibold border-bottom pb-2 mt-4">Timing</h5>
+                <div class="row g-3" style="max-width:760px">
+                    <div class="col-sm-4">
+                        <label class="form-label small text-muted mb-1" for="setup_minutes">Setup time</label>
+                        <div class="input-group">
+                            <input type="number" min="0" class="form-control" id="setup_minutes" name="setup_minutes" value="<?= old('setup_minutes') ?>">
+                            <span class="input-group-text">min</span>
+                        </div>
+                        <div class="form-text">Time on site before the event starts.</div>
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label small text-muted mb-1" for="breakdown_minutes">Breakdown time</label>
+                        <div class="input-group">
+                            <input type="number" min="0" class="form-control" id="breakdown_minutes" name="breakdown_minutes" value="<?= old('breakdown_minutes') ?>">
+                            <span class="input-group-text">min</span>
+                        </div>
+                        <div class="form-text">Time to pack down afterwards.</div>
+                    </div>
+                    <div class="col-sm-4">
+                        <label class="form-label small text-muted mb-1" for="min_notice_days">Minimum notice</label>
+                        <div class="input-group">
+                            <input type="number" min="0" class="form-control" id="min_notice_days" name="min_notice_days" value="<?= old('min_notice_days') ?>">
+                            <span class="input-group-text">days</span>
+                        </div>
+                        <div class="form-text">How far ahead customers must book.</div>
+                    </div>
+                </div>
+
+                <!-- Suitability -->
+                <h5 class="fw-semibold border-bottom pb-2 mt-4">Suitability</h5>
+                <div class="row g-3" style="max-width:760px">
+                    <div class="col-sm-7">
+                        <label class="form-label small text-muted mb-1" for="space_required">Space required</label>
+                        <input type="text" maxlength="120" class="form-control" id="space_required" name="space_required" value="<?= old('space_required') ?>">
+                        <div class="form-text">The footprint your setup needs, e.g. 5m × 5m of flat ground.</div>
+                    </div>
+                    <div class="col-sm-5">
+                        <label class="form-label small text-muted mb-1" for="indoor_outdoor">Indoor or outdoor</label>
+                        <select class="form-select" id="indoor_outdoor" name="indoor_outdoor">
+                            <option value="both" <?= old('indoor_outdoor') === 'indoor' || old('indoor_outdoor') === 'outdoor' ? '' : 'selected' ?>>Indoor &amp; outdoor</option>
+                            <option value="indoor" <?= old('indoor_outdoor') === 'indoor' ? 'selected' : '' ?>>Indoor only</option>
+                            <option value="outdoor" <?= old('indoor_outdoor') === 'outdoor' ? 'selected' : '' ?>>Outdoor only</option>
+                        </select>
+                        <div class="form-text">Where this service can run.</div>
+                    </div>
+                </div>
+
+                <!-- Site requirements -->
+                <h5 class="fw-semibold border-bottom pb-2 mt-4">Site requirements</h5>
+                <p class="form-text mt-0 mb-2">Tick anything the venue must provide for your service to work.</p>
+                <div class="card bg-light border-0" style="max-width:760px">
+                    <div class="card-body">
+                        <div class="row g-2">
+                            <div class="col-sm-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="power_required" name="power_required" value="1" <?= old('power_required') ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="power_required">Mains power required</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="water_required" name="water_required" value="1" <?= old('water_required') ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="water_required">Water access required</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="vehicle_access_required" name="vehicle_access_required" value="1" <?= old('vehicle_access_required') ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="vehicle_access_required">Vehicle access required</label>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="form-check">
+                                    <input class="form-check-input" type="checkbox" id="equipment_provided" name="equipment_provided" value="1" <?= old('equipment_provided') ? 'checked' : '' ?>>
+                                    <label class="form-check-label" for="equipment_provided">We provide our own equipment</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="mt-4">
                 <button type="submit" class="btn btn-primary">
                     <?= empty($step5_data) ? "Next" : "Save &amp; Review" ?>
