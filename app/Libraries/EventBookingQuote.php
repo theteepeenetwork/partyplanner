@@ -146,6 +146,7 @@ class EventBookingQuote
             'warnings'     => $warnings,
             'errors'       => $errors,
             'distance_km'  => $distanceKm,
+            'custom_quote' => is_array($privatePricing) && ($privatePricing['pricing_type'] ?? '') === 'custom_quote',
         ];
     }
 
@@ -394,6 +395,14 @@ class EventBookingQuote
                 'label'  => 'Package: ' . $name,
                 'amount' => round($price, 2),
             ];
+            return compact('lines', 'warnings', 'errors');
+        }
+
+        if ($type === 'custom_quote') {
+            // Bespoke / "price on request" supplier — no instant total. The
+            // request enters the normal flow and the vendor sends a quote.
+            $warnings[] = 'This supplier provides a bespoke quote on request.';
+
             return compact('lines', 'warnings', 'errors');
         }
 

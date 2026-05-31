@@ -215,6 +215,13 @@
                             </div>
                         </div>
                     </div>
+                <?php elseif ($pricingType === 'custom_quote'): ?>
+                    <div class="alert alert-info">
+                        <strong>Custom quote (price on request).</strong>
+                        You don't set prices here. Customers will see "Price on request" and send you an
+                        enquiry, and you reply with a bespoke quote for their event. There is nothing to
+                        configure on this step — continue to the next step.
+                    </div>
                 <?php else: ?>
                     <p>Please select a pricing type in Step 2.</p>
                 <?php endif; ?>

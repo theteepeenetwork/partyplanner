@@ -68,7 +68,10 @@
                             <?php endif; ?>
                         </ul>
 
-                        <?php if (!empty($service['price'])): ?>
+                        <?php $isCustomQuote = (($privatePricing['pricing_type'] ?? '') === 'custom_quote'); ?>
+                        <?php if ($isCustomQuote): ?>
+                            <p class="service-price mt-2"><i class="fas fa-tag me-1"></i>Price on request</p>
+                        <?php elseif ((float) ($service['price'] ?? 0) > 0): ?>
                             <p class="service-price mt-2">From £<?= number_format((float) $service['price'], 2) ?></p>
                         <?php endif; ?>
 
@@ -135,7 +138,13 @@
                         <!-- Pricing Options -->
                         <div class="pricing-panel">
                             <?php $hasPricing = $showGuest || $showDuration || $showPackages || $showQuantity; ?>
-                            <?php if ($hasPricing): ?>
+                            <?php if ($isCustomQuote): ?>
+                                <div class="alert alert-info">
+                                    <i class="fas fa-comment-dots me-1"></i>
+                                    This supplier prices each event individually. Add it to your event to
+                                    <strong>request a bespoke quote</strong> — there's no charge until you accept their quote.
+                                </div>
+                            <?php elseif ($hasPricing): ?>
                                 <h5 class="pricing-panel-heading">Pricing Options</h5>
                             <?php endif; ?>
 
@@ -315,7 +324,11 @@
                                         </a>
                                     <?php else: ?>
                                         <button type="submit" class="btn btn-primary btn-lg">
-                                            <i class="fas fa-calendar-plus me-1"></i>Add to Event
+                                            <?php if ($isCustomQuote): ?>
+                                                <i class="fas fa-comment-dots me-1"></i>Request a quote
+                                            <?php else: ?>
+                                                <i class="fas fa-calendar-plus me-1"></i>Add to Event
+                                            <?php endif; ?>
                                         </button>
                                     <?php endif; ?>
                                     <?php if (!empty($message_vendor_eligible) && !empty($message_vendor_url)): ?>

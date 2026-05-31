@@ -114,6 +114,13 @@
                             <?= $selectedPricingType === 'quantity_based_pricing' ? 'checked' : '' ?>>
                         <label class="custom-control-label" for="quantity_based_pricing">Per-item / quantity pricing (e.g. favours)</label>
                     </div>
+
+                    <div class="custom-control custom-radio">
+                        <input type="radio" class="custom-control-input" id="custom_quote"
+                            name="pricing_type" value="custom_quote"
+                            <?= $selectedPricingType === 'custom_quote' ? 'checked' : '' ?>>
+                        <label class="custom-control-label" for="custom_quote">Custom quote (price on request) — for bespoke jobs you quote individually</label>
+                    </div>
                 </div>
 
                 <!-- Corporate Events -->

@@ -459,7 +459,10 @@ class EventController extends BaseController
         // Store a human-readable label for the chosen pricing option (e.g.
         // "Duration (1 day(s))" rather than the raw "duration_1" token). The
         // quote already produces friendly labels for every pricing type.
-        $packageLabel = $this->pricingOptionLabelFromLines($quote['lines']) ?? $pricingOption;
+        $isCustomQuote = !empty($quote['custom_quote']);
+        $packageLabel = $isCustomQuote
+            ? 'Price on request'
+            : ($this->pricingOptionLabelFromLines($quote['lines']) ?? $pricingOption);
 
         $breakdownPayload = json_encode([
             'lines' => $quote['lines'],
@@ -481,7 +484,9 @@ class EventController extends BaseController
             'quote_breakdown' => $breakdownPayload,
         ]);
 
-        $flashSuccess = '"' . $service['title'] . '" added to your event basket. Estimated total: £' . number_format($estimated, 2);
+        $flashSuccess = $isCustomQuote
+            ? '"' . $service['title'] . '" added to your event. This supplier prices on request — submit your event to ask them for a quote.'
+            : '"' . $service['title'] . '" added to your event basket. Estimated total: £' . number_format($estimated, 2);
         session()->setFlashdata('success', $flashSuccess);
         if (!empty($quote['warnings'])) {
             session()->setFlashdata('info', implode(' ', $quote['warnings']));
