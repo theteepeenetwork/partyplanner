@@ -157,6 +157,26 @@ main.container {
     /* Aligns text inside dropdown to the right */
 }
 
+/* Navbar CTA (Start planning) — styled sitewide so the button is identical
+   on every page, not just the homepage. */
+.btn-nav-cta {
+    background: var(--accent-orange);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 0.5rem 1.2rem;
+    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.btn-nav-cta:hover,
+.btn-nav-cta:focus {
+    background: var(--dark-blue);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-soft);
+}
+
 /* Gradient Button (Plan Event) */
 .btn-gradient {
     background: linear-gradient(135deg, var(--accent-orange), var(--dark-blue));
