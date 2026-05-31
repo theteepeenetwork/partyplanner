@@ -584,6 +584,16 @@ class Service_Controller extends BaseController
 
         if ($this->request->getMethod() === 'POST') {
 
+            // Persist what the vendor just entered BEFORE validating, so that a
+            // validation failure (overlapping ranges, gaps, etc.) redirects back with
+            // every value and dynamically added row still present instead of wiping the
+            // form. The view rebuilds its rows from step3_data.
+            session()->set('step3_data', $this->buildStep3Data(
+                $this->request->getPost(),
+                $selectedEventTypes,
+                $pricingType
+            ));
+
             $rules = [];
 
             /* ---------------- PUBLIC VALIDATION ---------------- */
@@ -783,159 +793,16 @@ class Service_Controller extends BaseController
             }
 
             /* ---------------- RUN CI VALIDATION ---------------- */
-            if (!$this->validate($rules)) {
+            // Some pricing modes (e.g. custom_quote / price-on-request) need no field
+            // rules at all. Calling validate() with an empty ruleset returns false and
+            // would bounce the user back with an empty error banner, so only validate
+            // when there is something to check.
+            if (!empty($rules) && !$this->validate($rules)) {
                 return redirect()->back()->withInput()->with('errors', $this->validator->getErrors());
             }
 
-            /* ---------------- BUILD STEP3 SESSION PAYLOAD SAFELY ---------------- */
-            $post = $this->request->getPost();
-
-            // Start with existing step3_data so you can revisit step3 without losing data
-            $step3 = session('step3_data') ?? [];
-
-            // Always store fields you use for review/pricing tables
-            // PUBLIC
-            if (in_array('public', $selectedEventTypes, true)) {
-                $step3['commission_percentage'] = $post['commission_percentage'] ?? null;
-                $step3['min_attendance'] = $post['min_attendance'] ?? [];
-                $step3['max_attendance'] = $post['max_attendance'] ?? [];
-                $step3['max_pitch_fee'] = $post['max_pitch_fee'] ?? [];
-            } else {
-                // Clear public fields when public not selected
-                unset($step3['commission_percentage'], $step3['min_attendance'], $step3['max_attendance'], $step3['max_pitch_fee']);
-            }
-
-            // PRIVATE
-            if (in_array('private', $selectedEventTypes, true)) {
-                if ($pricingType === 'guest_based_pricing') {
-                    $step3['min_guest'] = $post['min_guest'] ?? [];
-                    $step3['max_guest'] = $post['max_guest'] ?? [];
-                    $step3['guest_price'] = $post['guest_price'] ?? [];
-
-                    unset($step3['enableHours'], $step3['enableDays'], $step3['hour_number'], $step3['hour_price'], $step3['day_number'], $step3['day_price']);
-                    unset($step3['package_name'], $step3['package_description'], $step3['package_price']);
-                    unset($step3['unit_price'], $step3['min_quantity'], $step3['max_quantity'], $step3['unit_label']);
-                }
-
-                if ($pricingType === 'custom_duration_pricing') {
-                    $step3['enableHours'] = !empty($post['enableHours']) ? 1 : 0;
-                    $step3['enableDays'] = !empty($post['enableDays']) ? 1 : 0;
-
-                    $step3['hour_number'] = $post['hour_number'] ?? [];
-                    $step3['hour_price'] = $post['hour_price'] ?? [];
-                    $step3['day_number'] = $post['day_number'] ?? [];
-                    $step3['day_price'] = $post['day_price'] ?? [];
-
-                    unset($step3['min_guest'], $step3['max_guest'], $step3['guest_price']);
-                    unset($step3['package_name'], $step3['package_description'], $step3['package_price']);
-                    unset($step3['unit_price'], $step3['min_quantity'], $step3['max_quantity'], $step3['unit_label']);
-                }
-
-                if ($pricingType === 'tiered_packages_pricing') {
-                    $step3['package_name'] = $post['package_name'] ?? [];
-                    $step3['package_description'] = $post['package_description'] ?? [];
-                    $step3['package_price'] = $post['package_price'] ?? [];
-
-                    unset($step3['min_guest'], $step3['max_guest'], $step3['guest_price']);
-                    unset($step3['enableHours'], $step3['enableDays'], $step3['hour_number'], $step3['hour_price'], $step3['day_number'], $step3['day_price']);
-                    unset($step3['unit_price'], $step3['min_quantity'], $step3['max_quantity'], $step3['unit_label']);
-                }
-
-                if ($pricingType === 'quantity_based_pricing') {
-                    $step3['unit_price'] = $post['unit_price'] ?? null;
-                    $step3['min_quantity'] = $post['min_quantity'] ?? null;
-                    $step3['max_quantity'] = $post['max_quantity'] ?? null;
-                    $step3['unit_label'] = trim((string) ($post['unit_label'] ?? 'items')) ?: 'items';
-
-                    unset($step3['min_guest'], $step3['max_guest'], $step3['guest_price']);
-                    unset($step3['enableHours'], $step3['enableDays'], $step3['hour_number'], $step3['hour_price'], $step3['day_number'], $step3['day_price']);
-                    unset($step3['package_name'], $step3['package_description'], $step3['package_price']);
-                }
-            } else {
-                // Clear private fields when private not selected
-                unset(
-                    $step3['min_guest'],
-                    $step3['max_guest'],
-                    $step3['guest_price'],
-                    $step3['enableHours'],
-                    $step3['enableDays'],
-                    $step3['hour_number'],
-                    $step3['hour_price'],
-                    $step3['day_number'],
-                    $step3['day_price'],
-                    $step3['package_name'],
-                    $step3['package_description'],
-                    $step3['package_price'],
-                    $step3['unit_price'],
-                    $step3['min_quantity'],
-                    $step3['max_quantity'],
-                    $step3['unit_label']
-                );
-            }
-
-            // CORPORATE (store as flat keys to match your current form/review, OR group it later)
-            if (in_array('corporate', $selectedEventTypes, true)) {
-                $enabled = !empty($post['corporate_enabled']);
-
-                $step3['corporate_enabled'] = $enabled ? 1 : 0;
-                $step3['corporate_invoice_supported'] = !empty($post['corporate_invoice_supported']) ? 1 : 0;
-                $step3['corporate_po_supported'] = !empty($post['corporate_po_supported']) ? 1 : 0;
-                $step3['corporate_payment_terms'] = $post['corporate_payment_terms'] ?? [];
-                $step3['corporate_accounts_email'] = trim((string) ($post['corporate_accounts_email'] ?? ''));
-                $step3['corporate_vat_registered'] = !empty($post['corporate_vat_registered']) ? 1 : 0;
-                $step3['corporate_vat_number'] = trim((string) ($post['corporate_vat_number'] ?? ''));
-                $step3['corporate_pli_level'] = (string) ($post['corporate_pli_level'] ?? 'none');
-                $step3['corporate_risk_assessment'] = !empty($post['corporate_risk_assessment']) ? 1 : 0;
-                $step3['corporate_method_statement'] = !empty($post['corporate_method_statement']) ? 1 : 0;
-                $step3['corporate_pat_testing'] = (string) ($post['corporate_pat_testing'] ?? 'na');
-                $step3['corporate_dbs'] = (string) ($post['corporate_dbs'] ?? 'na');
-                $step3['corporate_surcharge_type'] = (string) ($post['corporate_surcharge_type'] ?? 'none');
-                $step3['corporate_surcharge_value'] = $post['corporate_surcharge_value'] ?? null;
-                $step3['corporate_invoice_fee'] = $post['corporate_invoice_fee'] ?? null;
-                $step3['corporate_min_spend'] = $post['corporate_min_spend'] ?? null;
-
-                // If corporate is selected but not enabled, wipe dependent fields to avoid stale data
-                if (!$enabled) {
-                    $step3['corporate_invoice_supported'] = 0;
-                    $step3['corporate_po_supported'] = 0;
-                    $step3['corporate_payment_terms'] = [];
-                    $step3['corporate_accounts_email'] = '';
-                    $step3['corporate_vat_registered'] = 0;
-                    $step3['corporate_vat_number'] = '';
-                    $step3['corporate_pli_level'] = 'none';
-                    $step3['corporate_risk_assessment'] = 0;
-                    $step3['corporate_method_statement'] = 0;
-                    $step3['corporate_pat_testing'] = 'na';
-                    $step3['corporate_dbs'] = 'na';
-                    $step3['corporate_surcharge_type'] = 'none';
-                    $step3['corporate_surcharge_value'] = null;
-                    $step3['corporate_invoice_fee'] = null;
-                    $step3['corporate_min_spend'] = null;
-                }
-
-            } else {
-                // Clear corporate fields when corporate not selected
-                unset(
-                    $step3['corporate_enabled'],
-                    $step3['corporate_invoice_supported'],
-                    $step3['corporate_po_supported'],
-                    $step3['corporate_payment_terms'],
-                    $step3['corporate_accounts_email'],
-                    $step3['corporate_vat_registered'],
-                    $step3['corporate_vat_number'],
-                    $step3['corporate_pli_level'],
-                    $step3['corporate_risk_assessment'],
-                    $step3['corporate_method_statement'],
-                    $step3['corporate_pat_testing'],
-                    $step3['corporate_dbs'],
-                    $step3['corporate_surcharge_type'],
-                    $step3['corporate_surcharge_value'],
-                    $step3['corporate_invoice_fee'],
-                    $step3['corporate_min_spend']
-                );
-            }
-
-            session()->set('step3_data', $step3);
+            // step3_data was already persisted at the top of this POST handler, so a
+            // validation failure above redirects back with the user's input intact.
 
             // Move on
             if (session()->has('step4_data')) {
@@ -960,6 +827,162 @@ class Service_Controller extends BaseController
         ];
 
         return view('service_create/service_create_step3', $data);
+    }
+
+    /**
+     * Build the step3 (pricing) session payload from posted data.
+     *
+     * Kept separate so it can run before validation — persisting the vendor's input
+     * up front means a validation failure can redirect back without losing anything.
+     * Fields belonging to event types / pricing models that are not in play are
+     * cleared so stale values never leak into the review or saved service.
+     */
+    private function buildStep3Data(array $post, array $selectedEventTypes, ?string $pricingType): array
+    {
+        // Start with existing step3_data so you can revisit step3 without losing data
+        $step3 = session('step3_data') ?? [];
+
+        // PUBLIC
+        if (in_array('public', $selectedEventTypes, true)) {
+            $step3['commission_percentage'] = $post['commission_percentage'] ?? null;
+            $step3['min_attendance'] = $post['min_attendance'] ?? [];
+            $step3['max_attendance'] = $post['max_attendance'] ?? [];
+            $step3['max_pitch_fee'] = $post['max_pitch_fee'] ?? [];
+        } else {
+            // Clear public fields when public not selected
+            unset($step3['commission_percentage'], $step3['min_attendance'], $step3['max_attendance'], $step3['max_pitch_fee']);
+        }
+
+        // PRIVATE
+        if (in_array('private', $selectedEventTypes, true)) {
+            if ($pricingType === 'guest_based_pricing') {
+                $step3['min_guest'] = $post['min_guest'] ?? [];
+                $step3['max_guest'] = $post['max_guest'] ?? [];
+                $step3['guest_price'] = $post['guest_price'] ?? [];
+
+                unset($step3['enableHours'], $step3['enableDays'], $step3['hour_number'], $step3['hour_price'], $step3['day_number'], $step3['day_price']);
+                unset($step3['package_name'], $step3['package_description'], $step3['package_price']);
+                unset($step3['unit_price'], $step3['min_quantity'], $step3['max_quantity'], $step3['unit_label']);
+            }
+
+            if ($pricingType === 'custom_duration_pricing') {
+                $step3['enableHours'] = !empty($post['enableHours']) ? 1 : 0;
+                $step3['enableDays'] = !empty($post['enableDays']) ? 1 : 0;
+
+                $step3['hour_number'] = $post['hour_number'] ?? [];
+                $step3['hour_price'] = $post['hour_price'] ?? [];
+                $step3['day_number'] = $post['day_number'] ?? [];
+                $step3['day_price'] = $post['day_price'] ?? [];
+
+                unset($step3['min_guest'], $step3['max_guest'], $step3['guest_price']);
+                unset($step3['package_name'], $step3['package_description'], $step3['package_price']);
+                unset($step3['unit_price'], $step3['min_quantity'], $step3['max_quantity'], $step3['unit_label']);
+            }
+
+            if ($pricingType === 'tiered_packages_pricing') {
+                $step3['package_name'] = $post['package_name'] ?? [];
+                $step3['package_description'] = $post['package_description'] ?? [];
+                $step3['package_price'] = $post['package_price'] ?? [];
+
+                unset($step3['min_guest'], $step3['max_guest'], $step3['guest_price']);
+                unset($step3['enableHours'], $step3['enableDays'], $step3['hour_number'], $step3['hour_price'], $step3['day_number'], $step3['day_price']);
+                unset($step3['unit_price'], $step3['min_quantity'], $step3['max_quantity'], $step3['unit_label']);
+            }
+
+            if ($pricingType === 'quantity_based_pricing') {
+                $step3['unit_price'] = $post['unit_price'] ?? null;
+                $step3['min_quantity'] = $post['min_quantity'] ?? null;
+                $step3['max_quantity'] = $post['max_quantity'] ?? null;
+                $step3['unit_label'] = trim((string) ($post['unit_label'] ?? 'items')) ?: 'items';
+
+                unset($step3['min_guest'], $step3['max_guest'], $step3['guest_price']);
+                unset($step3['enableHours'], $step3['enableDays'], $step3['hour_number'], $step3['hour_price'], $step3['day_number'], $step3['day_price']);
+                unset($step3['package_name'], $step3['package_description'], $step3['package_price']);
+            }
+        } else {
+            // Clear private fields when private not selected
+            unset(
+                $step3['min_guest'],
+                $step3['max_guest'],
+                $step3['guest_price'],
+                $step3['enableHours'],
+                $step3['enableDays'],
+                $step3['hour_number'],
+                $step3['hour_price'],
+                $step3['day_number'],
+                $step3['day_price'],
+                $step3['package_name'],
+                $step3['package_description'],
+                $step3['package_price'],
+                $step3['unit_price'],
+                $step3['min_quantity'],
+                $step3['max_quantity'],
+                $step3['unit_label']
+            );
+        }
+
+        // CORPORATE (store as flat keys to match your current form/review, OR group it later)
+        if (in_array('corporate', $selectedEventTypes, true)) {
+            $enabled = !empty($post['corporate_enabled']);
+
+            $step3['corporate_enabled'] = $enabled ? 1 : 0;
+            $step3['corporate_invoice_supported'] = !empty($post['corporate_invoice_supported']) ? 1 : 0;
+            $step3['corporate_po_supported'] = !empty($post['corporate_po_supported']) ? 1 : 0;
+            $step3['corporate_payment_terms'] = $post['corporate_payment_terms'] ?? [];
+            $step3['corporate_accounts_email'] = trim((string) ($post['corporate_accounts_email'] ?? ''));
+            $step3['corporate_vat_registered'] = !empty($post['corporate_vat_registered']) ? 1 : 0;
+            $step3['corporate_vat_number'] = trim((string) ($post['corporate_vat_number'] ?? ''));
+            $step3['corporate_pli_level'] = (string) ($post['corporate_pli_level'] ?? 'none');
+            $step3['corporate_risk_assessment'] = !empty($post['corporate_risk_assessment']) ? 1 : 0;
+            $step3['corporate_method_statement'] = !empty($post['corporate_method_statement']) ? 1 : 0;
+            $step3['corporate_pat_testing'] = (string) ($post['corporate_pat_testing'] ?? 'na');
+            $step3['corporate_dbs'] = (string) ($post['corporate_dbs'] ?? 'na');
+            $step3['corporate_surcharge_type'] = (string) ($post['corporate_surcharge_type'] ?? 'none');
+            $step3['corporate_surcharge_value'] = $post['corporate_surcharge_value'] ?? null;
+            $step3['corporate_invoice_fee'] = $post['corporate_invoice_fee'] ?? null;
+            $step3['corporate_min_spend'] = $post['corporate_min_spend'] ?? null;
+
+            // If corporate is selected but not enabled, wipe dependent fields to avoid stale data
+            if (!$enabled) {
+                $step3['corporate_invoice_supported'] = 0;
+                $step3['corporate_po_supported'] = 0;
+                $step3['corporate_payment_terms'] = [];
+                $step3['corporate_accounts_email'] = '';
+                $step3['corporate_vat_registered'] = 0;
+                $step3['corporate_vat_number'] = '';
+                $step3['corporate_pli_level'] = 'none';
+                $step3['corporate_risk_assessment'] = 0;
+                $step3['corporate_method_statement'] = 0;
+                $step3['corporate_pat_testing'] = 'na';
+                $step3['corporate_dbs'] = 'na';
+                $step3['corporate_surcharge_type'] = 'none';
+                $step3['corporate_surcharge_value'] = null;
+                $step3['corporate_invoice_fee'] = null;
+                $step3['corporate_min_spend'] = null;
+            }
+        } else {
+            // Clear corporate fields when corporate not selected
+            unset(
+                $step3['corporate_enabled'],
+                $step3['corporate_invoice_supported'],
+                $step3['corporate_po_supported'],
+                $step3['corporate_payment_terms'],
+                $step3['corporate_accounts_email'],
+                $step3['corporate_vat_registered'],
+                $step3['corporate_vat_number'],
+                $step3['corporate_pli_level'],
+                $step3['corporate_risk_assessment'],
+                $step3['corporate_method_statement'],
+                $step3['corporate_pat_testing'],
+                $step3['corporate_dbs'],
+                $step3['corporate_surcharge_type'],
+                $step3['corporate_surcharge_value'],
+                $step3['corporate_invoice_fee'],
+                $step3['corporate_min_spend']
+            );
+        }
+
+        return $step3;
     }
 
     public function step4()
@@ -2392,9 +2415,19 @@ class Service_Controller extends BaseController
         return view('service_view', $data);
     }
 
-    private function validateSessionData($key)
+    private function validateSessionData(string ...$keys)
     {
-        return session()->has($key) && !empty(session($key));
+        // Every requested step must be present and non-empty. Previously this only
+        // accepted a single key, so the review page's six-argument call silently
+        // checked just the first one and let users reach review with missing steps
+        // (e.g. no step6), causing a fatal "array offset on null".
+        foreach ($keys as $key) {
+            if (!session()->has($key) || empty(session($key))) {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     public function removeOptionalExtra()

@@ -599,7 +599,7 @@
             <section id="cancelationPolicySection">
                 <div class="review-section">
                     <h4>Step 6: Cancellation Policy</h4>
-                    <p><?= esc($serviceData['step6']['cancellation_policy']) ?></p>
+                    <p><?= esc($serviceData['step6']['cancellation_policy'] ?? 'Not provided') ?></p>
                 </div>
                 <a href="/service/step6" class="btn btn-secondary">Edit</a>
             </section>
