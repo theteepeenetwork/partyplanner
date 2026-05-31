@@ -90,6 +90,9 @@ main.container {
     z-index: 1030;
     background-color: var(--primary-blue-medium);
     box-shadow: 0 2px 12px rgba(26, 46, 39, 0.08);
+    /* Anchor the navbar font so it stays identical on every page, including
+       the homepage where the <body> font is intentionally overridden. */
+    font-family: var(--font-sans);
 }
 
 .navbar-brand {
