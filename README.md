@@ -72,6 +72,7 @@ update/migration scripts have tables to alter):
 3. database_quote_automation.sql
 4. database_fulfillment_extras.sql (optional)
 5. database_quantity_pricing.sql (optional)
+6. database_service_requirements.sql
 
 Import each file with a UTF-8 client so accented characters are preserved, e.g.:
 

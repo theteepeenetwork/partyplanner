@@ -96,6 +96,42 @@
                         </div>
                         <?php endif; ?>
 
+                        <!-- Good to know: capacity, logistics & requirements -->
+                        <?php
+                        $cap = '';
+                        if (!empty($service['min_capacity']) && !empty($service['max_capacity'])) {
+                            $cap = (int) $service['min_capacity'] . '–' . (int) $service['max_capacity'] . ' guests';
+                        } elseif (!empty($service['max_capacity'])) {
+                            $cap = 'Up to ' . (int) $service['max_capacity'] . ' guests';
+                        } elseif (!empty($service['min_capacity'])) {
+                            $cap = 'From ' . (int) $service['min_capacity'] . ' guests';
+                        }
+                        $reqs = [];
+                        if (!empty($service['power_required']))           $reqs[] = 'Mains power';
+                        if (!empty($service['water_required']))           $reqs[] = 'Water access';
+                        if (!empty($service['vehicle_access_required']))  $reqs[] = 'Vehicle access';
+                        $io = $service['indoor_outdoor'] ?? 'both';
+                        $hasGoodToKnow = $cap !== '' || $reqs !== [] || $io !== 'both'
+                            || !empty($service['space_required']) || !empty($service['setup_minutes'])
+                            || !empty($service['breakdown_minutes']) || !empty($service['min_notice_days'])
+                            || !empty($service['equipment_provided']);
+                        if ($hasGoodToKnow):
+                        ?>
+                        <div class="mb-3 p-3 bg-light rounded border">
+                            <p class="mb-2 fw-semibold"><i class="fas fa-circle-info me-1 text-primary"></i>Good to know</p>
+                            <ul class="service-meta mb-0 small">
+                                <?php if ($cap !== ''): ?><li><strong>Capacity:</strong> <?= esc($cap) ?></li><?php endif; ?>
+                                <?php if ($io !== 'both'): ?><li><strong>Suitable for:</strong> <?= $io === 'indoor' ? 'Indoor events only' : 'Outdoor events only' ?></li><?php endif; ?>
+                                <?php if (!empty($service['space_required'])): ?><li><strong>Space required:</strong> <?= esc($service['space_required']) ?></li><?php endif; ?>
+                                <?php if (!empty($service['min_notice_days'])): ?><li><strong>Minimum notice:</strong> <?= (int) $service['min_notice_days'] ?> day<?= $service['min_notice_days'] == 1 ? '' : 's' ?></li><?php endif; ?>
+                                <?php if (!empty($service['setup_minutes'])): ?><li><strong>Setup time:</strong> <?= (int) $service['setup_minutes'] ?> mins</li><?php endif; ?>
+                                <?php if (!empty($service['breakdown_minutes'])): ?><li><strong>Breakdown time:</strong> <?= (int) $service['breakdown_minutes'] ?> mins</li><?php endif; ?>
+                                <?php if ($reqs !== []): ?><li><strong>On-site requirements:</strong> <?= esc(implode(', ', $reqs)) ?></li><?php endif; ?>
+                                <?php if (!empty($service['equipment_provided'])): ?><li><strong>Equipment:</strong> Supplier provides their own</li><?php endif; ?>
+                            </ul>
+                        </div>
+                        <?php endif; ?>
+
                         <!-- Pricing Options -->
                         <div class="pricing-panel">
                             <?php $hasPricing = $showGuest || $showDuration || $showPackages || $showQuantity; ?>
