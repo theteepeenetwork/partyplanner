@@ -37,20 +37,6 @@ body.home-page-body .trust-value-card h3 {
     color: var(--colour-heading);
 }
 
-body.home-page-body .btn-nav-cta {
-    background: var(--colour-terracotta);
-    border: none;
-    color: var(--colour-warm-white);
-    font-weight: 600;
-    border-radius: 10px;
-    padding: 0.5rem 1.2rem;
-    font-family: var(--font-body-home);
-}
-
-body.home-page-body .btn-nav-cta:hover {
-    background: var(--colour-terracotta-dark);
-    color: var(--colour-warm-white);
-}
 
 .home-marketplace {
     background: var(--colour-ivory);

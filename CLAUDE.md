@@ -195,6 +195,7 @@ See:
 Before browser QA, ensure local test data exists.
 
 Use the project seeder to create:
+
 * test customers
 * test vendors
 * quoteable services
