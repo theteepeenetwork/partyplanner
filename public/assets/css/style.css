@@ -90,6 +90,9 @@ main.container {
     z-index: 1030;
     background-color: var(--primary-blue-medium);
     box-shadow: 0 2px 12px rgba(26, 46, 39, 0.08);
+    /* Anchor the navbar font so it stays identical on every page, including
+       the homepage where the <body> font is intentionally overridden. */
+    font-family: var(--font-sans);
 }
 
 .navbar-brand {
@@ -152,6 +155,26 @@ main.container {
 .navbar-nav .dropdown-menu {
     text-align: right;
     /* Aligns text inside dropdown to the right */
+}
+
+/* Navbar CTA (Start planning) — styled sitewide so the button is identical
+   on every page, not just the homepage. */
+.btn-nav-cta {
+    background: var(--accent-orange);
+    border: none;
+    color: #fff;
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 0.5rem 1.2rem;
+    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.btn-nav-cta:hover,
+.btn-nav-cta:focus {
+    background: var(--dark-blue);
+    color: #fff;
+    transform: translateY(-1px);
+    box-shadow: var(--shadow-soft);
 }
 
 /* Gradient Button (Plan Event) */
