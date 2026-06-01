@@ -28,7 +28,11 @@ class ExampleServicesSeeder extends Seeder
     private const PASSWORD = 'password';
 
     /** Source directory for test images (repo root) and the public destination. */
+<<<<<<< HEAD
     private const IMAGE_SRC_DIR  = ROOTPATH . 'test-images/';
+=======
+    private const IMAGE_SRC_DIR  = ROOTPATH . 'test images/';
+>>>>>>> d081e40f2192146c4c88b6e699042ee412eff106
     private const IMAGE_DEST_DIR = ROOTPATH . 'public/uploads/services/';
 
     /** North East England vendors (cleanup is scoped to these emails). */
