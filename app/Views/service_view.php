@@ -217,9 +217,6 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
              src="<?= base_url(esc($primaryImage['image_path'])) ?>"
              alt="<?= esc($service['title']) ?>"
              onerror="this.onerror=null;this.src='<?= $fallback ?>'">
-        <?php if (!empty($service['is_featured'])): ?>
-          <span class="sv-pop">Featured supplier</span>
-        <?php endif; ?>
       </div>
       <div class="sv-gallery-thumbs" style="display:grid;grid-template-rows:1fr 1fr;gap:12px">
         <div class="sv-thumb" onclick="svSwapMain(this,'<?= base_url(esc($thumb1['image_path'] ?? $primaryImage['image_path'])) ?>')" style="height:100%">
@@ -368,11 +365,9 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
                 <?php endif; ?>
               </div>
 
-              <?php if (!empty($message_vendor_eligible) && !empty($message_vendor_url)): ?>
-                <a href="<?= esc($message_vendor_url) ?>" class="sv-host-link">
-                  View full profile<?= svIcon('arrow', '', 'width:15px;height:15px') ?>
-                </a>
-              <?php endif; ?>
+              <a href="<?= base_url('vendor/' . esc($service['vendor_id'])) ?>" class="sv-host-link">
+                View full profile<?= svIcon('arrow', '', 'width:15px;height:15px') ?>
+              </a>
             </div>
 
             <?php if (!empty($vendor_profile['bio'])): ?>
