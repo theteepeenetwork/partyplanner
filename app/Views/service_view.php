@@ -173,6 +173,14 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
           <div class="sv-eyebrow" style="margin-bottom:10px"><?= esc($eyebrow) ?></div>
         <?php endif; ?>
         <h1 class="sv-h1" style="font-size:42px"><?= esc($service['title']) ?></h1>
+        <?php if (!empty($vendor_rating) && $vendor_rating['count'] > 0): ?>
+          <div class="sv-rate-row" style="margin-top:10px">
+            <span class="sv-stars"><?= view('partials/sv_stars', ['rating' => $vendor_rating['avg']]) ?></span>
+            <b><?= esc(number_format((float) $vendor_rating['avg'], 1)) ?></b>
+            <span>·</span>
+            <span><?= (int) $vendor_rating['count'] ?> review<?= $vendor_rating['count'] === 1 ? '' : 's' ?></span>
+          </div>
+        <?php endif; ?>
         <?php if (!empty($service['short_description'])): ?>
           <p class="sv-lead" style="margin:10px 0 0;max-width:620px"><?= esc($service['short_description']) ?></p>
         <?php endif; ?>
@@ -396,6 +404,33 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
                 <?= svIcon('chat', '', 'width:16px;height:16px') ?>Log in to message
               </a>
             <?php endif; ?>
+          </div>
+        </section>
+        <?php endif; ?>
+
+        <!-- Recent reviews (service-specific written comments) -->
+        <?php if (!empty($service_reviews)): ?>
+        <section style="margin-top:40px">
+          <h2 class="sv-section-label">Recent reviews</h2>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <?php foreach ($service_reviews as $rv): ?>
+              <div class="sv-review">
+                <div class="sv-stars"><?= view('partials/sv_stars', ['rating' => (int) $rv['rating']]) ?></div>
+                <?php if (!empty($rv['title'])): ?>
+                  <div style="font-weight:700;margin:8px 0 4px"><?= esc($rv['title']) ?></div>
+                <?php endif; ?>
+                <p class="sv-review-quote">"<?= esc($rv['comment']) ?>"</p>
+                <div class="sv-review-by">
+                  <b><?= esc($rv['customer_name'] ?? 'Verified customer') ?></b>
+                  <?php
+                  $context = $rv['event_type'] ?? ($rv['event_title'] ?? '');
+                  if (!empty($context)):
+                  ?>
+                    · <?= esc($context) ?>
+                  <?php endif; ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
           </div>
         </section>
         <?php endif; ?>

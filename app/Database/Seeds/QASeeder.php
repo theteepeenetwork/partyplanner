@@ -56,20 +56,50 @@ class QASeeder extends Seeder
 
         // --- Services (one per private pricing model) -----------------------
         // Vendor One owns the guest-based and duration-based services.
-        $this->seedGuestBasedService($vendorIds[0], 'uploads/services/1735988119_d83adeb47688289c69a5.jpg');
-        $this->seedDurationService($vendorIds[0], 'uploads/services/1736065387_0781e62ad503443dd333.jpg');
+        $guestServiceId    = $this->seedGuestBasedService($vendorIds[0], 'uploads/services/1735988119_d83adeb47688289c69a5.jpg');
+        $durationServiceId = $this->seedDurationService($vendorIds[0], 'uploads/services/1736065387_0781e62ad503443dd333.jpg');
         // Vendor Two owns the package-based and quantity-based services.
-        $this->seedPackageService($vendorIds[1], 'uploads/services/1736087953_ca438efc6da58afad47d.jpg');
-        $this->seedQuantityService($vendorIds[1], 'uploads/services/1736091435_0297b3addf09add66f13.jpg');
+        $packageServiceId  = $this->seedPackageService($vendorIds[1], 'uploads/services/1736087953_ca438efc6da58afad47d.jpg');
+        $quantityServiceId = $this->seedQuantityService($vendorIds[1], 'uploads/services/1736091435_0297b3addf09add66f13.jpg');
 
         // --- Demo events (carry coordinates so travel resolves to £0) --------
         $this->insertEvent($customerIds[0], 'QA Summer Wedding', 'Wedding', 80, '+90 days');
         $this->insertEvent($customerIds[1], 'QA Birthday Party', 'Birthday', 120, '+120 days');
 
+        // --- Past events + confirmed bookings so reviews can be seeded -------
+        // Reviews require a past event date and an accepted/confirmed booking line.
+        $pastEvent1 = $this->insertEvent($customerIds[0], 'QA Past Wedding (reviewed)', 'Wedding', 90, '-45 days');
+        $pastEvent2 = $this->insertEvent($customerIds[1], 'QA Past Party (reviewed)', 'Birthday', 60, '-20 days');
+
+        // Vendor One: reviews on BOTH services — proves the vendor-wide average
+        // aggregates across services while each comment shows only on its service.
+        $bi = $this->seedBooking($customerIds[0], $pastEvent1, $guestServiceId, 540.00, 'confirmed');
+        $this->seedReview($bi, $customerIds[0], $vendorIds[0], $guestServiceId, 5,
+            'Outstanding catering', 'The grazing table was the talk of the wedding. Generous portions and beautifully presented.');
+
+        $bi = $this->seedBooking($customerIds[1], $pastEvent2, $guestServiceId, 408.00, 'confirmed');
+        $this->seedReview($bi, $customerIds[1], $vendorIds[0], $guestServiceId, 4,
+            'Great food, slight delay', 'Food was excellent and plentiful. Setup ran a little late but the team recovered well.');
+
+        $bi = $this->seedBooking($customerIds[0], $pastEvent1, $durationServiceId, 250.00, 'confirmed');
+        $this->seedReview($bi, $customerIds[0], $vendorIds[0], $durationServiceId, 5,
+            'Booth was a huge hit', 'Queues all night in the best way. Props were fun and the prints came out crisp.');
+
+        // Vendor Two: a single review on the package service; the quantity service
+        // is left review-free (proves comments do not bleed across services).
+        $bi = $this->seedBooking($customerIds[1], $pastEvent2, $packageServiceId, 1200.00, 'confirmed');
+        $this->seedReview($bi, $customerIds[1], $vendorIds[1], $packageServiceId, 5,
+            'Stunning marquee', 'Spotless setup, warm lighting, and they handled a rainy morning without fuss.');
+
+        // A reviewable-but-unreviewed booking so the "Leave a review" button is
+        // demonstrable in the customer dashboard (Customer One, quantity service).
+        $this->seedBooking($customerIds[0], $pastEvent1, $quantityServiceId, 200.00, 'confirmed');
+
         if (is_cli()) {
             CLI::write('QA data seeded: '
                 . count($customerIds) . ' customers, '
-                . count($vendorIds) . ' vendors, 4 services, 2 events.', 'green');
+                . count($vendorIds) . ' vendors, 4 services, 4 events, '
+                . '5 bookings, 4 reviews.', 'green');
         }
     }
 
@@ -96,6 +126,21 @@ class QASeeder extends Seeder
             $this->db->table('services')->select('id')->whereIn('vendor_id', $userIds)->get()->getResultArray(),
             'id'
         );
+
+        // Bookings owned by the seeded users (needed to clear reviews + line items).
+        $bookingIds = array_column(
+            $this->db->table('bookings')->select('id')->whereIn('user_id', $userIds)->get()->getResultArray(),
+            'id'
+        );
+
+        // Reviews first (no cascade): match either the seeded vendor or customer.
+        $this->db->table('reviews')->whereIn('vendor_id', $userIds)->delete();
+        $this->db->table('reviews')->whereIn('customer_id', $userIds)->delete();
+
+        if ($bookingIds !== []) {
+            $this->db->table('booking_items')->whereIn('booking_id', $bookingIds)->delete();
+        }
+        $this->db->table('bookings')->whereIn('user_id', $userIds)->delete();
 
         // Customer-side rows first.
         $this->db->table('event_basket_items')->whereIn('user_id', $userIds)->delete();
@@ -212,7 +257,7 @@ class QASeeder extends Seeder
         return [$serviceId, $privatePricingId];
     }
 
-    private function seedGuestBasedService(int $vendorId, string $image): void
+    private function seedGuestBasedService(int $vendorId, string $image): int
     {
         [$serviceId, $pricingId] = $this->seedServiceShell(
             $vendorId,
@@ -240,9 +285,11 @@ class QASeeder extends Seeder
         }
 
         $this->addExtra($serviceId, 'Prosecco reception (per guest)', 4.50, 'per_item', 'guests');
+
+        return $serviceId;
     }
 
-    private function seedDurationService(int $vendorId, string $image): void
+    private function seedDurationService(int $vendorId, string $image): int
     {
         [$serviceId, $pricingId] = $this->seedServiceShell(
             $vendorId,
@@ -271,9 +318,11 @@ class QASeeder extends Seeder
         }
 
         $this->addExtra($serviceId, 'Guest book album', 35.00, 'flat', null);
+
+        return $serviceId;
     }
 
-    private function seedPackageService(int $vendorId, string $image): void
+    private function seedPackageService(int $vendorId, string $image): int
     {
         [$serviceId, $pricingId] = $this->seedServiceShell(
             $vendorId,
@@ -302,9 +351,11 @@ class QASeeder extends Seeder
         }
 
         $this->addExtra($serviceId, 'Festoon lighting upgrade', 150.00, 'flat', null);
+
+        return $serviceId;
     }
 
-    private function seedQuantityService(int $vendorId, string $image): void
+    private function seedQuantityService(int $vendorId, string $image): int
     {
         [$serviceId, $pricingId] = $this->seedServiceShell(
             $vendorId,
@@ -329,6 +380,8 @@ class QASeeder extends Seeder
         ]);
 
         $this->addExtra($serviceId, 'Chair sash (per chair)', 1.25, 'per_item', 'chairs');
+
+        return $serviceId;
     }
 
     private function addExtra(int $serviceId, string $name, float $price, string $pricingType, ?string $unitLabel): void
@@ -343,7 +396,7 @@ class QASeeder extends Seeder
         ]);
     }
 
-    private function insertEvent(int $customerId, string $title, string $eventType, int $guestCount, string $dateModifier): void
+    private function insertEvent(int $customerId, string $title, string $eventType, int $guestCount, string $dateModifier): int
     {
         $this->db->table('events')->insert([
             'user_id'       => $customerId,
@@ -359,6 +412,44 @@ class QASeeder extends Seeder
             'longitude'     => self::LON,
             'status'        => 'active',
             'created_at'    => date('Y-m-d H:i:s'),
+        ]);
+
+        return (int) $this->db->insertID();
+    }
+
+    /**
+     * Insert a booking + a single booking_item, returning the booking_item id.
+     */
+    private function seedBooking(int $customerId, int $eventId, int $serviceId, float $price, string $status): int
+    {
+        $this->db->table('bookings')->insert([
+            'user_id'  => $customerId,
+            'event_id' => $eventId,
+            'status'   => $status,
+        ]);
+        $bookingId = (int) $this->db->insertID();
+
+        $this->db->table('booking_items')->insert([
+            'booking_id' => $bookingId,
+            'service_id' => $serviceId,
+            'price'      => $price,
+            'status'     => $status,
+        ]);
+
+        return (int) $this->db->insertID();
+    }
+
+    private function seedReview(int $bookingItemId, int $customerId, int $vendorId, int $serviceId, int $rating, string $title, string $comment): void
+    {
+        $this->db->table('reviews')->insert([
+            'booking_item_id' => $bookingItemId,
+            'customer_id'     => $customerId,
+            'vendor_id'       => $vendorId,
+            'service_id'      => $serviceId,
+            'rating'          => $rating,
+            'title'           => $title,
+            'comment'         => $comment,
+            'flagged'         => 0,
         ]);
     }
 }

@@ -564,11 +564,17 @@ class Profile extends BaseController
             $groupedByEvent[$eid]['items'][] = $item;
         }
 
+        $reviewableIds = array_map(
+            static fn ($r) => (int) $r['booking_item_id'],
+            $bookingItemModel->reviewableItemsForCustomer($userId)
+        );
+
         return view('dashboard/customer_bookings', [
             'user' => $user,
             'bookingItems' => $allItems,
             'groupedByEvent' => $groupedByEvent,
             'filterEventId' => $filterEventId,
+            'reviewableIds' => $reviewableIds,
             'currentTab' => 'bookings',
         ]);
     }

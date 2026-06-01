@@ -57,6 +57,13 @@ $routes->get('/profile/payments', 'Profile::customerPayments');
 $routes->get('/profile/favourites', 'Profile::customerFavourites');
 $routes->get('/profile/favourites/remove/(:num)', 'Profile::removeFavourite/$1');
 
+// Reviews (customer)
+$routes->get('/review/create/(:num)', 'ReviewController::create/$1');
+$routes->post('/review/store', 'ReviewController::store');
+
+// Public vendor profile
+$routes->get('vendor/(:num)', 'VendorProfileController::show/$1');
+
 
 // Browse Services (public)
 $routes->get('/browse-services', 'Service_Controller::browse');
@@ -209,5 +216,11 @@ $routes->group('admin', ['filter' => ['adminauth', 'csrf']], static function ($r
 
     $routes->get('pages', 'Admin\Pages::index');
     $routes->match(['GET', 'POST'], 'pages/edit/(:segment)', 'Admin\Pages::edit/$1');
+
+    $routes->get('reviews', 'Admin\Reviews::index');
+    $routes->get('reviews/(:num)', 'Admin\Reviews::show/$1');
+    $routes->match(['GET', 'POST'], 'reviews/(:num)/edit', 'Admin\Reviews::edit/$1');
+    $routes->get('reviews/(:num)/delete', 'Admin\Reviews::deleteConfirm/$1');
+    $routes->post('reviews/(:num)/delete', 'Admin\Reviews::delete/$1');
 });
 

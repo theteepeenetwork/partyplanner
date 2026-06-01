@@ -83,6 +83,9 @@
                                 <?php if (!in_array($item['status'], ['rejected', 'cancelled'], true)): ?>
                                     <a href="<?= base_url('profile/messages/start/' . (int) $item['service_id']) ?>" class="btn btn-sm btn-outline-secondary mt-1">Message vendor</a>
                                 <?php endif; ?>
+                                <?php if (in_array((int) $item['id'], $reviewableIds ?? [], true)): ?>
+                                    <a href="<?= base_url('review/create/' . (int) $item['id']) ?>" class="btn btn-sm btn-primary mt-1"><i class="fas fa-star me-1"></i>Leave a review</a>
+                                <?php endif; ?>
                             </div>
                         </div>
                     </div>

@@ -1004,6 +1004,32 @@ CALL `event_marketplace_add_column_if_missing`('chat_messages', 'profanity_match
 CALL `event_marketplace_add_column_if_missing`('chat_messages', 'reviewed_by', '`reviewed_by` int(11) DEFAULT NULL AFTER `profanity_matches`');
 CALL `event_marketplace_add_column_if_missing`('chat_messages', 'reviewed_at', '`reviewed_at` datetime DEFAULT NULL AFTER `reviewed_by`');
 
+-- ============================================================
+-- NEW TABLE: reviews
+-- Vendor-wide star rating + service-specific written comment.
+-- One review per booking line (UNIQUE booking_item_id).
+-- Aggregates (avg/count) are computed on the fly in ReviewModel.
+-- `flagged` marks reviews whose text was masked by the profanity filter.
+-- ============================================================
+CREATE TABLE IF NOT EXISTS `reviews` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `booking_item_id` int(11) NOT NULL,
+  `customer_id` int(11) NOT NULL,
+  `vendor_id` int(11) NOT NULL,
+  `service_id` int(11) NOT NULL,
+  `rating` tinyint(1) NOT NULL,
+  `title` varchar(150) NOT NULL,
+  `comment` text NOT NULL,
+  `flagged` tinyint(1) NOT NULL DEFAULT 0,
+  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+  `updated_at` datetime DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `uniq_booking_item` (`booking_item_id`),
+  KEY `idx_vendor` (`vendor_id`),
+  KEY `idx_service` (`service_id`),
+  KEY `idx_customer` (`customer_id`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
 DROP PROCEDURE IF EXISTS `event_marketplace_add_column_if_missing`;
 
 -- ============================================================
