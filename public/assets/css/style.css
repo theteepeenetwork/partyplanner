@@ -17,28 +17,28 @@
 
 /* ==================== Design tokens ==================== */
 :root {
-    --primary-blue-dark: #2D4A3E;
-    --primary-blue-medium: #FDFAF6;
-    --primary-blue-light: #E8F0EC;
-    --accent-orange: #C4956A;
-    --dark-blue: #1A2E27;
-    --surface-page: #FAF7F2;
+    --primary-blue-dark: #3A312D;
+    --primary-blue-medium: #FFFDFC;
+    --primary-blue-light: #EDE5D8;
+    --accent-orange: #B66A4D;
+    --dark-blue: #221B18;
+    --surface-page: #F6F1EB;
     --surface-elevated: #ffffff;
     --surface-warm: #F5EFE6;
-    --surface-warm-card: linear-gradient(180deg, #FDFAF6 0%, #F5EDE0 100%);
-    --text-muted-custom: #6B6560;
-    --font-sans: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --font-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+    --surface-warm-card: linear-gradient(180deg, #FFFDFC 0%, #F5EDE0 100%);
+    --text-muted-custom: #5F5853;
+    --font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
     --site-header-height: 72px;
-    --shadow-soft: 0 8px 30px rgba(26, 46, 39, 0.08);
-    --shadow-premium: 0 18px 48px rgba(26, 46, 39, 0.12);
-    --shadow-lift: 0 12px 36px rgba(26, 46, 39, 0.14);
+    --shadow-soft: 0 8px 30px rgba(34, 27, 24, 0.08);
+    --shadow-premium: 0 18px 48px rgba(34, 27, 24, 0.12);
+    --shadow-lift: 0 12px 36px rgba(34, 27, 24, 0.14);
     --radius-card: 16px;
     --radius-button: 12px;
     --section-spacing-y: 4.5rem;
     --section-spacing-y-lg: 7.5rem;
-    --bs-primary: #C4956A;
-    --bs-primary-rgb: 196, 149, 106;
+    --bs-primary: #B66A4D;
+    --bs-primary-rgb: 182, 106, 77;
 }
 
 * {
@@ -191,6 +191,23 @@ main.container {
     background: linear-gradient(135deg, var(--dark-blue), var(--accent-orange));
     transform: translateY(-1px);
     box-shadow: var(--shadow-soft);
+}
+
+.btn-nav-cta {
+    background: var(--accent-orange);
+    border: none;
+    color: #FFFDFC;
+    font-weight: 600;
+    border-radius: 10px;
+    padding: 0.5rem 1.2rem;
+    font-family: var(--font-sans);
+    transition: background 0.25s ease;
+}
+
+.btn-nav-cta:hover,
+.btn-nav-cta:focus {
+    background: #9E573D;
+    color: #FFFDFC;
 }
 
 .navbar-toggler {
@@ -1200,8 +1217,8 @@ a.service-card-link:focus-visible {
 
 .btn-primary:hover,
 .btn-primary:focus {
-    background-color: #5c2d31;
-    border-color: #5c2d31;
+    background-color: #9E573D;
+    border-color: #9E573D;
 }
 
 .text-primary {

@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <?= csrf_meta() ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="<?= ! empty($isHomePage) ? '#3A312D' : '#2c3e50' ?>">
+    <meta name="theme-color" content="#3A312D">
     <?php
     $ogTitle       = $pageTitle ?? 'For Your Events';
     $ogDescription = $metaDescription ?? 'A UK marketplace to discover event services, request quotes and manage bookings.';
