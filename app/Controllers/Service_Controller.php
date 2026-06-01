@@ -1829,7 +1829,12 @@ class Service_Controller extends BaseController
 
     public function success()
     {
-        return view('service_create/success');
+        $userModel = new UserModel();
+        $user      = $userModel->find((int) session()->get('user_id'));
+
+        return view('service_create/success', [
+            'hostProfileIncomplete' => empty($user['host_bio'] ?? null),
+        ]);
     }
     private function handleImages()
     {

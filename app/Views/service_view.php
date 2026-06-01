@@ -217,9 +217,6 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
              src="<?= base_url(esc($primaryImage['image_path'])) ?>"
              alt="<?= esc($service['title']) ?>"
              onerror="this.onerror=null;this.src='<?= $fallback ?>'">
-        <?php if (!empty($service['is_featured'])): ?>
-          <span class="sv-pop">Featured supplier</span>
-        <?php endif; ?>
       </div>
       <div class="sv-gallery-thumbs" style="display:grid;grid-template-rows:1fr 1fr;gap:12px">
         <div class="sv-thumb" onclick="svSwapMain(this,'<?= base_url(esc($thumb1['image_path'] ?? $primaryImage['image_path'])) ?>')" style="height:100%">

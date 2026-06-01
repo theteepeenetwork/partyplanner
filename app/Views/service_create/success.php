@@ -28,6 +28,16 @@
                         <p>You can now view or manage your service in your dashboard.</p>
                         <a href="/profile#services" class="btn btn-primary btn-lg mt-3">Go to Dashboard</a>
                         <a href="/service/create" class="btn btn-outline-secondary btn-lg mt-3">Add Another Service</a>
+
+                        <?php if (!empty($hostProfileIncomplete)): ?>
+                            <div class="alert alert-info mt-4 text-start">
+                                <strong>Complete your host profile</strong>
+                                <p class="mb-2">Add a photo, bio and tagline so customers can see who's behind this service — it appears in the &ldquo;Meet your host&rdquo; section of every listing.</p>
+                                <a href="/profile/host-profile" class="btn btn-outline-primary">
+                                    <i class="bi bi-person-badge"></i> Set up host profile
+                                </a>
+                            </div>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
