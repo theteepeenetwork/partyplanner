@@ -12,7 +12,11 @@ class UserModel extends Model
     protected $primaryKey     = 'id';
     protected $returnType     = 'array';
 
-    protected $allowedFields = ['name', 'username', 'email', 'password', 'role', 'password_reset_token', 'password_reset_expires_at'];
+    protected $allowedFields = [
+        'name', 'username', 'email', 'password', 'role',
+        'password_reset_token', 'password_reset_expires_at',
+        'host_bio', 'host_tagline', 'host_quote', 'host_plays', 'host_photo_path',
+    ];
 
     public function __construct(?ConnectionInterface $db = null, ?ValidationInterface $validation = null)
     {

@@ -135,66 +135,6 @@
                         </div>
                         <?php endif; ?>
 
-                        <!-- Meet Your Host -->
-                        <?php if (!empty($vendor_profile) && (!empty($vendor_profile['bio']) || !empty($vendor_profile['tagline']) || !empty($vendor_profile['photo_path']))): ?>
-                        <div class="meet-host-card mb-4 p-4 rounded-3" style="background:#f8f5f1;border:1px solid #e4d9c9;">
-                            <h5 class="mb-3" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.1em;color:#b66a4d;">Meet your host</h5>
-
-                            <div class="d-flex align-items-start gap-3 mb-3 flex-wrap">
-                                <?php if (!empty($vendor_profile['photo_path'])): ?>
-                                    <img src="<?= base_url(esc($vendor_profile['photo_path'])) ?>"
-                                         alt="<?= esc($vendor_profile['name']) ?>"
-                                         class="rounded-3 flex-shrink-0"
-                                         style="width:86px;height:86px;object-fit:cover;border:1px solid #e4d9c9;">
-                                <?php else: ?>
-                                    <div class="rounded-3 d-flex align-items-center justify-content-center text-white fw-bold flex-shrink-0"
-                                         style="width:86px;height:86px;font-size:1.8rem;background:linear-gradient(150deg,#b66a4d 0%,#7d4332 100%);">
-                                        <?= strtoupper(substr($vendor_profile['name'], 0, 1)) ?>
-                                    </div>
-                                <?php endif; ?>
-
-                                <div class="flex-grow-1 min-width-0">
-                                    <div class="fw-bold" style="font-size:1.2rem;"><?= esc($vendor_profile['name']) ?></div>
-                                    <?php if (!empty($vendor_profile['tagline'])): ?>
-                                        <div class="text-muted small mt-1"><?= esc($vendor_profile['tagline']) ?></div>
-                                    <?php endif; ?>
-                                    <?php if (!empty($vendor_profile['since'])): ?>
-                                        <div class="mt-2">
-                                            <span class="badge rounded-pill" style="background:#e4d9c9;color:#5f5853;font-size:0.75rem;font-weight:600;padding:5px 11px;">
-                                                <i class="fas fa-calendar-alt me-1"></i>Member since <?= esc($vendor_profile['since']) ?>
-                                            </span>
-                                        </div>
-                                    <?php endif; ?>
-                                </div>
-                            </div>
-
-                            <?php if (!empty($vendor_profile['bio'])): ?>
-                                <p class="mb-3" style="font-size:0.93rem;line-height:1.7;color:#5f5853;"><?= nl2br(esc($vendor_profile['bio'])) ?></p>
-                            <?php endif; ?>
-
-                            <?php if (!empty($vendor_profile['plays'])): ?>
-                                <div class="d-flex flex-wrap gap-2 mb-3 align-items-center">
-                                    <span class="text-muted" style="font-size:0.7rem;font-weight:700;text-transform:uppercase;letter-spacing:0.08em;">Plays</span>
-                                    <?php foreach ($vendor_profile['plays'] as $tag): ?>
-                                        <span class="badge rounded-pill" style="background:#efe6d9;color:#3a312d;font-weight:600;font-size:0.8rem;padding:6px 12px;"><?= esc($tag) ?></span>
-                                    <?php endforeach; ?>
-                                </div>
-                            <?php endif; ?>
-
-                            <?php if (!empty($vendor_profile['quote'])): ?>
-                                <blockquote class="mb-3 ps-3" style="border-left:3px solid #b66a4d;font-style:italic;color:#3a312d;font-size:1.05rem;line-height:1.55;">
-                                    <?= esc($vendor_profile['quote']) ?>
-                                </blockquote>
-                            <?php endif; ?>
-
-                            <?php if (!empty($message_vendor_eligible) && !empty($message_vendor_url)): ?>
-                                <a href="<?= esc($message_vendor_url) ?>" class="btn btn-outline-secondary btn-sm">
-                                    <i class="fas fa-comment-dots me-1"></i>Message <?= esc($vendor_profile['name']) ?>
-                                </a>
-                            <?php endif; ?>
-                        </div>
-                        <?php endif; ?>
-
                         <!-- Pricing Options -->
                         <div class="pricing-panel">
                             <?php $hasPricing = $showGuest || $showDuration || $showPackages || $showQuantity; ?>

@@ -14,7 +14,4 @@
     <li class="nav-item">
         <a class="nav-link <?= ($currentTab ?? '') === 'messages' ? 'active' : '' ?>" href="/profile/messages">Messages</a>
     </li>
-    <li class="nav-item">
-        <a class="nav-link <?= ($currentTab ?? '') === 'host-profile' ? 'active' : '' ?>" href="/profile/host-profile">Host Profile</a>
-    </li>
 </ul>

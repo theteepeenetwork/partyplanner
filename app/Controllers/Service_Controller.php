@@ -2553,6 +2553,27 @@ class Service_Controller extends BaseController
             }
         }
 
+        // Load vendor host profile
+        $vendorUser = (new UserModel())->find($service['vendor_id']);
+        $vendorProfile = null;
+        if ($vendorUser) {
+            $playsArr = [];
+            if (!empty($vendorUser['host_plays'])) {
+                $decoded = json_decode($vendorUser['host_plays'], true);
+                $playsArr = is_array($decoded) ? $decoded : [];
+            }
+            $memberSince = !empty($vendorUser['created_at']) ? (int) date('Y', strtotime($vendorUser['created_at'])) : null;
+            $vendorProfile = [
+                'name'       => $vendorUser['name'],
+                'tagline'    => $vendorUser['host_tagline'] ?? '',
+                'bio'        => $vendorUser['host_bio'] ?? '',
+                'quote'      => $vendorUser['host_quote'] ?? '',
+                'plays'      => $playsArr,
+                'photo_path' => $vendorUser['host_photo_path'] ?? '',
+                'since'      => $memberSince,
+            ];
+        }
+
         $data = [
             'service' => $service,
             'images' => $images,
@@ -2572,6 +2593,7 @@ class Service_Controller extends BaseController
             'message_vendor_eligible' => $messageVendorEligible,
             'message_vendor_url' => $messageVendorUrl,
             'preview_event_id' => session()->get('preferred_basket_event_id'),
+            'vendor_profile' => $vendorProfile,
         ];
 
         // Render the view

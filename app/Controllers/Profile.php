@@ -366,6 +366,50 @@ class Profile extends BaseController
         ]);
     }
 
+    public function hostProfile()
+    {
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $user = $this->getUser();
+
+        if ($this->request->getMethod() === 'POST') {
+            $userModel = new UserModel();
+
+            $playsRaw = $this->request->getPost('host_plays') ?? '';
+            $plays = array_values(array_filter(array_map('trim', explode(',', $playsRaw))));
+
+            $updateData = [
+                'host_bio'     => $this->request->getPost('host_bio'),
+                'host_tagline' => $this->request->getPost('host_tagline'),
+                'host_quote'   => $this->request->getPost('host_quote'),
+                'host_plays'   => json_encode($plays),
+            ];
+
+            $photo = $this->request->getFile('host_photo');
+            if ($photo && $photo->isValid() && ! $photo->hasMoved()) {
+                if (! in_array(strtolower($photo->getExtension()), ['jpg', 'jpeg', 'png', 'webp', 'gif'], true)) {
+                    return redirect()->to('/profile/host-profile')->with('error', 'Photo must be jpg, png, webp or gif.');
+                }
+                if ($photo->getSize() > 5 * 1024 * 1024) {
+                    return redirect()->to('/profile/host-profile')->with('error', 'Photo must be under 5 MB.');
+                }
+                $newName = 'vendor_' . $user['id'] . '_' . time() . '.' . $photo->getExtension();
+                $photo->move(ROOTPATH . 'public/uploads/vendor_photos/', $newName);
+                $updateData['host_photo_path'] = 'uploads/vendor_photos/' . $newName;
+            }
+
+            $userModel->update($user['id'], $updateData);
+
+            return redirect()->to('/profile/host-profile')->with('success', 'Host profile saved.');
+        }
+
+        return view('dashboard/vendor_host_profile', [
+            'user'       => $user,
+            'currentTab' => 'host-profile',
+        ]);
+    }
+
     public function calendarData()
     {
         if (!session()->has('user_id')) return $this->response->setJSON([]);

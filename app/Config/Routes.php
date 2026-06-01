@@ -42,6 +42,7 @@ $routes->get('/profile/services', 'Profile::services');
 $routes->get('/profile/bookings', 'Profile::vendorBookings');
 $routes->get('/profile/calendar', 'Profile::vendorCalendar');
 $routes->get('/profile/calendar-data', 'Profile::calendarData');
+$routes->match(['GET', 'POST'], '/profile/host-profile', 'Profile::hostProfile');
 
 // Customer tabs
 $routes->get('/profile/events', 'Profile::customerEvents');
