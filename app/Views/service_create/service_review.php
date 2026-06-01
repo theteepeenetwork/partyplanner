@@ -1,5 +1,6 @@
 <?= $this->include('header'); ?>
 <?= $this->include('service_create/css.php'); ?>
+<link rel="stylesheet" href="<?= base_url('assets/css/service-wizard.css'); ?>">
 
 <style>
     .review-section table {
@@ -36,7 +37,9 @@
 </style>
 
 
-<main class="container mt-4">
+<?= $this->include('service_create/wizard_rail') ?>
+
+<main class="container mt-4 pp-wizard-page">
 
     <?php if (session()->getFlashdata('error')): ?>
         <div class="alert alert-danger alert-dismissible fade show">
@@ -48,7 +51,7 @@
         <div class="alert alert-success"><?= session()->getFlashdata('success') ?></div>
     <?php endif; ?>
 
-    <form action="/service/saveService" method="POST">
+    <form action="/service/saveService" method="POST" id="reviewForm">
         <?= csrf_field() ?>
         <h2>Review Your Service</h2>
         <div class="review-section form-section">
@@ -606,11 +609,10 @@
 
         </div><!-- /.review-section -->
 
-        <div class="text-center my-4">
-            <button type="submit" class="btn btn-success btn-lg"><i class="fas fa-check-circle me-2"></i>Confirm and Submit</button>
-        </div>
     </form>
 </main>
+
+<?= $this->include('service_create/wizard_nav') ?>
 
 <?= $this->include('footer') ?>
 

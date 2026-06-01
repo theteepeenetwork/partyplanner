@@ -1,0 +1,185 @@
+/* ============================================================
+   PartyPlanner · Create-a-Service — wizard chrome
+   Left step-rail + sticky footer nav for the service-create steps.
+   Layout only: pairs with service-form.css / css.php for the brand
+   palette (the --pp-* custom properties). Everything is scoped under
+   .pp-wizard / .pp-wizard-page / .pp-wizard-nav so it can never leak
+   onto other pages that happen to share a stylesheet.
+   ============================================================ */
+
+/* ---------- layout shell ---------- */
+.pp-wizard {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  align-items: start;
+}
+.pp-wcol { min-width: 0; }
+
+/* the existing <main class="container"> becomes the content column;
+   the grid owns horizontal layout, so drop bootstrap's centring and
+   the part-1 top padding (the <body> already clears the fixed navbar) */
+main.pp-wizard-page.container,
+main.pp-wizard-page {
+  max-width: 720px !important;
+  margin: 0 auto !important;
+  padding: 36px 32px 132px !important; /* bottom clears the fixed nav */
+  background: transparent !important;
+}
+
+/* ---------- LEFT RAIL ---------- */
+.pp-rail {
+  position: sticky;
+  top: var(--site-header-height, 72px);
+  align-self: start;
+  height: calc(100vh - var(--site-header-height, 72px));
+  display: flex;
+  flex-direction: column;
+  padding: 32px 24px 22px;
+  background: #fff;
+  border-right: 1px solid var(--pp-line, #E7E1D7);
+  box-shadow: 2px 0 14px rgba(26, 46, 39, .04);
+  overflow-y: auto;
+}
+.pp-rail-eyebrow {
+  font-family: var(--pp-font-display, 'Fraunces', Georgia, serif);
+  font-size: 12px; letter-spacing: .14em; text-transform: uppercase;
+  color: var(--pp-terracotta-deep, #A9794E); font-weight: 600;
+}
+.pp-rail-title {
+  font-family: var(--pp-font-display, 'Fraunces', Georgia, serif);
+  font-size: 22px; font-weight: 600; line-height: 1.15;
+  color: var(--pp-green-darker, #1A2E27); margin-top: 4px;
+}
+
+/* steps list */
+.pp-steps { list-style: none; margin: 28px 0 0; padding: 0; flex: 1; }
+.pp-step { position: relative; }
+.pp-step-link {
+  display: flex; gap: 14px; align-items: flex-start;
+  padding: 9px 0; text-decoration: none; cursor: pointer;
+  --dot: var(--pp-line-strong, #D8D0C3);
+  --dotbg: #fff;
+  --dotink: var(--pp-muted-soft, #938C84);
+}
+.pp-step.upcoming .pp-step-link { cursor: default; }
+.pp-dot {
+  position: relative; z-index: 2; flex: none;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 2px solid var(--dot); background: var(--dotbg); color: var(--dotink);
+  display: grid; place-items: center; font-size: 13px; font-weight: 600;
+  transition: all .25s ease;
+}
+.pp-dot i { font-size: 12px; }
+/* connector line */
+.pp-step:not(:last-child) .pp-dot::after {
+  content: ""; position: absolute; left: 50%; top: 30px;
+  transform: translateX(-50%); width: 2px; height: calc(100% - 14px);
+  background: var(--pp-line, #E7E1D7); z-index: -1;
+}
+.pp-step.done .pp-step-link {
+  --dot: var(--pp-green-dark, #2D4A3E);
+  --dotbg: var(--pp-green-dark, #2D4A3E);
+  --dotink: #fff;
+}
+.pp-step.done:not(:last-child) .pp-dot::after { background: var(--pp-green-light, #E8F0EC); }
+.pp-step.active .pp-step-link {
+  --dot: var(--pp-terracotta, #C4956A);
+  --dotbg: var(--pp-terracotta-tint, #F6ECE0);
+  --dotink: var(--pp-terracotta-deep, #A9794E);
+}
+.pp-step-meta { display: flex; flex-direction: column; padding-top: 3px; min-width: 0; }
+.pp-step-label {
+  font-size: 10.5px; letter-spacing: .13em; text-transform: uppercase;
+  color: var(--pp-muted-soft, #938C84); font-weight: 600;
+}
+.pp-step-name {
+  font-size: 14.5px; font-weight: 500; color: var(--pp-muted, #6B6560);
+  transition: color .2s ease;
+}
+.pp-step.active .pp-step-name { color: var(--pp-green-darker, #1A2E27); font-weight: 600; }
+.pp-step.done .pp-step-name { color: var(--pp-ink, #21302A); }
+.pp-step:not(.upcoming) .pp-step-link:hover .pp-step-name { color: var(--pp-green-darker, #1A2E27); }
+
+/* rail foot */
+.pp-rail-foot { border-top: 1px solid var(--pp-line, #E7E1D7); padding-top: 16px; margin-top: 12px; }
+.pp-save-exit {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 13.5px; font-weight: 600; color: var(--pp-muted, #6B6560);
+  text-decoration: none; padding: 4px 0;
+}
+.pp-save-exit:hover { color: var(--pp-green-dark, #2D4A3E); }
+.pp-autosave {
+  display: flex; align-items: center; gap: 7px; margin-top: 9px;
+  font-size: 12px; color: var(--pp-muted-soft, #938C84);
+}
+.pp-pulse {
+  width: 7px; height: 7px; border-radius: 50%; background: #4A7A5C;
+  box-shadow: 0 0 0 0 rgba(74, 122, 92, .5); animation: ppPulse 2.4s infinite;
+}
+@keyframes ppPulse {
+  0%   { box-shadow: 0 0 0 0 rgba(74, 122, 92, .45); }
+  70%  { box-shadow: 0 0 0 6px rgba(74, 122, 92, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(74, 122, 92, 0); }
+}
+
+/* ---------- STICKY FOOTER NAV ---------- */
+.pp-wizard-nav {
+  position: fixed; bottom: 0; left: 300px; right: 0; z-index: 1020;
+  background: rgba(250, 247, 242, .88);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+  border-top: 1px solid var(--pp-line, #E7E1D7);
+}
+/* review page keeps its own sitewide footer, so its nav sits in-flow */
+.pp-wizard-nav--static {
+  position: static; left: 0; z-index: auto;
+  background: var(--pp-cream, #FAF7F2);
+  -webkit-backdrop-filter: none; backdrop-filter: none;
+}
+.pp-wizard-nav-inner {
+  max-width: 720px; margin: 0 auto; padding: 14px 32px;
+  display: flex; align-items: center; justify-content: space-between; gap: 16px;
+}
+.pp-foot-prog { font-size: 13px; color: var(--pp-muted, #6B6560); font-weight: 500; text-align: center; }
+.pp-foot-prog b { color: var(--pp-green-darker, #1A2E27); font-weight: 700; }
+
+/* nav buttons (self-contained; do not rely on bootstrap .btn) */
+.pp-btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 12px 24px; border-radius: var(--pp-radius-field, 11px);
+  font-size: 14.5px; font-weight: 600; font-family: inherit; line-height: 1;
+  border: 1.5px solid transparent; cursor: pointer; text-decoration: none;
+  white-space: nowrap; transition: all .16s;
+}
+.pp-btn i { font-size: 13px; }
+.pp-btn:active { transform: translateY(1px); }
+.pp-btn-primary { background: var(--pp-green-dark, #2D4A3E); color: #fff; }
+.pp-btn-primary:hover { background: var(--pp-green-darker, #1A2E27); color: #fff; box-shadow: 0 6px 18px rgba(26, 46, 39, .22); }
+.pp-btn-primary:disabled { opacity: .5; cursor: not-allowed; box-shadow: none; transform: none; }
+.pp-btn-cta { background: var(--pp-terracotta, #C4956A); color: #fff; }
+.pp-btn-cta:hover { background: var(--pp-terracotta-deep, #A9794E); color: #fff; box-shadow: 0 6px 18px rgba(169, 121, 78, .3); }
+.pp-btn-ghost { background: transparent; color: var(--pp-green-dark, #2D4A3E); border-color: var(--pp-line-strong, #D8D0C3); }
+.pp-btn-ghost:hover { border-color: var(--pp-green-dark, #2D4A3E); background: #fff; }
+.pp-btn-text { background: none; border: none; color: var(--pp-muted, #6B6560); padding: 12px 6px; }
+.pp-btn-text:hover { color: var(--pp-green-dark, #2D4A3E); }
+
+/* ---------- responsive: rail folds to a top strip ---------- */
+@media (max-width: 992px) {
+  .pp-wizard { grid-template-columns: 1fr; }
+  .pp-rail {
+    position: static; height: auto; flex-direction: row; align-items: center;
+    gap: 14px; padding: 12px 16px; overflow-x: auto; overflow-y: visible;
+    border-right: none; border-bottom: 1px solid var(--pp-line, #E7E1D7); box-shadow: none;
+  }
+  .pp-rail-head, .pp-rail-foot { display: none; }
+  .pp-steps { display: flex; margin: 0; gap: 4px; flex: 0 0 auto; }
+  .pp-step-link { flex-direction: column; align-items: center; gap: 5px; padding: 4px 8px; min-width: 58px; text-align: center; }
+  .pp-step:not(:last-child) .pp-dot::after { display: none; }
+  .pp-step-meta { align-items: center; padding-top: 0; }
+  .pp-step-name { display: none; }
+  .pp-step-label { font-size: 9.5px; }
+  main.pp-wizard-page.container,
+  main.pp-wizard-page { padding: 24px 18px 124px !important; }
+  .pp-wizard-nav { left: 0; }
+  .pp-wizard-nav-inner { padding: 12px 18px; }
+  .pp-foot-prog { display: none; }
+}

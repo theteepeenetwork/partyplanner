@@ -3,9 +3,11 @@
 
 <?= $this->include('service_create/css.php') ?>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="<?= base_url('assets/css/service-wizard.css'); ?>">
 
+<?= $this->include('service_create/wizard_rail') ?>
 
-<main class="container">
+<main class="container pp-wizard-page">
 
 
 
@@ -376,17 +378,14 @@
         </div>
         <br />
 
-        <button type="submit" class="btn btn-primary">
-            <?= empty($step4_data) ? "Next" : "Review" ?>
-
-        </button>
-
     </form>
 
 
 
 
 </main>
+
+<?= $this->include('service_create/wizard_nav') ?>
 
 <!-- Templates for dynamic rows -->
 <template id="pitchFeeTemplate">
