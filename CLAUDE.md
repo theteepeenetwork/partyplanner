@@ -103,10 +103,11 @@ See:
 Before browser QA, ensure local test data exists.
 
 Use the project seeder to create:
-- test customers
-- test vendors
-- quoteable services
-- event-type mappings
-- structured pricing rows
+
+* test customers
+* test vendors
+* quoteable services
+* event-type mappings
+* structured pricing rows
 
 Do not rely on manually created accounts or incomplete seed data.
