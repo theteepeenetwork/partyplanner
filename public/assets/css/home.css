@@ -179,39 +179,132 @@ body.home-page-body .btn-nav-cta:hover {
     color: var(--colour-warm-white);
 }
 
-.home-marketplace .hero-search {
-    max-width: 42rem;
+/* Hero event-search card */
+.home-marketplace .hero-event-search {
+    max-width: 46rem;
     margin: 0 auto;
-}
-
-.home-marketplace .hero-search-inner {
-    border-radius: 12px;
+    background: var(--colour-warm-white);
+    border-radius: 18px;
     box-shadow: var(--shadow-hover);
     border: 1px solid var(--colour-border);
+    padding: 1rem 1rem 1.1rem;
+    text-align: left;
 }
 
-.home-marketplace .hero-search-inner .hero-search-q {
-    font-family: var(--font-body-home);
-    font-size: 1rem;
-    color: var(--colour-heading);
+/* Occasion pills (radio group) */
+.home-marketplace .hero-occasions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+    border: 0;
+    padding: 0;
+    margin: 0 0 0.9rem;
 }
 
-.home-marketplace .hero-search-inner .hero-search-btn {
-    background: var(--colour-terracotta);
-    border-color: var(--colour-terracotta);
+.home-marketplace .hero-occasion-input {
+    position: absolute;
+    opacity: 0;
+    width: 1px;
+    height: 1px;
+    pointer-events: none;
+}
+
+.home-marketplace .hero-occasion-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.42rem 0.95rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
     font-weight: 600;
+    color: var(--colour-body);
+    background: rgba(215, 193, 163, 0.22);
+    border: 1px solid transparent;
+    cursor: pointer;
+    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
     font-family: var(--font-body-home);
+}
+
+.home-marketplace .hero-occasion-pill:hover {
+    background: rgba(215, 193, 163, 0.4);
+}
+
+.home-marketplace .hero-occasion-input:checked + .hero-occasion-pill {
+    background: var(--colour-olive);
+    color: var(--colour-warm-white);
+    border-color: var(--colour-olive);
+}
+
+.home-marketplace .hero-occasion-input:focus-visible + .hero-occasion-pill {
+    outline: 2px solid var(--colour-terracotta);
+    outline-offset: 2px;
+}
+
+/* Date / Guests / Location field row */
+.home-marketplace .hero-search-fields {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.65rem;
+    align-items: end;
+}
+
+@media (min-width: 768px) {
+    .home-marketplace .hero-search-fields {
+        grid-template-columns: repeat(3, 1fr) auto;
+        gap: 0.5rem;
+    }
+}
+
+.home-marketplace .hero-field {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    min-width: 0;
+}
+
+.home-marketplace .hero-field-label {
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--colour-muted);
+    font-family: var(--font-body-home);
+}
+
+.home-marketplace .hero-field-input {
+    width: 100%;
+    border: 1px solid var(--colour-border);
+    border-radius: 10px;
+    padding: 0.6rem 0.8rem;
+    font-size: 0.95rem;
+    font-family: var(--font-body-home);
+    color: var(--colour-heading);
+    background: var(--colour-warm-white);
+}
+
+.home-marketplace .hero-field-input:focus {
+    outline: none;
+    border-color: var(--colour-olive);
+    box-shadow: 0 0 0 3px rgba(75, 90, 70, 0.15);
+}
+
+.home-marketplace .hero-search-submit {
+    width: 100%;
+    padding: 0.65rem 1.6rem;
     white-space: nowrap;
 }
 
-.home-marketplace .hero-search-inner .hero-search-btn:hover {
-    background: var(--colour-terracotta-dark);
-    border-color: var(--colour-terracotta-dark);
+@media (min-width: 768px) {
+    .home-marketplace .hero-search-submit {
+        width: auto;
+        height: calc(2.5rem + 2px);
+    }
 }
 
-.home-marketplace .search-form-container {
-    background: var(--colour-ivory);
-    padding: 0 1rem 1.35rem;
+.home-marketplace .hero-reassurance {
+    margin: 1.15rem auto 0;
+    font-size: 0.82rem;
+    color: rgba(255, 253, 252, 0.82);
+    letter-spacing: 0.01em;
 }
 
 /* Trust strip */

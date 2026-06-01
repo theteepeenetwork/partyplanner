@@ -92,6 +92,13 @@ class Service_Controller extends BaseController
             $eventType = '';
         }
 
+        // Hero search fields: free-text location and an event date (vendor must not be blocked).
+        $location  = trim((string) $this->request->getGet('location'));
+        $date      = trim((string) $this->request->getGet('date'));
+        if ($date !== '' && ! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            $date = '';
+        }
+
         $cols = $this->getServicesTableColumns();
 
         $builder = $this->applyPublicServiceCatalogFilters($serviceModel, $cols);
@@ -109,6 +116,8 @@ class Service_Controller extends BaseController
             'price_max'  => $priceMax,
             'guests'     => $guests,
             'event_type' => $eventType,
+            'location'   => $location,
+            'date'       => $date,
         ]);
 
         if ($searchQuery !== '') {
@@ -159,6 +168,8 @@ class Service_Controller extends BaseController
             'selectedPriceMax' => $priceMax,
             'selectedGuests' => $guests,
             'selectedEventType' => $eventType,
+            'selectedLocation' => $location,
+            'selectedDate' => $date,
             'searchQuery' => $searchQuery ?? '',
             'basketEventId' => $basketEventId,
             'message_eligible_by_service_id' => $messageEligibleByServiceId,
@@ -395,6 +406,22 @@ class Service_Controller extends BaseController
         if ($eventType !== '' && $db->tableExists('services_event_types')) {
             $builder->where(
                 'services.id IN (SELECT service_id FROM services_event_types WHERE event_type = ' . $db->escape($eventType) . ')',
+                null,
+                false
+            );
+        }
+
+        // Location: free-text match against the service's stated area.
+        $location = $filters['location'] ?? '';
+        if ($location !== '' && in_array('service_location', $cols, true)) {
+            $builder->like('services.service_location', $location);
+        }
+
+        // Date: exclude services whose vendor has marked the date unavailable.
+        $date = $filters['date'] ?? '';
+        if ($date !== '' && in_array('vendor_id', $cols, true) && $db->tableExists('unavailable_dates')) {
+            $builder->where(
+                'services.vendor_id NOT IN (SELECT vendor_id FROM unavailable_dates WHERE date = ' . $db->escape($date) . ')',
                 null,
                 false
             );
