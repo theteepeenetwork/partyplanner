@@ -4,9 +4,10 @@
 -- Sample rows for the `reviews` table (star rating + title + comment).
 --
 -- Prerequisites (run these first, in order):
---   1. event_marketplace.sql        — base schema
---   2. database_update.sql          — creates the `reviews` table
---   3. some bookings on PAST events — e.g. `php spark db:seed QASeeder`
+--   1. event_marketplace.sql   — base schema
+--   2. database_update.sql     — creates the `reviews` table
+--   3. at least one booking     — e.g. `php spark db:seed QASeeder`
+--      (if you have NO booking_items, this seeds 0 rows — create bookings first)
 --
 -- Import:
 --   mysql --default-character-set=utf8mb4 event_marketplace < database_reviews_seed.sql
@@ -15,8 +16,11 @@
 --   * Reviews must reference a real booking line, so this script DERIVES the
 --     foreign keys (customer/vendor/service) from existing booking_items rather
 --     than hardcoding auto-increment ids.
---   * Only eligible bookings are reviewed: accepted/confirmed lines whose event
---     date has already passed (the same rule the app enforces).
+--   * It seeds a review for every booking line that isn't rejected/cancelled,
+--     regardless of event date. (The app itself is stricter — customers can only
+--     submit a review after a past event on an accepted/confirmed booking — but a
+--     demo seed deliberately ignores that so it populates against future-dated
+--     demo bookings too.)
 --   * Idempotent: `reviews.booking_item_id` is UNIQUE, so re-running this file
 --     updates the existing rows via ON DUPLICATE KEY UPDATE instead of
 --     creating duplicates.
@@ -54,10 +58,8 @@ SELECT
     0
 FROM `booking_items` bi
 JOIN `bookings` b ON b.id = bi.booking_id
-JOIN `events`   e ON e.id = b.event_id
 JOIN `services` s ON s.id = bi.service_id
-WHERE bi.status IN ('accepted', 'confirmed')
-  AND e.`date` < CURDATE()
+WHERE bi.status NOT IN ('rejected', 'cancelled')
 ON DUPLICATE KEY UPDATE
     `rating`  = VALUES(`rating`),
     `title`   = VALUES(`title`),
