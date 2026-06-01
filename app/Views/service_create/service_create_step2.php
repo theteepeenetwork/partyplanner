@@ -5,9 +5,11 @@
 
 <?= $this->include('service_create/css.php') ?>
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="<?= base_url('assets/css/service-wizard.css'); ?>">
 
-<main class="container mt-4">
-    <h2>Create Service - Step 2</h2>
+<?= $this->include('service_create/wizard_rail') ?>
+
+<main class="container mt-4 pp-wizard-page">
 
     <?php if (session()->has('success')): ?>
         <div class="alert alert-success">
@@ -41,7 +43,7 @@
 
 
 
-    <form action="/service/step2" method="POST" class="service-form">
+    <form action="/service/step2" method="POST" class="service-form" id="step2Form">
         <?= csrf_field() ?>
 
         <section>
@@ -137,11 +139,10 @@
             </div>
         </section>
 
-
-
-        <button type="submit" class="btn btn-primary" id="step2-next-btn">Next</button>
     </form>
 </main>
+
+<?= $this->include('service_create/wizard_nav') ?>
 
 <script>
     const step2Data = <?= json_encode(session('step2_data') ?? []) ?>;

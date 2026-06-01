@@ -3,6 +3,7 @@
 <?= $this->include('service_create/css.php'); ?>
 
 <link rel="stylesheet" href="<?= base_url('assets/css/service-form.css'); ?>">
+<link rel="stylesheet" href="<?= base_url('assets/css/service-wizard.css'); ?>">
 
 
 
@@ -46,7 +47,9 @@
 
 
 
-<main class="container">
+<?= $this->include('service_create/wizard_rail') ?>
+
+<main class="container pp-wizard-page">
 
 
     <!-- Success and Error Messages -->
@@ -242,12 +245,6 @@
                 <small class="form-text text-muted">Optional selection.</small>
             </div>
 
-
-            <button type="submit" class="btn btn-primary">
-                <?= !isset($step2_data) ? "Next" : "Review" ?>
-
-            </button>
-
         </section>
 
     </form>
@@ -276,3 +273,7 @@
     <script src="<?= base_url('assets/js/category_cascade.js') ?>"></script>
     <script src="<?= base_url('assets/js/service_forms/step1.js') ?>"></script>
     <script src="<?= base_url('assets/js/test.js') ?>"></script>
+
+</main>
+
+<?= $this->include('service_create/wizard_nav') ?>

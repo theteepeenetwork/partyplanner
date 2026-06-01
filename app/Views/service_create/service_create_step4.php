@@ -4,9 +4,11 @@
 <?= $this->include('service_create/css.php') ?>
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="<?= base_url('assets/css/service-wizard.css'); ?>">
 
+<?= $this->include('service_create/wizard_rail') ?>
 
-<main class="container">
+<main class="container pp-wizard-page">
 
     <?php if (session()->has('success')): ?>
         <div class="alert alert-success"><?= session('success') ?></div>
@@ -259,16 +261,12 @@
                 </div>
             </div>
 
-            <div class="mt-4">
-                <button type="submit" class="btn btn-primary">
-                    <?= empty($step5_data) ? "Next" : "Save &amp; Review" ?>
-                </button>
-            </div>
-
         </section>
     </form>
 
 </main>
+
+<?= $this->include('service_create/wizard_nav') ?>
 
 <script>
     const step4Data = <?= json_encode(session('step4_data') ?? [], JSON_HEX_TAG | JSON_HEX_AMP | JSON_HEX_QUOT | JSON_HEX_APOS) ?>;
