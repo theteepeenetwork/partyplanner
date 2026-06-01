@@ -91,18 +91,42 @@
 
                 <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
                     <ul class="navbar-nav ms-auto align-items-lg-center">
-                        <li class="nav-item">
-                            <a class="nav-link text-end" href="/browse-services">Find Suppliers</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-end" href="/how-it-works">How It Works</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-end" href="/vendor-info">For Vendors</a>
-                        </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-end" href="/browse-services">Inspiration</a>
-                        </li>
+                        <?php
+                        $navRole = session()->get('role');
+                        if ($navRole === 'customer'): ?>
+                            <li class="nav-item">
+                                <a class="nav-link text-end" href="/browse-services">Find Suppliers</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-end" href="/how-it-works">How It Works</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-end" href="/dashboard">My Events</a>
+                            </li>
+                        <?php elseif ($navRole === 'vendor'): ?>
+                            <li class="nav-item">
+                                <a class="nav-link text-end" href="/how-it-works">How It Works</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-end" href="/profile/services">My Services</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-end" href="/profile/bookings">My Bookings</a>
+                            </li>
+                        <?php else: ?>
+                            <li class="nav-item">
+                                <a class="nav-link text-end" href="/browse-services">Find Suppliers</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-end" href="/how-it-works">How It Works</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-end" href="/vendor-info">For Vendors</a>
+                            </li>
+                            <li class="nav-item">
+                                <a class="nav-link text-end" href="/browse-services">Inspiration</a>
+                            </li>
+                        <?php endif; ?>
 
                         <?php if (session()->has('user_id')): ?>
                             <li class="nav-item dropdown">
@@ -112,13 +136,13 @@
                                 </a>
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
                                     <li><a class="dropdown-item" href="/profile">My Profile</a></li>
-                                    <?php if (session()->get('role') === 'customer'): ?>
+                                    <?php if ($navRole === 'customer'): ?>
                                         <li><a class="dropdown-item" href="/cart">My Cart</a></li>
                                         <li><a class="dropdown-item" href="/event/create">Create Event</a></li>
-                                    <?php elseif (session()->get('role') === 'vendor'): ?>
+                                    <?php elseif ($navRole === 'vendor'): ?>
                                         <li><a class="dropdown-item" href="/profile/services">My Services</a></li>
                                         <li><a class="dropdown-item" href="/profile/bookings">Bookings</a></li>
-                                    <?php elseif (session()->get('role') === 'admin'): ?>
+                                    <?php elseif ($navRole === 'admin'): ?>
                                         <li><a class="dropdown-item" href="/admin">Admin</a></li>
                                     <?php endif; ?>
                                     <li><hr class="dropdown-divider"></li>
@@ -130,13 +154,15 @@
                                 <a class="nav-link text-end" href="/login">My Account</a>
                             </li>
                         <?php endif; ?>
+
                         <li class="nav-item">
-                            <?php
-                            $navPlanUrl = session()->has('user_id')
-                                ? '/event/create'
-                                : '/register';
-                            ?>
-                            <a class="btn btn-nav-cta ms-lg-2 mt-2 mt-lg-0" href="<?= $navPlanUrl ?>">Start planning</a>
+                            <?php if ($navRole === 'vendor'): ?>
+                                <a class="btn btn-nav-cta ms-lg-2 mt-2 mt-lg-0" href="/service/create">Add a Service</a>
+                            <?php elseif ($navRole === 'customer'): ?>
+                                <a class="btn btn-nav-cta ms-lg-2 mt-2 mt-lg-0" href="/event/create">Start Planning</a>
+                            <?php else: ?>
+                                <a class="btn btn-nav-cta ms-lg-2 mt-2 mt-lg-0" href="/register">Start Planning</a>
+                            <?php endif; ?>
                         </li>
                     </ul>
                 </div>
