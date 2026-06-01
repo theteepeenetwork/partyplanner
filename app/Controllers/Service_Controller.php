@@ -25,6 +25,7 @@ use App\Models\ServiceCancellationPolicyModel;
 
 use App\Models\ServiceLocationModel;
 use App\Models\ServiceOptionalExtrasModel;
+use App\Models\ReviewModel;
 use App\Models\CartModel;
 use App\Libraries\CustomerEventSummary;
 use App\Libraries\EventBookingQuote;
@@ -2574,6 +2575,11 @@ class Service_Controller extends BaseController
             ];
         }
 
+        // Reviews: vendor-wide rating + this service's written reviews.
+        $reviewModel    = new ReviewModel();
+        $vendorRating   = $reviewModel->vendorRatingSummary((int) $service['vendor_id']);
+        $serviceReviews = $reviewModel->serviceReviews((int) $id, 6);
+
         $data = [
             'service' => $service,
             'images' => $images,
@@ -2594,6 +2600,9 @@ class Service_Controller extends BaseController
             'message_vendor_url' => $messageVendorUrl,
             'preview_event_id' => session()->get('preferred_basket_event_id'),
             'vendor_profile' => $vendorProfile,
+            'vendor_id' => (int) $service['vendor_id'],
+            'vendor_rating' => $vendorRating,
+            'service_reviews' => $serviceReviews,
         ];
 
         // Render the view

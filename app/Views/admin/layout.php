@@ -131,6 +131,7 @@
             <a class="<?= ($activeNav ?? '') === 'services' ? 'active' : '' ?>" href="<?= site_url('/admin/services') ?>"><i class="fas fa-briefcase me-2"></i>Services</a>
             <a class="<?= ($activeNav ?? '') === 'events' ? 'active' : '' ?>" href="<?= site_url('/admin/events') ?>"><i class="fas fa-champagne-glasses me-2"></i>Events</a>
             <a class="<?= ($activeNav ?? '') === 'pages' ? 'active' : '' ?>" href="<?= site_url('/admin/pages') ?>"><i class="fas fa-file-lines me-2"></i>Pages</a>
+            <a class="<?= ($activeNav ?? '') === 'reviews' ? 'active' : '' ?>" href="<?= site_url('/admin/reviews') ?>"><i class="fas fa-star me-2"></i>Reviews</a>
             <hr class="border-secondary">
             <a href="<?= site_url('/') ?>"><i class="fas fa-house me-2"></i>Site home</a>
             <a href="<?= site_url('/logout') ?>"><i class="fas fa-right-from-bracket me-2"></i>Logout</a>
