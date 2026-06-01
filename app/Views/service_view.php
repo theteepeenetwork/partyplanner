@@ -365,11 +365,9 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
                 <?php endif; ?>
               </div>
 
-              <?php if (!empty($message_vendor_eligible) && !empty($message_vendor_url)): ?>
-                <a href="<?= esc($message_vendor_url) ?>" class="sv-host-link">
-                  View full profile<?= svIcon('arrow', '', 'width:15px;height:15px') ?>
-                </a>
-              <?php endif; ?>
+              <a href="<?= base_url('vendor/' . esc($service['vendor_id'])) ?>" class="sv-host-link">
+                View full profile<?= svIcon('arrow', '', 'width:15px;height:15px') ?>
+              </a>
             </div>
 
             <?php if (!empty($vendor_profile['bio'])): ?>

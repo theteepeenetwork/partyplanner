@@ -2605,6 +2605,61 @@ class Service_Controller extends BaseController
         return view('service_view', $data);
     }
 
+    /**
+     * Public vendor profile / storefront — host header plus a grid of the
+     * vendor's active services. Linked from the "Meet your host" card on every
+     * service view.
+     */
+    public function vendorProfile($id)
+    {
+        $userModel  = new UserModel();
+        $vendorUser = $userModel->find((int) $id);
+
+        if (! $vendorUser || ($vendorUser['role'] ?? '') !== 'vendor') {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Vendor not found.');
+        }
+
+        $playsArr = [];
+        if (! empty($vendorUser['host_plays'])) {
+            $decoded  = json_decode($vendorUser['host_plays'], true);
+            $playsArr = is_array($decoded) ? $decoded : [];
+        }
+        $memberSince = ! empty($vendorUser['created_at']) ? (int) date('Y', strtotime($vendorUser['created_at'])) : null;
+
+        $vendorProfile = [
+            'name'       => $vendorUser['name'],
+            'tagline'    => $vendorUser['host_tagline'] ?? '',
+            'bio'        => $vendorUser['host_bio'] ?? '',
+            'quote'      => $vendorUser['host_quote'] ?? '',
+            'plays'      => $playsArr,
+            'photo_path' => $vendorUser['host_photo_path'] ?? '',
+            'since'      => $memberSince,
+        ];
+
+        $serviceModel      = new ServiceModel();
+        $serviceImageModel = new ServiceImageModel();
+        $categoryModel     = new CategoryModel();
+
+        $services = $serviceModel
+            ->where('vendor_id', (int) $id)
+            ->where('status', 'active')
+            ->where('deleted_at', null)
+            ->findAll();
+
+        foreach ($services as &$service) {
+            $service['images'] = $serviceImageModel
+                ->where(['service_id' => $service['id'], 'is_primary' => 1])
+                ->findAll();
+            $service['category_name'] = $categoryModel->getServiceCategoryLabel($service);
+        }
+        unset($service);
+
+        return view('vendor_profile_public', [
+            'vendor_profile' => $vendorProfile,
+            'services'       => $services,
+        ]);
+    }
+
     private function validateSessionData(string ...$keys)
     {
         // Every requested step must be present and non-empty. Previously this only

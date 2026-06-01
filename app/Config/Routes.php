@@ -68,6 +68,7 @@ $routes->get('service/search', 'Service_Controller::search');
 
 // Service Routes
 $routes->get('service/view/(:num)', 'Service_Controller::view/$1');
+$routes->get('vendor/(:num)', 'Service_Controller::vendorProfile/$1');
 $routes->get('/service', 'Service_Controller::index');
 $routes->post('/service/remove-optional-extra', 'Service_Controller::removeOptionalExtra');
 $routes->post('/service/duplicate/(:num)', 'Service_Controller::duplicateService/$1');
