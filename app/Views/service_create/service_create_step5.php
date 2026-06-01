@@ -2,9 +2,11 @@
 <link rel="stylesheet" href="<?= base_url('assets/css/service-form.css'); ?>">
 
 <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="<?= base_url('assets/css/service-wizard.css'); ?>">
 
+<?= $this->include('service_create/wizard_rail') ?>
 
-<main class="container mt-4">
+<main class="container mt-4 pp-wizard-page">
     <form action="/service/step5" method="POST" enctype="multipart/form-data" id="publicEventForm" class="service-form">
         <?= csrf_field() ?>
         <section>
@@ -72,10 +74,6 @@ Describe what’s included, how long it lasts, or why a customer might want it.
 
 
             </div>
-            <button type="submit" class="btn btn-primary">
-                <?= empty($step6_data) ? "Next" : "Review" ?>
-
-            </button>
         </section>
     </form>
 
@@ -83,6 +81,8 @@ Describe what’s included, how long it lasts, or why a customer might want it.
 
 
 </main>
+
+<?= $this->include('service_create/wizard_nav') ?>
 
 <script src="<?= base_url('assets/js/service_forms/step5.js') ?>"></script>
 <script src="<?= base_url('assets/js/test1.js') ?>"></script>

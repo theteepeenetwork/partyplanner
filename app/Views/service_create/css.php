@@ -1,334 +1,253 @@
 <style>
-    /* ------------------------------
-BASE STYLES (applies to all)
------------------------------- */
-    html,
-    body {
+    /* ============================================================
+       PartyPlanner · shared style include for service-create steps
+       Drop-in replacement for app/Views/service_create/css.php
+       Rebranded to the forest-green / terracotta system to match
+       service-form.css. Keeps the modal / tooltip / tag structural
+       rules the JS relies on.
+       ============================================================ */
+
+    :root {
+        --pp-green-dark: #2D4A3E;
+        --pp-green-darker: #1A2E27;
+        --pp-green-light: #E8F0EC;
+        --pp-green-tint: #F1F6F2;
+        --pp-terracotta: #C4956A;
+        --pp-terracotta-deep: #A9794E;
+        --pp-terracotta-tint: #F6ECE0;
+        --pp-cream: #FAF7F2;
+        --pp-cream-warm: #F5EFE6;
+        --pp-ink: #21302A;
+        --pp-muted: #6B6560;
+        --pp-line: #E7E1D7;
+        --pp-line-strong: #D8D0C3;
+        --pp-danger: #B4543F;
+    }
+
+    html, body {
         margin: 0;
         padding: 0;
-        font-family: sans-serif;
+        font-family: 'DM Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+        background: var(--pp-cream);
+        color: var(--pp-ink);
     }
 
-    main {
-        margin: 4rem;
-        padding-top: 25px;
-    }
+    main { margin: 0 auto; padding-top: 25px; }
 
+    /* sections render as cards */
     section {
-        padding: 20px;
-        margin-bottom: 30px;
-        border: 1px solid #ddd;
-        border-radius: 5px;
-        background-color: #f9f9f9;
-        margin-top: 2rem;
+        padding: 26px 28px;
+        margin-bottom: 20px;
+        margin-top: 0;
+        border: 1px solid var(--pp-line);
+        border-radius: 18px;
+        background-color: #fff;
+        box-shadow: 0 8px 30px rgba(26, 46, 39, .07);
     }
 
     section h4 {
-        font-size: 1.5em;
-        margin-bottom: 15px;
-        border-bottom: 2px solid #007bff;
-        padding-bottom: 10px;
-        color: #007bff;
-    }
-
-    .form-group {
+        font-family: 'Fraunces', Georgia, serif;
+        font-size: 1.45rem;
+        font-weight: 560;
         margin-bottom: 20px;
+        display: block;
+        color: var(--pp-green-darker);
+    }
+    section h4::after {
+        content: "";
+        display: block;
+        width: 46px;
+        height: 3px;
+        margin-top: 11px;
+        border-radius: 2px;
+        background: var(--pp-terracotta);
     }
 
-    .divider {
-        height: 1px;
-        background-color: #ddd;
-        margin: 20px 0;
-    }
+    .form-group { margin-bottom: 18px; }
 
-    /* Info icon style */
+    .divider { height: 1px; background-color: var(--pp-line); margin: 20px 0; }
+
+    /* info icon */
     .info-icon {
-        display: inline-block;
+        display: inline-grid;
+        place-items: center;
         width: 18px;
         height: 18px;
-        text-align: center;
-        line-height: 18px;
-        font-size: 12px;
-        font-weight: bold;
+        font-size: 11px;
+        font-weight: 700;
         border-radius: 50%;
-        background: #007bff;
-        color: #fff;
-        cursor: pointer;
+        background: var(--pp-terracotta-tint);
+        color: var(--pp-terracotta-deep);
+        border: 1px solid #EAD6BF;
+        cursor: help;
         margin-left: 5px;
         position: relative;
     }
+    .info-icon:hover { background: var(--pp-green-light); color: var(--pp-green-dark); }
 
-    .info-icon:hover {
-        background: #0056b3;
-    }
-
-    /* The modal box */
+    /* modal box (kept for JS) */
     .my-modal {
         position: fixed;
-        /* keep the modal fixed in the viewport */
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
         width: 90%;
-        /* flexible width for small screens */
-
-        /* don’t exceed 500px on larger devices */
         max-height: 80vh;
-        /* limit modal height */
         overflow-y: auto;
-        /* allow scroll if content is too tall */
         -webkit-overflow-scrolling: touch;
         background: #fff;
-        box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-        border-radius: 8px;
-        padding: 20px;
+        box-shadow: 0 14px 40px rgba(26, 46, 39, .2);
+        border-radius: 16px;
+        padding: 24px;
         z-index: 1000;
-        /* above overlay */
     }
-
     .my-modal-overlay {
         position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background: rgba(0, 0, 0, 0.5);
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(26, 46, 39, .45);
         z-index: 999;
         display: none;
-        /* hide by default */
     }
+    .close-btn { cursor: pointer; float: right; font-size: 18px; font-weight: bold; color: var(--pp-muted); }
 
-    .close-btn {
-        cursor: pointer;
-        float: right;
-        font-size: 18px;
-        font-weight: bold;
-    }
-
-    /* Tag input styling */
+    /* tag input → pills */
     .tag-container {
         display: flex;
         flex-wrap: wrap;
         align-items: center;
-        border: 1px solid #ccc;
-        padding: 5px;
-        min-height: 40px;
-        border-radius: 5px;
+        gap: 8px;
+        border: 1.5px solid var(--pp-line-strong);
+        padding: 9px 10px;
+        min-height: 48px;
+        border-radius: 11px;
+        background: #fff;
         cursor: text;
     }
-
+    .tag-container:focus-within {
+        border-color: var(--pp-green-dark);
+        box-shadow: 0 0 0 3.5px rgba(45, 74, 62, .14);
+    }
     .tag {
-        background-color: #e9ecef;
-        border-radius: 3px;
-        padding: 2px 8px;
-        margin: 2px;
+        background-color: var(--pp-green-light);
+        color: var(--pp-green-dark);
+        border-radius: 999px;
+        padding: 5px 12px;
+        margin: 0;
         display: inline-flex;
         align-items: center;
+        font-size: .82rem;
+        font-weight: 600;
     }
-
     .tag .remove-tag {
         margin-left: 6px;
         cursor: pointer;
         font-weight: bold;
+        width: 16px; height: 16px;
+        border-radius: 50%;
+        background: rgba(45, 74, 62, .14);
+        display: grid; place-items: center;
+        font-size: 11px; line-height: 1;
     }
+    .tag-input { border: none; outline: none; flex: 1; min-width: 120px; margin: 0; background: transparent; font-size: .95rem; }
 
-    .tag-input {
-        border: none;
-        outline: none;
-        flex: 1;
-        min-width: 100px;
-        margin: 5px;
-    }
-
-    /* Basic error styling from server-side validation */
-    .is-invalid {
-        border: 1px solid red;
-    }
-
-    .invalid-feedback {
-        color: red;
-        font-size: 0.875rem;
-
-    }
+    /* server-side validation */
+    .is-invalid { border: 1.5px solid var(--pp-danger) !important; }
+    .invalid-feedback { color: var(--pp-danger); font-size: .82rem; }
 
     .custom-tooltip {
         position: absolute;
-        background-color: #333;
+        background-color: var(--pp-green-darker);
         color: #fff;
-        padding: 5px 10px;
-        border-radius: 4px;
+        padding: 6px 11px;
+        border-radius: 8px;
         font-size: 12px;
         white-space: nowrap;
-        display: yes;
         z-index: 1000;
     }
 
-    /* Pricing Section styling */
-
-
+    /* pricing sections */
     .pricing-section h4 {
         margin-bottom: 1rem;
-        color: #007bff;
-        font-size: 1.25rem;
-        border-bottom: 1px solid #ccc;
-        padding-bottom: 0.25rem;
+        color: var(--pp-green-darker);
+        font-family: 'Fraunces', Georgia, serif;
+        font-size: 1.45rem;
+        font-weight: 560;
+        display: block;
+    }
+    .pricing-section h4::after {
+        content: "";
+        display: block;
+        width: 46px;
+        height: 3px;
+        margin-top: 11px;
+        border-radius: 2px;
+        background: var(--pp-terracotta);
     }
 
-    .input-group {
-        display: flex;
-
-        /* Stack rows vertically */
-        align-items: flex-start;
-        /* Align items to the start (left-align) */
-        width: 100%;
-        /* Ensure it spans the full container width */
-        flex-wrap: nowrap;
-    }
-
-    .input-group .form-row {
-        align-items: center;
-        /* Center align vertically */
-        width: 100%;
-        /* Each row takes up the full width */
-        margin-bottom: 10px;
-        /* Add spacing between rows */
-        flex-wrap: nowrap;
-    }
-
-    .input-group .form-row .input-group-text {
-
-        /* Prevent the label from shrinking */
-        margin-right: 10px;
-        /* Add spacing after the label */
-    }
-
-    .input-group .form-row .form-control {
-
-        /* Allow the input to expand and fill available space */
-        min-width: 70px;
-        /* Prevent the input from becoming too small */
-        max-width: 100%;
-        /* Ensure it doesn’t exceed the container width */
-    }
+    .input-group { display: flex; align-items: stretch; width: 100%; flex-wrap: nowrap; }
+    .input-group .form-row { align-items: center; width: 100%; margin-bottom: 10px; flex-wrap: nowrap; }
+    .input-group .form-row .input-group-text { margin-right: 10px; }
+    .input-group .form-row .form-control { min-width: 70px; max-width: 100%; }
 
     .pitch-group {
-        border: 1px solid lightgray;
-        border-radius: 5px;
-        margin-bottom: 10px;
-        padding: 10px;
-        align-items: center;
+        border: 1.5px solid var(--pp-line);
+        border-radius: 13px;
+        margin-bottom: 12px;
+        padding: 16px;
+        background: var(--pp-cream);
     }
 
     @media (min-width: 751px) {
-        .input-group {
-
-            /* Arrange items in a single row on wider screens */
-
-            /* Prevent wrapping */
-
-        }
-
-        .input-group .form-row {
-            flex: 1;
-            /* Allow rows to grow equally */
-
-            /* Add spacing between rows */
-            margin-bottom: 0;
-            /* Remove bottom margin in row layout */
-        }
-
-        .input-group .form-row:last-child {
-            margin-right: 0;
-            /* Remove spacing after the last row */
-        }
+        .input-group .form-row { flex: 1; margin-bottom: 0; }
+        .input-group .form-row:last-child { margin-right: 0; }
     }
 
     .all-rows-container {
         display: flex;
         flex-wrap: wrap;
-        /* Enables wrapping on smaller screens */
-        gap: 10px;
-        /* Adds spacing between input groups */
-        align-items: center;
-        /* Aligns items vertically for consistency */
+        gap: 12px;
+        align-items: flex-end;
     }
 
-    .input-group {
-        flex: 1;
-        /* Ensures inputs take equal space */
-        min-width: 150px;
-        /* Prevents inputs from becoming too narrow */
-        max-width: 300px;
-        /* Optional: Controls maximum width on larger screens */
-    }
+    .input-group { flex: 1; min-width: 150px; max-width: 320px; }
 
     @media (max-width: 768px) {
-        .all-rows-container {
-            flex-direction: column;
-            /* Stacks items vertically on smaller screens */
-        }
-
-        .input-group {
-            max-width: none;
-            /* Allows full-width on mobile */
-        }
+        .all-rows-container { flex-direction: column; align-items: stretch; }
+        .input-group { max-width: none; }
     }
 
-
-
-
-
-
-
-    /* Buttons */
-
-
+    /* buttons */
     .btn-primary {
-        background-color: #007bff;
+        background-color: var(--pp-green-dark);
         color: #fff;
-        border-color: #007bff;
+        border-color: var(--pp-green-dark);
+        border-radius: 11px;
+        font-weight: 600;
     }
-
     .btn-primary:hover {
-        background-color: #0056b3;
+        background-color: var(--pp-green-darker);
+        border-color: var(--pp-green-darker);
     }
 
     .btn-danger {
-        background-color: #dc3545;
-        color: #fff;
-        border-color: #dc3545;
+        background-color: #fff;
+        color: var(--pp-muted-soft);
+        border: 1.5px solid var(--pp-line-strong);
+        border-radius: 9px;
         margin-top: 0 !important;
         margin-left: 10px;
     }
+    .btn-danger:hover { background-color: #fff; border-color: var(--pp-danger); color: var(--pp-danger); }
 
-    .btn-danger:hover {
-        background-color: #b52d38;
-    }
-
-    /* Default Remove Button */
     .remove-guest-range {
-        background-color: rgb(146, 32, 44);
-        color: #fff;
-        border: none;
-        padding: 5px 10px;
-        border-radius: 5px;
+        background-color: #fff;
+        color: var(--pp-muted-soft);
+        border: 1.5px solid var(--pp-line-strong);
+        padding: 6px 11px;
+        border-radius: 9px;
         font-size: 14px;
         cursor: pointer;
     }
-
-
-
-    /*
-all-rows-container:
-By default, we stack sub-divs on narrower screens
-but we go to a single row if screen is 751px or wider
-*/
-
-    /* For screens 751px and up: place all sub-divs horizontally in a row */
-
-
-    /*
-GUEST-BASED PRICING FOR SMALL DEVICES:
-Under 500px: each sub-block on its own line
-*/
+    .remove-guest-range:hover { border-color: var(--pp-danger); color: var(--pp-danger); }
 </style>
