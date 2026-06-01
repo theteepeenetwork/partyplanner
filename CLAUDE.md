@@ -1,5 +1,97 @@
 # CLAUDE.md
 
+## Tech Stack
+
+* **PHP 8.3+** (local runtime is 8.4)
+* **CodeIgniter 4** — MVC framework; `php spark` is the CLI
+* **MariaDB / MySQL** — database name `event_marketplace`
+* **Bootstrap** — CSS framework for all views
+* **Vanilla JavaScript** — no frontend build step; no npm
+* **Stripe** — optional payment integration (`stripe/stripe-php ^15.8`)
+
+## Database
+
+**Name:** `event_marketplace`
+
+**First-time setup** — import in this exact order (later files `ALTER` tables created by earlier ones):
+
+```bash
+mysql --default-character-set=utf8mb4 event_marketplace < event_marketplace.sql
+mysql --default-character-set=utf8mb4 event_marketplace < database_update.sql
+mysql --default-character-set=utf8mb4 event_marketplace < database_quote_automation.sql
+mysql --default-character-set=utf8mb4 event_marketplace < database_fulfillment_extras.sql  # optional
+mysql --default-character-set=utf8mb4 event_marketplace < database_quantity_pricing.sql    # optional
+mysql --default-character-set=utf8mb4 event_marketplace < database_service_requirements.sql
+```
+
+**Key tables:**
+
+| Table | Purpose |
+|---|---|
+| `users` | All accounts; `role` enum: `customer`, `vendor`, `admin` |
+| `services` | Vendor service listings |
+| `events` | Customer events (guests, date, location) |
+| `bookings` | Confirmed bookings |
+| `booking_items` | Line items within a booking; `quote_breakdown` JSON holds pricing detail |
+| `event_basket_items` | Items staged for checkout (one active basket per event) |
+| `payments` | Payment records |
+| `vendor_quotes` | Auto-generated quotes sent to customers |
+| `vendor_quote_settings` | Per-vendor quote automation config |
+| `services_guest_based_pricing` | Guest-count pricing tiers |
+| `services_custom_duration_pricing` | Duration-based pricing tiers |
+| `services_tiered_packages_pricing` | Package-based pricing |
+| `services_quantity_pricing` | Quantity/unit pricing |
+| `services_private_event_pricing` | Private event pricing parent rows |
+| `services_optional_extras` | Add-on extras for services |
+| `services_locations` | Vendor coverage areas (lat/lng, radius, travel fees) |
+| `chat_rooms` / `chat_messages` | Vendor–customer messaging |
+
+**Credentials** (`.env` defaults match):
+
+```
+database.app.hostname = 127.0.0.1
+database.app.database = event_marketplace
+database.app.username = root
+database.app.password =
+```
+
+## Test Accounts & Seed Data
+
+All passwords: `password`
+
+| Role | Email |
+|---|---|
+| Customer | `customer1@c.com` |
+| Customer | `customer2@c.com` |
+| Vendor | `vendor1@v.com` |
+| Vendor | `vendor2@v.com` |
+
+Run the QA seeder before browser testing (idempotent — safe to re-run):
+
+```bash
+php spark db:seed QASeeder
+```
+
+See `QA_SEED.md` for expected quote outputs per service/event combination.
+
+## Linting & Code Style
+
+```bash
+# Syntax check all PHP files (fast)
+find app -name "*.php" -exec php -l {} \;
+
+# PHP CS Fixer (uses codeigniter/coding-standard)
+./vendor/bin/php-cs-fixer fix app/
+./vendor/bin/php-cs-fixer fix --dry-run --diff app/   # check only
+```
+
+## Project Scripts
+
+```bash
+scripts/bootstrap.sh   # cp env.example .env, composer install, spark migrate
+scripts/safe-git.sh    # git operations wrapper
+```
+
 ## Workflow
 
 * ALWAYS run `php -l` on modified PHP files before claiming work is complete.
@@ -103,10 +195,10 @@ See:
 Before browser QA, ensure local test data exists.
 
 Use the project seeder to create:
-- test customers
-- test vendors
-- quoteable services
-- event-type mappings
-- structured pricing rows
+* test customers
+* test vendors
+* quoteable services
+* event-type mappings
+* structured pricing rows
 
 Do not rely on manually created accounts or incomplete seed data.
