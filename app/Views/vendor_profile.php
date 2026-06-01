@@ -69,10 +69,35 @@
     <?php if (!empty($services)): ?>
     <section style="margin-top:40px">
       <h2 class="sv-section-label">Services</h2>
-      <div style="display:flex;flex-wrap:wrap;gap:10px">
+      <div style="display:flex;flex-direction:column;gap:12px">
         <?php foreach ($services as $svc): ?>
-          <a href="<?= site_url('service/view/' . (int) $svc['id']) ?>" class="sv-tag" style="text-decoration:none">
-            <?= esc($svc['title']) ?>
+          <a href="<?= site_url('service/view/' . (int) $svc['id']) ?>"
+             style="display:flex;align-items:center;gap:16px;background:#fff;border-radius:12px;padding:14px 18px;text-decoration:none;color:inherit;box-shadow:0 1px 4px rgba(0,0,0,.07);transition:box-shadow .15s"
+             onmouseover="this.style.boxShadow='0 3px 12px rgba(0,0,0,.13)'"
+             onmouseout="this.style.boxShadow='0 1px 4px rgba(0,0,0,.07)'">
+            <?php if (!empty($svc['images'])): ?>
+              <img src="<?= base_url(esc($svc['images'][0]['thumbnail_path'])) ?>"
+                   alt="<?= esc($svc['title']) ?>"
+                   style="width:72px;height:72px;object-fit:cover;border-radius:8px;flex-shrink:0"
+                   onerror="this.onerror=null;this.src='<?= base_url('assets/images/fallback-service-card.jpg') ?>'">
+            <?php else: ?>
+              <img src="<?= base_url('assets/images/fallback-service-card.jpg') ?>"
+                   alt=""
+                   style="width:72px;height:72px;object-fit:cover;border-radius:8px;flex-shrink:0">
+            <?php endif; ?>
+            <div style="flex:1;min-width:0">
+              <div style="font-weight:700;font-size:15px;margin-bottom:3px"><?= esc($svc['title']) ?></div>
+              <?php if (!empty($svc['short_description'])): ?>
+                <div style="font-size:13px;color:#5F5853;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><?= esc($svc['short_description']) ?></div>
+              <?php endif; ?>
+            </div>
+            <div style="flex-shrink:0;font-weight:700;font-size:15px;color:#1a1a1a">
+              <?php if ((float) ($svc['price'] ?? 0) > 0): ?>
+                From &pound;<?= number_format((float) $svc['price'], 2) ?>
+              <?php else: ?>
+                <span style="color:#888;font-weight:400">Price on request</span>
+              <?php endif; ?>
+            </div>
           </a>
         <?php endforeach; ?>
       </div>
