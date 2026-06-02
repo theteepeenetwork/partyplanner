@@ -5,421 +5,252 @@
     <div class="container">
 
         <?= $this->include('dashboard/_customer_tabs') ?>
-
         <?= $this->include('dashboard/_flash_alerts') ?>
 
-        <!-- 1. Welcome Section -->
-        <div class="mb-4">
-            <h3 class="mb-2">Welcome back, <?= esc($user['name']) ?> 👋</h3>
-            <p class="dash-page-lead mb-3">This is your private planning hub. Bookings, messages, and payment summaries stay in one place so you always know what is next.</p>
-            <?php
-            // Find next upcoming event
-            $nextEvent = null;
-            $daysUntil = null;
-            foreach ($events as $evt) {
-                if (!empty($evt['date'])) {
-                    $eventDate = new DateTime($evt['date']);
-                    $today = new DateTime('today');
-                    if ($eventDate >= $today) {
-                        $diff = $today->diff($eventDate)->days;
-                        if ($nextEvent === null || $diff < $daysUntil) {
-                            $nextEvent = $evt;
-                            $daysUntil = $diff;
-                        }
-                    }
-                }
-            }
-            ?>
-            <?php if ($nextEvent): ?>
-                <p class="text-muted">
-                    <i class="fas fa-calendar-alt me-1"></i>
-                    Your next event <strong>"<?= esc($nextEvent['title']) ?>"</strong> is in
-                    <strong><?= $daysUntil ?> day<?= $daysUntil != 1 ? 's' : '' ?></strong>
-                </p>
-            <?php elseif (empty($events)): ?>
-                <p class="text-muted mb-0">Add a date and a few details first, then browse trusted vendors and request bookings. Nothing is final until you confirm with the vendor.</p>
-            <?php else: ?>
-                <p class="text-muted mb-0">Here is a snapshot of your events, requests, and spend. Numbers update as vendors respond and you pay deposits.</p>
+        <div class="ra-body">
+
+            <!-- Header -->
+            <div class="ra-head">
+                <h1>Welcome back, <?= esc($user['name']) ?> 👋</h1>
+                <p>Your private planning hub. Bookings, messages and payments live in one place, so you always know what's next.</p>
+            </div>
+
+            <!-- Countdown cards — sorted soonest-first (controller sorts $events by days ASC) -->
+            <?php if (!empty($events)): ?>
+            <div class="ra-countdowns">
+                <?php foreach (array_slice($events, 0, 3) as $i => $event): ?>
+                    <?php
+                    $days = $event['days'] ?? null;
+                    $isLead = ($i === 0);
+                    ?>
+                    <a href="/profile/events" class="cd <?= $isLead ? 'lead' : '' ?>">
+                        <div class="cd-top">
+                            <span class="fye-pill accepted"><?= esc($event['event_type'] ?? 'Event') ?></span>
+                            <?php if ($isLead): ?>
+                                <span class="cd-flag"><i class="fa-solid fa-arrow-right"></i> Up next</span>
+                            <?php endif; ?>
+                        </div>
+                        <div class="cd-title"><?= esc($event['title']) ?></div>
+                        <?php if ($days !== null): ?>
+                            <div class="cd-num">
+                                <b class="fye-num"><?= $days ?></b>
+                                <span><?= $days === 1 ? 'day to go' : 'days to go' ?></span>
+                            </div>
+                        <?php endif; ?>
+                        <div class="cd-meta">
+                            <i class="fa-solid fa-calendar-day"></i>
+                            <?= !empty($event['date']) ? date('d M Y', strtotime($event['date'])) : '—' ?>
+                            <?php if (!empty($event['location'])): ?>
+                                &nbsp;·&nbsp;<?= esc($event['location']) ?>
+                            <?php endif; ?>
+                        </div>
+                    </a>
+                <?php endforeach; ?>
+            </div>
             <?php endif; ?>
-        </div>
 
-        <!-- 4. Booking Summary Stats -->
-        <div class="row g-3 mb-4">
-            <div class="col-6 col-md">
-                <div class="stat-card">
-                    <div class="stat-icon bg-warning-light mx-auto"><i class="fas fa-clock"></i></div>
-                    <div class="stat-value"><?= $totalPendingRequests ?></div>
-                    <div class="stat-label">Pending</div>
-                </div>
-            </div>
-            <div class="col-6 col-md">
-                <div class="stat-card">
-                    <div class="stat-icon bg-success-light mx-auto"><i class="fas fa-check"></i></div>
-                    <div class="stat-value"><?= $totalAccepted ?></div>
-                    <div class="stat-label">Accepted</div>
-                </div>
-            </div>
-            <div class="col-6 col-md">
-                <div class="stat-card">
-                    <div class="stat-icon bg-info-light mx-auto"><i class="fas fa-pound-sign"></i></div>
-                    <div class="stat-value"><?= $totalAwaitingPayment ?></div>
-                    <div class="stat-label">Awaiting Payment</div>
-                </div>
-            </div>
-            <div class="col-6 col-md">
-                <div class="stat-card">
-                    <div class="stat-icon bg-primary-light mx-auto"><i class="fas fa-calendar-check"></i></div>
-                    <div class="stat-value"><?= $totalConfirmed ?></div>
-                    <div class="stat-label">Confirmed</div>
-                </div>
-            </div>
-            <div class="col-6 col-md">
-                <div class="stat-card">
-                    <div class="stat-icon bg-danger-light mx-auto"><i class="fas fa-times-circle"></i></div>
-                    <div class="stat-value"><?= $totalDeclined ?></div>
-                    <div class="stat-label">Declined</div>
-                </div>
-            </div>
-        </div>
-
-        <div class="row">
-            <!-- Left Column -->
-            <div class="col-lg-8">
-
-                <!-- 3. Needs Your Attention -->
-                <div class="dash-card">
-                    <h5><i class="fas fa-exclamation-circle text-warning me-2"></i>Needs Your Attention</h5>
-
-                    <?php $hasAttention = false; ?>
-
-                    <?php if ($totalAccepted > 0): $hasAttention = true; ?>
-                        <div class="attention-card border-success">
-                            <div class="attention-icon bg-success-light"><i class="fas fa-check-circle"></i></div>
-                            <div class="attention-content">
-                                <div class="attention-title">Vendor Accepted a Booking</div>
-                                <p class="attention-desc"><?= $totalAccepted ?> booking<?= $totalAccepted > 1 ? 's have' : ' has' ?> been accepted — review and confirm</p>
-                            </div>
-                            <div class="attention-action">
-                                <a href="/profile/my-bookings" class="btn btn-sm btn-outline-success">Review</a>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($totalAwaitingPayment > 0): $hasAttention = true; ?>
-                        <div class="attention-card border-warning">
-                            <div class="attention-icon bg-warning-light"><i class="fas fa-credit-card"></i></div>
-                            <div class="attention-content">
-                                <div class="attention-title">Payment Required</div>
-                                <p class="attention-desc"><?= $totalAwaitingPayment ?> booking<?= $totalAwaitingPayment > 1 ? 's are' : ' is' ?> accepted and awaiting payment</p>
-                            </div>
-                            <div class="attention-action">
-                                <a href="/profile/my-bookings" class="btn btn-sm btn-outline-warning">Pay Now</a>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($totalDeclined > 0): $hasAttention = true; ?>
-                        <div class="attention-card border-danger">
-                            <div class="attention-icon bg-danger-light"><i class="fas fa-times-circle"></i></div>
-                            <div class="attention-content">
-                                <div class="attention-title">Vendor Declined a Request</div>
-                                <p class="attention-desc"><?= $totalDeclined ?> request<?= $totalDeclined > 1 ? 's were' : ' was' ?> declined — find alternative services</p>
-                            </div>
-                            <div class="attention-action">
-                                <a href="/browse-services" class="btn btn-sm btn-outline-danger">Browse</a>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if ($unreadMessages > 0): $hasAttention = true; ?>
-                        <div class="attention-card border-info">
-                            <div class="attention-icon bg-info-light"><i class="fas fa-envelope"></i></div>
-                            <div class="attention-content">
-                                <div class="attention-title">Messages from Vendors</div>
-                                <p class="attention-desc"><?= $unreadMessages ?> unread message<?= $unreadMessages > 1 ? 's' : '' ?></p>
-                            </div>
-                            <div class="attention-action">
-                                <a href="/profile/messages" class="btn btn-sm btn-outline-info">View</a>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if (empty($events)): $hasAttention = true; ?>
-                        <div class="attention-card border-primary">
-                            <div class="attention-icon bg-primary-light"><i class="fas fa-calendar-plus"></i></div>
-                            <div class="attention-content">
-                                <div class="attention-title">No Events Created Yet</div>
-                                <p class="attention-desc">Create your first event to start planning and booking services</p>
-                            </div>
-                            <div class="attention-action">
-                                <a href="/event/create" class="btn btn-sm btn-outline-primary">Create Event</a>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-
-                    <?php if (!$hasAttention): ?>
-                        <div class="text-center py-3">
-                            <i class="fas fa-check-circle text-success fa-2x mb-2"></i>
-                            <p class="text-muted mb-0">You're all caught up! Nothing needs your attention right now.</p>
-                        </div>
-                    <?php endif; ?>
-                </div>
-
-                <!-- 2. Event Overview Cards -->
-                <div class="dash-card">
-                    <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-2 mb-3">
-                        <div>
-                            <h5 class="mb-0"><i class="fas fa-calendar text-primary me-2"></i>My Events</h5>
-                            <p class="text-muted small mb-0 mt-1">Each event holds your bookings and budget for that celebration.</p>
-                        </div>
-                        <a href="/event/create" class="btn btn-sm btn-primary flex-shrink-0"><i class="fas fa-plus me-1"></i>Create Event</a>
+            <!-- Stat tiles -->
+            <div class="ra-stats">
+                <?php
+                $statTiles = [
+                    ['v' => $totalPendingRequests, 'l' => 'Pending',      'ic' => 'fa-clock',         'tone' => 'gold'],
+                    ['v' => $totalAccepted,        'l' => 'Accepted',     'ic' => 'fa-check',         'tone' => 'sage'],
+                    ['v' => $totalAwaitingPayment, 'l' => 'Awaiting pay', 'ic' => 'fa-pound-sign',    'tone' => 'terra'],
+                    ['v' => $totalConfirmed,       'l' => 'Confirmed',    'ic' => 'fa-calendar-check','tone' => 'slate'],
+                    ['v' => $totalDeclined,        'l' => 'Declined',     'ic' => 'fa-xmark',         'tone' => 'plum'],
+                ];
+                ?>
+                <?php foreach ($statTiles as $tile): ?>
+                    <div class="ra-stat">
+                        <div class="ic <?= $tile['tone'] ?>"><i class="fa-solid <?= $tile['ic'] ?>"></i></div>
+                        <div class="v fye-num"><?= (int) $tile['v'] ?></div>
+                        <div class="l"><?= $tile['l'] ?></div>
                     </div>
+                <?php endforeach; ?>
+            </div>
 
-                    <?php if (!empty($events)): ?>
-                        <?php foreach ($events as $event): ?>
-                            <div class="event-overview-card">
-                                <div class="row align-items-center">
-                                    <div class="col-md-8">
-                                        <div class="event-title"><?= esc($event['title']) ?></div>
-                                        <div class="event-meta mt-1">
-                                            <?php if (!empty($event['date'])): ?>
-                                                <span><i class="fas fa-calendar-alt me-1"></i><?= date('d M Y', strtotime($event['date'])) ?></span>
-                                            <?php endif; ?>
-                                            <?php if (!empty($event['location'])): ?>
-                                                <span class="ms-3"><i class="fas fa-map-marker-alt me-1"></i><?= esc($event['location']) ?></span>
-                                            <?php endif; ?>
-                                            <?php
-                                            $eventTypeLabel = $event['event_type'] ?? $event['category'] ?? '';
-                                            ?>
-                                            <?php if ($eventTypeLabel !== ''): ?>
-                                                <span class="ms-3"><i class="fas fa-tag me-1"></i><?= esc($eventTypeLabel) ?></span>
-                                            <?php endif; ?>
-                                        </div>
-                                        <div class="mt-2">
-                                            <span class="badge bg-info"><?= $event['servicesBooked'] ?> service<?= $event['servicesBooked'] != 1 ? 's' : '' ?> booked</span>
-                                            <?php if ($event['totalCost'] > 0): ?>
-                                                <span class="badge bg-secondary ms-1">Est. £<?= number_format($event['totalCost'], 2) ?></span>
-                                            <?php endif; ?>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-4 text-md-end mt-2 mt-md-0">
-                                        <a href="/browse-services?event_id=<?= esc($event['id']) ?>" class="btn btn-sm btn-outline-primary me-1">Add Services</a>
-                                        <a href="/profile/events" class="btn btn-sm btn-primary">View Events</a>
-                                    </div>
-                                </div>
+            <!-- Main 2-col grid -->
+            <div class="ra-grid">
 
-                                <!-- Planning progress bar -->
-                                <?php
-                                $maxServices = 8;
-                                $progress = min(100, ($event['servicesBooked'] / $maxServices) * 100);
-                                ?>
-                                <div class="mt-3">
-                                    <div class="d-flex justify-content-between small text-muted mb-1">
-                                        <span>Planning progress</span>
-                                        <span><?= $event['servicesBooked'] ?>/<?= $maxServices ?> key services</span>
-                                    </div>
-                                    <div class="progress" style="height: 6px;">
-                                        <div class="progress-bar bg-success" role="progressbar" style="width: <?= $progress ?>%" aria-valuenow="<?= $progress ?>" aria-valuemin="0" aria-valuemax="100"></div>
-                                    </div>
-                                </div>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="dash-empty-state text-center py-4 px-3">
-                            <i class="fas fa-calendar-plus fa-3x text-muted mb-3 d-block" aria-hidden="true"></i>
-                            <h5 class="fw-semibold">No events yet</h5>
-                            <p class="text-muted mb-4">Create an event to save your date, guest count, and venue—then add services and track vendor responses in one place.</p>
-                            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center align-items-stretch align-items-sm-center">
-                                <a href="/event/create" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Create your first event</a>
-                                <a href="/browse-services" class="btn btn-outline-primary">Browse services</a>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                </div>
+                <!-- LEFT column -->
+                <div class="ra-col">
 
-                <!-- 5. Planning Progress Tracker -->
-                <div class="dash-card">
-                    <h5 class="mb-1"><i class="fas fa-tasks text-success me-2"></i>Planning Progress</h5>
-                    <p class="text-muted small mb-3">A simple checklist so big items like catering and photos do not slip through the cracks.</p>
-
-                    <?php if (!empty($events)): ?>
+                    <!-- Needs your attention -->
+                    <div class="fye-card">
+                        <h2><i class="fa-solid fa-circle-exclamation"></i> Needs your attention</h2>
                         <?php
-                        $planningBuckets = $planningBuckets ?? [];
-                        $coveredCount = 0;
-                        foreach ($planningBuckets as $cat) {
-                            if (! empty($cat['is_booked'])) {
-                                $coveredCount++;
-                            }
+                        $attItems = [];
+                        if ($totalAccepted > 0) {
+                            $attItems[] = ['tone' => 'sage', 'ic' => 'fa-check-circle',
+                                't' => 'Vendor accepted a booking',
+                                'd' => $totalAccepted . ' booking' . ($totalAccepted > 1 ? 's have' : ' has') . ' been accepted — review and confirm',
+                                'cta' => 'Review', 'href' => '/profile/my-bookings'];
+                        }
+                        if ($totalAwaitingPayment > 0) {
+                            $attItems[] = ['tone' => 'gold', 'ic' => 'fa-credit-card',
+                                't' => 'Deposit required',
+                                'd' => $totalAwaitingPayment . ' booking' . ($totalAwaitingPayment > 1 ? 's are' : ' is') . ' accepted and awaiting your deposit',
+                                'cta' => 'Pay now', 'href' => '/profile/my-bookings'];
+                        }
+                        if ($unreadMessages > 0) {
+                            $attItems[] = ['tone' => 'slate', 'ic' => 'fa-envelope',
+                                't' => 'New messages',
+                                'd' => $unreadMessages . ' unread message' . ($unreadMessages > 1 ? 's' : '') . ' from your suppliers',
+                                'cta' => 'Open', 'href' => '/profile/messages'];
+                        }
+                        if ($totalDeclined > 0) {
+                            $attItems[] = ['tone' => 'terra', 'ic' => 'fa-times-circle',
+                                't' => 'A request was declined',
+                                'd' => $totalDeclined . ' request' . ($totalDeclined > 1 ? 's were' : ' was') . ' declined — find an alternative',
+                                'cta' => 'Browse', 'href' => '/browse-services'];
+                        }
+                        if (empty($events)) {
+                            $attItems[] = ['tone' => 'slate', 'ic' => 'fa-calendar-plus',
+                                't' => 'No events created yet',
+                                'd' => 'Create your first event to start planning and booking services',
+                                'cta' => 'Create event', 'href' => '/event/create'];
                         }
                         ?>
-                        <p class="text-muted small mb-3">
-                            <?= $coveredCount ?>/<?= count($planningBuckets) ?> key service categories covered
-                        </p>
-
-                        <?php foreach ($planningBuckets as $cat): ?>
-                            <?php
-                            $isBooked = ! empty($cat['is_booked']);
-                            $statusClass = $isBooked ? 'booked' : 'not-started';
-                            $statusIcon = $isBooked ? 'fa-check' : 'fa-circle';
-                            $statusLabel = $isBooked ? 'Booked' : 'Not started';
-                            ?>
-                            <div class="progress-tracker-item">
-                                <div class="progress-tracker-icon <?= $statusClass ?>">
-                                    <i class="fas <?= $statusIcon ?>"></i>
+                        <?php if (!empty($attItems)): ?>
+                            <?php foreach ($attItems as $a): ?>
+                                <div class="att <?= $a['tone'] ?>">
+                                    <div class="ai ic <?= $a['tone'] ?>"><i class="fa-solid <?= $a['ic'] ?>"></i></div>
+                                    <div>
+                                        <div class="at"><?= esc($a['t']) ?></div>
+                                        <div class="ad"><?= esc($a['d']) ?></div>
+                                    </div>
+                                    <a href="<?= $a['href'] ?>" class="fye-btn ghost sm aa"><?= esc($a['cta']) ?></a>
                                 </div>
-                                <span class="checklist-label"><i class="fas <?= $cat['icon'] ?> me-2 text-muted"></i><?= esc($cat['label']) ?></span>
-                                <span class="badge <?= $isBooked ? 'bg-success' : 'bg-light text-muted' ?> ms-auto"><?= $statusLabel ?></span>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="text-center py-3">
+                                <i class="fa-solid fa-check-circle fa-2x mb-2" style="color:var(--fye-sage)"></i>
+                                <p class="fye-muted mb-0" style="font-size:13.5px">You're all caught up — nothing needs your attention right now.</p>
                             </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="dash-empty-state text-center py-3 px-2">
-                            <p class="text-muted small mb-3 mb-md-4">Start with one event; we will help you tick off the essentials as you book vendors.</p>
-                            <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
-                                <a href="/event/create" class="btn btn-sm btn-primary">Create an event</a>
-                                <a href="/browse-services" class="btn btn-sm btn-outline-secondary">Browse services</a>
+                        <?php endif; ?>
+                    </div>
+
+                    <!-- My events -->
+                    <div class="fye-card">
+                        <div class="fye-card-head">
+                            <div>
+                                <h2 style="margin-bottom:0"><i class="fa-solid fa-calendar"></i> My events</h2>
+                                <div class="sub">Each event holds the bookings and budget for that celebration.</div>
                             </div>
+                            <a href="/event/create" class="fye-btn primary sm"><i class="fa-solid fa-plus"></i> New event</a>
                         </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-
-            <!-- Right Column -->
-            <div class="col-lg-4">
-
-                <!-- 6. Recommended Next Services -->
-                <div class="dash-card">
-                    <h5 class="mb-1"><i class="fas fa-lightbulb text-warning me-2"></i>Recommended Services</h5>
-                    <p class="text-muted small mb-3">Categories you have not booked yet on your events.</p>
-
-                    <?php if (!empty($recommendedCategories)): ?>
-                        <?php foreach ($recommendedCategories as $rec): ?>
-                            <div class="attention-card <?= esc($rec['border']) ?> mb-2">
-                                <div class="attention-icon bg-light"><i class="fas <?= esc($rec['icon']) ?>"></i></div>
-                                <div class="attention-content">
-                                    <div class="attention-title"><?= esc($rec['name']) ?></div>
-                                    <p class="attention-desc">Browse suppliers in this category</p>
-                                </div>
-                                <a href="<?= esc($rec['browse_url']) ?>" class="btn btn-sm <?= esc($rec['btn']) ?>">Browse</a>
-                            </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <p class="text-muted small mb-0">You have services across the main categories on your events. <a href="/browse-services">Browse the marketplace</a> for more.</p>
-                    <?php endif; ?>
-                </div>
-
-                <!-- 8. Payment Snapshot -->
-                <div class="dash-card">
-                    <h5 class="mb-1"><i class="fas fa-credit-card text-primary me-2"></i>Payment Summary</h5>
-                    <p class="text-muted small mb-3">Figures reflect recorded deposits and estimates. You will confirm balances with each vendor before the event.</p>
-                    <div class="mb-2 d-flex justify-content-between">
-                        <span class="text-muted small">Deposits Paid</span>
-                        <span class="fw-bold">£<?= number_format($depositsPaid, 2) ?></span>
-                    </div>
-                    <div class="mb-2 d-flex justify-content-between">
-                        <span class="text-muted small">Remaining Balance</span>
-                        <span class="fw-bold">£<?= number_format(max(0, $totalSpend - $depositsPaid), 2) ?></span>
-                    </div>
-                    <hr>
-                    <div class="d-flex justify-content-between">
-                        <span class="text-muted small fw-bold">Total Event Spend</span>
-                        <span class="fw-bold text-primary">£<?= number_format($totalSpend, 2) ?></span>
-                    </div>
-                </div>
-
-                <!-- 7. Favourites / Saved Services -->
-                <div class="dash-card">
-                    <h5 class="mb-1"><i class="fas fa-heart text-danger me-2"></i>Saved Services</h5>
-                    <p class="text-muted small mb-3">Shortlist vendors you love and come back when you are ready to book.</p>
-                    <div class="dash-empty-state text-center py-3 px-2">
-                        <i class="fas fa-heart fa-2x text-muted mb-2 d-block" aria-hidden="true"></i>
-                        <p class="text-muted small mb-3">Nothing saved yet. Tap the heart on a service page to add it to your favourites.</p>
-                        <div class="d-flex flex-column gap-2">
-                            <a href="/browse-services" class="btn btn-sm btn-primary">Browse services</a>
-                            <a href="/profile/favourites" class="btn btn-sm btn-outline-secondary">View favourites</a>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- 9. Messages Preview -->
-                <div class="dash-card">
-                    <h5 class="mb-1"><i class="fas fa-comments text-info me-2"></i>Messages</h5>
-                    <p class="text-muted small mb-3 d-none d-md-block">Questions and updates from vendors appear here after you request or confirm a booking.</p>
-
-                    <?php if (!empty($recentMessages)): ?>
-                        <?php foreach ($recentMessages as $msg): ?>
-                            <div class="message-preview-item">
-                                <div class="message-avatar">
-                                    <i class="fas fa-user"></i>
-                                </div>
-                                <div class="message-content">
-                                    <div class="message-sender"><?= esc($msg['sender_name'] ?? 'Vendor') ?></div>
-                                    <div class="message-snippet"><?= esc(substr($msg['message'] ?? '', 0, 50)) ?></div>
-                                </div>
-                                <div>
-                                    <div class="message-time"><?= date('d M', strtotime($msg['created_at'] ?? 'now')) ?></div>
-                                    <?php if (empty($msg['is_read'])): ?>
-                                        <span class="unread-dot"></span>
+                        <?php if (!empty($events)): ?>
+                            <?php foreach ($events as $event): ?>
+                                <?php
+                                $booked = (int) ($event['servicesBooked'] ?? 0);
+                                $max    = 8;
+                                $cost   = (float) ($event['totalCost'] ?? 0);
+                                $pct    = $max > 0 ? min(100, round($booked / $max * 100)) : 0;
+                                ?>
+                                <a href="/browse-services?event_id=<?= (int) $event['id'] ?>" class="ev">
+                                    <div class="ev-top">
+                                        <div>
+                                            <div class="ev-title"><?= esc($event['title']) ?></div>
+                                            <div class="ev-meta">
+                                                <?php if (!empty($event['date'])): ?>
+                                                    <span><i class="fa-solid fa-calendar-day"></i><?= date('d M Y', strtotime($event['date'])) ?></span>
+                                                <?php endif; ?>
+                                                <?php if (!empty($event['location'])): ?>
+                                                    <span><i class="fa-solid fa-location-dot"></i><?= esc($event['location']) ?></span>
+                                                <?php endif; ?>
+                                                <?php if (!empty($event['guest_count'])): ?>
+                                                    <span><i class="fa-solid fa-user-group"></i><?= (int) $event['guest_count'] ?> guests</span>
+                                                <?php endif; ?>
+                                            </div>
+                                        </div>
+                                        <?php if (!empty($event['event_type'])): ?>
+                                            <span class="fye-pill accepted"><?= esc($event['event_type']) ?></span>
+                                        <?php endif; ?>
+                                    </div>
+                                    <div class="ev-prog">
+                                        <div class="lbl">
+                                            <span>Key services booked</span>
+                                            <span class="fye-num"><?= $booked ?>/<?= $max ?></span>
+                                        </div>
+                                        <div class="bar"><div class="fill" style="width:<?= $pct ?>%"></div></div>
+                                    </div>
+                                    <?php if ($cost > 0): ?>
+                                        <div class="ev-cost">Estimated spend <b class="fye-num">£<?= number_format($cost) ?></b></div>
                                     <?php endif; ?>
-                                </div>
+                                </a>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <div class="text-center py-4">
+                                <i class="fa-solid fa-calendar-plus fa-2x mb-3 d-block" style="color:var(--fye-ink-3)"></i>
+                                <h5 class="fw-semibold" style="font-family:var(--fye-display)">No events yet</h5>
+                                <p class="fye-muted mb-4" style="font-size:13.5px">Create an event to save your date, guest count, and venue — then add services.</p>
+                                <a href="/event/create" class="fye-btn primary"><i class="fa-solid fa-plus"></i> Create your first event</a>
                             </div>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="dash-empty-state text-center py-3 px-2">
-                            <i class="fas fa-comments fa-2x text-muted mb-2 d-block d-md-none" aria-hidden="true"></i>
-                            <p class="text-muted small mb-3">No conversations yet. Message a vendor from a booking or service page once you have started planning.</p>
-                            <div class="d-flex flex-column gap-2">
-                                <a href="/browse-services" class="btn btn-sm btn-primary">Browse services</a>
-                                <a href="/profile/messages" class="btn btn-sm btn-outline-secondary">Open inbox</a>
-                            </div>
-                        </div>
-                    <?php endif; ?>
-                </div>
+                        <?php endif; ?>
+                    </div>
 
-                <!-- 10. Recent Activity -->
-                <div class="dash-card">
-                    <h5><i class="fas fa-bell text-info me-2"></i>Recent Activity</h5>
+                </div><!-- /left -->
 
-                    <?php if (!empty($events)): ?>
-                        <?php foreach (array_slice($events, 0, 3) as $evt): ?>
-                            <div class="activity-item">
-                                <div class="activity-dot bg-primary"></div>
-                                <span class="activity-text">Event "<strong><?= esc($evt['title']) ?></strong>" created</span>
-                                <span class="activity-time">
-                                    <?php
-                                    if (!empty($evt['created_at'])) {
-                                        $ts = new DateTime($evt['created_at']);
-                                        $now = new DateTime();
-                                        $diff = $now->diff($ts);
-                                        echo $diff->days >= 1 ? $ts->format('d M') : ($diff->h >= 1 ? $diff->h . 'h ago' : 'Today');
-                                    }
-                                    ?>
-                                </span>
-                            </div>
-                            <?php if ($evt['servicesBooked'] > 0): ?>
-                                <div class="activity-item">
-                                    <div class="activity-dot bg-success"></div>
-                                    <span class="activity-text"><?= $evt['servicesBooked'] ?> service<?= $evt['servicesBooked'] > 1 ? 's' : '' ?> booked for <?= esc($evt['title']) ?></span>
-                                    <span class="activity-time">
-                                        <?php echo !empty($evt['created_at']) ? (new DateTime($evt['created_at']))->format('d M') : ''; ?>
-                                    </span>
+                <!-- RIGHT column -->
+                <div class="ra-col">
+
+                    <!-- Payment summary -->
+                    <div class="fye-card">
+                        <h2><i class="fa-solid fa-credit-card"></i> Payment summary</h2>
+                        <div class="kv">
+                            <span class="k">Deposits paid</span>
+                            <span class="v">£<?= number_format($depositsPaid, 2) ?></span>
+                        </div>
+                        <div class="kv">
+                            <span class="k">Remaining balance</span>
+                            <span class="v">£<?= number_format(max(0, $totalSpend - $depositsPaid), 2) ?></span>
+                        </div>
+                        <div class="kv total">
+                            <span class="k">Total event spend</span>
+                            <span class="v">£<?= number_format($totalSpend, 2) ?></span>
+                        </div>
+                    </div>
+
+                    <!-- Messages -->
+                    <div class="fye-card">
+                        <h2><i class="fa-solid fa-comments"></i> Messages</h2>
+                        <?php if (!empty($recentMessages)): ?>
+                            <?php foreach ($recentMessages as $msg): ?>
+                                <?php
+                                $senderName = $msg['sender_name'] ?? 'Vendor';
+                                $initials = strtoupper(implode('', array_map(fn($w) => $w[0], explode(' ', $senderName))));
+                                $initials = substr($initials, 0, 2);
+                                $isUnread = empty($msg['is_read']);
+                                $msgTime = !empty($msg['created_at']) ? date('d M', strtotime($msg['created_at'])) : '';
+                                ?>
+                                <div class="msg">
+                                    <div class="av"><?= esc($initials) ?></div>
+                                    <div style="min-width:0">
+                                        <div class="who"><?= esc($senderName) ?></div>
+                                        <div class="snip"><?= esc(substr($msg['message'] ?? '', 0, 60)) ?></div>
+                                    </div>
+                                    <div class="t">
+                                        <?= esc($msgTime) ?>
+                                        <?php if ($isUnread): ?><span class="dot"></span><?php endif; ?>
+                                    </div>
                                 </div>
-                            <?php endif; ?>
-                        <?php endforeach; ?>
-                    <?php else: ?>
-                        <div class="activity-item">
-                            <div class="activity-dot bg-info"></div>
-                            <span class="activity-text">Welcome to your event planning dashboard!</span>
-                            <span class="activity-time">Just now</span>
-                        </div>
-                        <div class="activity-item">
-                            <div class="activity-dot bg-success"></div>
-                            <span class="activity-text">Your account is set up and ready to go</span>
-                            <span class="activity-time">Today</span>
-                        </div>
-                    <?php endif; ?>
-                </div>
-            </div>
-        </div>
+                            <?php endforeach; ?>
+                            <div style="margin-top:12px">
+                                <a href="/profile/messages" class="fye-btn ghost sm">View all messages</a>
+                            </div>
+                        <?php else: ?>
+                            <div class="text-center py-3">
+                                <i class="fa-solid fa-comments fa-2x mb-2 d-block" style="color:var(--fye-ink-3)"></i>
+                                <p class="fye-muted mb-3" style="font-size:12.5px">No conversations yet. Message a vendor from a booking or service page.</p>
+                                <a href="/browse-services" class="fye-btn primary sm">Browse services</a>
+                            </div>
+                        <?php endif; ?>
+                    </div>
+
+                </div><!-- /right -->
+
+            </div><!-- /ra-grid -->
+        </div><!-- /ra-body -->
 
     </div>
 </div>

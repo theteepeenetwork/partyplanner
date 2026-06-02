@@ -167,14 +167,43 @@ class Profile extends BaseController
         foreach ($activeServices as $svc) {
             $hasImages = $serviceImageModel->where('service_id', $svc['id'])->countAllResults() > 0;
             if (!$hasImages) $servicesMissingImages++;
+            $bookingsCount = $bookingItemModel->where('service_id', $svc['id'])->countAllResults();
             $serviceHealthItems[] = [
-                'title' => $svc['title'],
-                'has_images' => $hasImages,
-                'has_price' => !empty($svc['price']),
+                'title'           => $svc['title'],
+                'has_images'      => $hasImages,
+                'has_price'       => !empty($svc['price']),
                 'has_description' => !empty($svc['description']),
-                'has_cancellation' => !empty($svc['cancellation_policy']),
+                'has_cancellation'=> !empty($svc['cancellation_policy']),
+                'bookings_count'  => $bookingsCount,
             ];
         }
+
+        // Add guest_count to pending and upcoming lists.
+        foreach ($pendingBookingsList as &$row) {
+            if (!isset($row['guest_count']) && !empty($row['event_id'])) {
+                $ev = (new \App\Models\EventModel())->find($row['event_id']);
+                $row['guest_count'] = $ev['guest_count'] ?? null;
+            }
+        }
+        unset($row);
+
+        // Payout summary — use this month's earnings as settled, outstanding accepted as pending.
+        $pendingPayoutAmount = 0.0;
+        if (!empty($vendorServiceIds)) {
+            $acceptedItems = $bookingItemModel
+                ->select('booking_items.price', false)
+                ->whereIn('service_id', $vendorServiceIds)
+                ->whereIn('status', ['accepted', 'confirmed'])
+                ->findAll();
+            foreach ($acceptedItems as $ai) {
+                $pendingPayoutAmount += (float) ($ai['price'] ?? 0);
+            }
+        }
+        $payouts = [
+            'settled' => $earningsThisMonth,
+            'pending' => $pendingPayoutAmount,
+            'next'    => null,
+        ];
 
         return view('dashboard/vendor_main', [
             'user' => $user,
@@ -187,6 +216,7 @@ class Profile extends BaseController
             'servicesMissingImages' => $servicesMissingImages,
             'serviceHealthItems' => $serviceHealthItems,
             'earningsThisMonth' => $earningsThisMonth,
+            'payouts' => $payouts,
             'currentTab' => 'main',
         ]);
     }
@@ -269,6 +299,23 @@ class Profile extends BaseController
             ->join('users', 'users.id = chat_messages.sender_id')
             ->where('chat_messages.receiver_id', $userId)
             ->orderBy('chat_messages.created_at', 'DESC')->limit(5)->findAll();
+
+        // Compute days until each event and sort ascending (soonest first) for countdown cards.
+        $today = new \DateTime('today');
+        foreach ($enrichedEvents as &$ev) {
+            if (!empty($ev['date'])) {
+                $d = new \DateTime($ev['date']);
+                $ev['days'] = (int) $today->diff($d)->days * ($d >= $today ? 1 : -1);
+            } else {
+                $ev['days'] = null;
+            }
+        }
+        unset($ev);
+        usort($enrichedEvents, static function ($a, $b) {
+            $da = $a['days'] ?? PHP_INT_MAX;
+            $db = $b['days'] ?? PHP_INT_MAX;
+            return $da <=> $db;
+        });
 
         return view('dashboard/customer_main', [
             'user' => $user, 'events' => $enrichedEvents,
