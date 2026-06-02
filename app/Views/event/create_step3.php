@@ -15,26 +15,6 @@
             <form method="post" action="/event/create/step3">
                 <?= csrf_field() ?>
                 <div class="mb-3">
-                    <label class="form-label">Budget Range <span class="text-muted">(optional)</span></label>
-                    <div class="row">
-                        <div class="col-6">
-                            <div class="input-group">
-                                <span class="input-group-text">£</span>
-                                <input type="number" class="form-control" name="budget_min" placeholder="Min"
-                                       value="<?= esc($old['budget_min'] ?? '') ?>" min="0">
-                            </div>
-                        </div>
-                        <div class="col-6">
-                            <div class="input-group">
-                                <span class="input-group-text">£</span>
-                                <input type="number" class="form-control" name="budget_max" placeholder="Max"
-                                       value="<?= esc($old['budget_max'] ?? '') ?>" min="0">
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="mb-3">
                     <label for="style_theme" class="form-label">Preferred Style / Theme <span class="text-muted">(optional)</span></label>
                     <input type="text" class="form-control" id="style_theme" name="style_theme"
                            value="<?= esc($old['style_theme'] ?? '') ?>" placeholder="e.g. Rustic, Modern, Boho, Elegant">

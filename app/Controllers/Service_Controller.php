@@ -2585,6 +2585,28 @@ class Service_Controller extends BaseController
         $vendorRating   = $reviewModel->vendorRatingSummary((int) $service['vendor_id']);
         $serviceReviews = $reviewModel->serviceReviews((int) $id, 6);
 
+        // Load customer events for the inline event selector and guest-aware pricing.
+        $customerEvents = [];
+        $activeEvent    = null;
+        if (session()->has('user_id') && session()->get('role') === 'customer') {
+            $eventModel     = new EventModel();
+            $customerEvents = $eventModel
+                ->where('user_id', session()->get('user_id'))
+                ->where('status', 'active')
+                ->orderBy('date', 'ASC')
+                ->findAll();
+            $preferredId = (int) (session()->get('preferred_basket_event_id') ?? 0);
+            foreach ($customerEvents as $ev) {
+                if ((int) $ev['id'] === $preferredId) {
+                    $activeEvent = $ev;
+                    break;
+                }
+            }
+            if ($activeEvent === null && ! empty($customerEvents)) {
+                $activeEvent = $customerEvents[0];
+            }
+        }
+
         $data = [
             'service' => $service,
             'images' => $images,
@@ -2608,6 +2630,8 @@ class Service_Controller extends BaseController
             'vendor_id' => (int) $service['vendor_id'],
             'vendor_rating' => $vendorRating,
             'service_reviews' => $serviceReviews,
+            'customerEvents' => $customerEvents,
+            'activeEvent'    => $activeEvent,
         ];
 
         // Render the view

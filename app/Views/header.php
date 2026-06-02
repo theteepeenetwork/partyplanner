@@ -98,15 +98,9 @@
                                 <a class="nav-link text-end" href="/browse-services">Find Suppliers</a>
                             </li>
                             <li class="nav-item">
-                                <a class="nav-link text-end" href="/how-it-works">How It Works</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-end" href="/dashboard">My Events</a>
+                                <a class="nav-link text-end" href="/profile/events">My Events</a>
                             </li>
                         <?php elseif ($navRole === 'vendor'): ?>
-                            <li class="nav-item">
-                                <a class="nav-link text-end" href="/how-it-works">How It Works</a>
-                            </li>
                             <li class="nav-item">
                                 <a class="nav-link text-end" href="/profile/services">My Services</a>
                             </li>
@@ -116,9 +110,6 @@
                         <?php else: ?>
                             <li class="nav-item">
                                 <a class="nav-link text-end" href="/browse-services">Find Suppliers</a>
-                            </li>
-                            <li class="nav-item">
-                                <a class="nav-link text-end" href="/how-it-works">How It Works</a>
                             </li>
                             <li class="nav-item">
                                 <a class="nav-link text-end" href="/vendor-info">For Vendors</a>
@@ -137,7 +128,7 @@
                                 <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="accountDropdown">
                                     <li><a class="dropdown-item" href="/profile">My Profile</a></li>
                                     <?php if ($navRole === 'customer'): ?>
-                                        <li><a class="dropdown-item" href="/cart">My Cart</a></li>
+                                        <li><a class="dropdown-item" href="/profile/events">Basket</a></li>
                                         <li><a class="dropdown-item" href="/event/create">Create Event</a></li>
                                     <?php elseif ($navRole === 'vendor'): ?>
                                         <li><a class="dropdown-item" href="/profile/services">My Services</a></li>
@@ -145,6 +136,7 @@
                                     <?php elseif ($navRole === 'admin'): ?>
                                         <li><a class="dropdown-item" href="/admin">Admin</a></li>
                                     <?php endif; ?>
+                                    <li><a class="dropdown-item" href="/faq">FAQs</a></li>
                                     <li><hr class="dropdown-divider"></li>
                                     <li><a class="dropdown-item" href="/logout">Logout</a></li>
                                 </ul>
