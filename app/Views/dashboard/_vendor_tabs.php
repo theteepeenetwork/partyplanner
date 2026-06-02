@@ -3,18 +3,18 @@
         <a class="nav-link <?= ($currentTab ?? '') === 'main' ? 'active' : '' ?>" href="/profile">Main</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link <?= ($currentTab ?? '') === 'services' ? 'active' : '' ?>" href="/profile/services">Services</a>
+        <a class="nav-link <?= ($currentTab ?? '') === 'bookings' ? 'active' : '' ?>" href="/profile/bookings">Bookings</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link <?= ($currentTab ?? '') === 'bookings' ? 'active' : '' ?>" href="/profile/bookings">Bookings</a>
+        <a class="nav-link <?= ($currentTab ?? '') === 'services' ? 'active' : '' ?>" href="/profile/services">Services</a>
     </li>
     <li class="nav-item">
         <a class="nav-link <?= ($currentTab ?? '') === 'calendar' ? 'active' : '' ?>" href="/profile/calendar">Calendar</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link <?= ($currentTab ?? '') === 'host-profile' ? 'active' : '' ?>" href="/profile/host-profile">Host profile</a>
+        <a class="nav-link <?= ($currentTab ?? '') === 'earnings' ? 'active' : '' ?>" href="/profile/earnings">Earnings</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link <?= ($currentTab ?? '') === 'quotes' ? 'active' : '' ?>" href="/profile/quote-settings">Quotes</a>
+        <a class="nav-link <?= ($currentTab ?? '') === 'host-profile' ? 'active' : '' ?>" href="/profile/host-profile">Host profile</a>
     </li>
 </ul>
