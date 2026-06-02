@@ -12,9 +12,9 @@
         <a class="nav-link <?= ($currentTab ?? '') === 'calendar' ? 'active' : '' ?>" href="/profile/calendar">Calendar</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link <?= ($currentTab ?? '') === 'messages' ? 'active' : '' ?>" href="/profile/messages">Messages</a>
+        <a class="nav-link <?= ($currentTab ?? '') === 'host-profile' ? 'active' : '' ?>" href="/profile/host-profile">Host profile</a>
     </li>
     <li class="nav-item">
-        <a class="nav-link <?= ($currentTab ?? '') === 'host-profile' ? 'active' : '' ?>" href="/profile/host-profile">Host Profile</a>
+        <a class="nav-link <?= ($currentTab ?? '') === 'quotes' ? 'active' : '' ?>" href="/profile/quote-settings">Quotes</a>
     </li>
 </ul>

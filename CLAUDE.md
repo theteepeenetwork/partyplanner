@@ -49,7 +49,7 @@ mysql --default-character-set=utf8mb4 event_marketplace < database_service_requi
 **Credentials** (`.env` defaults match):
 
 ```
-database.app.hostname = 127.0.0.1
+database.app.hostname = eventplanner.test
 database.app.database = event_marketplace
 database.app.username = root
 database.app.password =
