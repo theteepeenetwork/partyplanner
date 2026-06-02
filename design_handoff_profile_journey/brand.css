@@ -63,7 +63,7 @@
   background: #FFFDFB;
   border-bottom: 1px solid var(--line);
 }
-.fye-logo { display: flex; flex-direction: column; line-height: .98; letter-spacing: .06em; }
+.fye-logo { display: flex; flex-direction: column; line-height: 1.08; letter-spacing: .06em; gap: 1px; }
 .fye-logo span:first-child { font-size: 15px; font-weight: 800; text-transform: uppercase; color: var(--ink); }
 .fye-logo .acc { color: var(--terra); }
 .fye-logo span:last-child { font-size: 14px; font-weight: 800; text-transform: uppercase; color: var(--ink-3); }
