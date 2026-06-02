@@ -15,17 +15,17 @@
 
         <?php if (!empty($bookingItems)):
             $groups = [
-                ['accepted',  'Accepted — action needed',  'fa-circle-check'],
-                ['pending',   'Pending — awaiting vendor',  'fa-clock'],
-                ['confirmed', 'Confirmed',                  'fa-calendar-check'],
-                ['rejected',  'Declined',                   'fa-circle-xmark'],
-                ['cancelled', 'Cancelled',                  'fa-circle-xmark'],
+                ['accepted',  'accepted',  'Accepted — action needed',  'fa-circle-check'],
+                ['pending',   'pending',   'Pending — awaiting vendor',  'fa-clock'],
+                ['confirmed', 'confirmed', 'Confirmed',                  'fa-calendar-check'],
+                ['rejected',  'declined',  'Declined',                   'fa-circle-xmark'],
+                ['cancelled', 'declined',  'Cancelled',                  'fa-circle-xmark'],
             ];
-            foreach ($groups as [$status, $label, $icon]):
+            foreach ($groups as [$status, $anchor, $label, $icon]):
                 $rows = array_filter($bookingItems, fn($b) => $b['status'] === $status);
                 if (empty($rows)) continue;
         ?>
-            <div>
+            <div id="<?= $anchor ?>">
                 <div class="glabel">
                     <i class="fa-solid <?= $icon ?>"></i>
                     <?= esc($label) ?>

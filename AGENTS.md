@@ -13,8 +13,10 @@ This is a PHP CodeIgniter 4 event services marketplace. The CI4 framework is bun
 
    ```bash
    cp -n env.example .env   # first time only
+
 <<<<<<< HEAD
    php spark serve --host eventplanner.test --port 8888
+
    ```
 
    Or one-shot: `CI_ENVIRONMENT=cloud php spark serve --host eventplanner.test --port 8888`
