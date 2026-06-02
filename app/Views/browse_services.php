@@ -185,37 +185,39 @@
         <div class="service-card-container">
             <?php foreach ($services as $service): ?>
                 <div class="service-card">
-                    <a href="<?= base_url('service/view/' . esc($service['id'])) ?>" class="service-card-link text-decoration-none text-body">
-                        <?php if (!empty($service['images'])): ?>
-                            <img src="<?= base_url(esc($service['images'][0]['thumbnail_path'])) ?>"
-                                alt="<?= esc($service['title']) ?>" class="service-card-image" loading="lazy" decoding="async"
-                                onerror="this.onerror=null;this.src='<?= base_url('assets/images/fallback-service-card.jpg') ?>';">
-                        <?php else: ?>
-                            <img src="<?= base_url('assets/images/fallback-service-card.jpg') ?>" alt="No image available"
-                                class="service-card-image" loading="lazy" decoding="async">
-                        <?php endif; ?>
+                    <?php if (!empty($service['images'])): ?>
+                        <img src="<?= base_url(esc($service['images'][0]['thumbnail_path'])) ?>"
+                            alt="<?= esc($service['title']) ?>" class="service-card-image" loading="lazy" decoding="async"
+                            onerror="this.onerror=null;this.src='<?= base_url('assets/images/fallback-service-card.jpg') ?>';">
+                    <?php else: ?>
+                        <img src="<?= base_url('assets/images/fallback-service-card.jpg') ?>" alt="No image available"
+                            class="service-card-image" loading="lazy" decoding="async">
+                    <?php endif; ?>
 
-                        <div class="service-card-content">
-                            <h3 class="service-card-title"><?= esc($service['title']) ?></h3>
-                            <?php if (!empty($service['category_name'])): ?>
-                                <span class="badge bg-secondary mb-2"><?= esc($service['category_name']) ?></span>
-                            <?php endif; ?>
-                            <p class="service-card-description">
-                                <?= esc($service['short_description'] ?? 'No description available.') ?>
-                            </p>
-                            <?php if ((float) ($service['price'] ?? 0) > 0): ?>
-                                <p class="service-price">From &pound;<?= number_format((float) $service['price'], 2) ?></p>
-                            <?php else: ?>
-                                <p class="service-price text-muted">Price on request</p>
-                            <?php endif; ?>
-                        </div>
-                    </a>
-                    <div class="text-center pb-3">
-                        <a href="<?= base_url('service/view/' . esc($service['id'])) ?>" class="service-card-button">View Details</a>
-                        <?php if (session()->has('user_id') && session()->get('role') === 'customer' && !empty($message_eligible_by_service_id[$service['id']])): ?>
-                            <a href="<?= base_url('profile/messages/start/' . esc($service['id'])) ?>" class="btn btn-sm btn-outline-primary ms-1">Message vendor</a>
+                    <div class="service-card-content">
+                        <h3 class="service-card-title"><?= esc($service['title']) ?></h3>
+                        <?php if (!empty($service['category_name'])): ?>
+                            <span class="badge bg-secondary mb-2"><?= esc($service['category_name']) ?></span>
+                        <?php endif; ?>
+                        <p class="service-card-description">
+                            <?= esc($service['short_description'] ?? 'No description available.') ?>
+                        </p>
+                        <?php if ((float) ($service['price'] ?? 0) > 0): ?>
+                            <p class="service-price">From &pound;<?= number_format((float) $service['price'], 2) ?></p>
+                        <?php else: ?>
+                            <p class="service-price text-muted">Price on request</p>
                         <?php endif; ?>
                     </div>
+
+                    <a href="<?= base_url('service/view/' . esc($service['id'])) ?>"
+                       class="stretched-link"
+                       aria-label="View <?= esc($service['title']) ?>"></a>
+
+                    <?php if (session()->has('user_id') && session()->get('role') === 'customer' && !empty($message_eligible_by_service_id[$service['id']])): ?>
+                        <div class="text-center pb-3" style="position:relative;z-index:2">
+                            <a href="<?= base_url('profile/messages/start/' . esc($service['id'])) ?>" class="btn btn-sm btn-outline-primary">Message vendor</a>
+                        </div>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         </div>

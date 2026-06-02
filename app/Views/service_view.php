@@ -511,8 +511,9 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
                       <?php foreach ($timeBlocks as $block):
                         $start = preg_match('/^(\d{1,2}:\d{2})/', (string) ($block['start_time'] ?? ''), $sm) ? $sm[1] : '';
                         $end   = preg_match('/^(\d{1,2}:\d{2})/', (string) ($block['end_time']   ?? ''), $em) ? $em[1] : '';
+                        $blockPrice = (int) round((float) ($block['price'] ?? 0));
                       ?>
-                        <option value="timeblock_<?= esc($block['id']) ?>">
+                        <option value="timeblock_<?= esc($block['id']) ?>" data-price="<?= $blockPrice ?>">
                           <?= esc($start) ?> – <?= esc($end) ?>: £<?= number_format((float) ($block['price'] ?? 0), 2) ?>
                         </option>
                       <?php endforeach; ?>
@@ -520,8 +521,10 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
                   <?php endif; ?>
                   <?php if (!empty($durationPricing)): ?>
                     <optgroup label="Duration">
-                      <?php foreach ($durationPricing as $dp): ?>
-                        <option value="duration_<?= esc($dp['id']) ?>">
+                      <?php foreach ($durationPricing as $dp):
+                        $dpPrice = (int) round((float) ($dp['price'] ?? 0));
+                      ?>
+                        <option value="duration_<?= esc($dp['id']) ?>" data-price="<?= $dpPrice ?>">
                           <?= esc($dp['duration_hours'] ?? $dp['duration'] ?? '') ?>
                           <?= (($dp['duration_type'] ?? '') === 'day') ? 'Day(s)' : 'Hour(s)' ?>:
                           £<?= number_format((float) ($dp['price'] ?? 0), 2) ?>
@@ -569,7 +572,11 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
                   <p style="font-size:14px;color:var(--muted);margin-bottom:16px">
                     Fixed price — no options to choose.
                   </p>
+                  <input type="hidden" id="sv-base-price" value="<?= (int) $initialPrice ?>">
                 <?php endif; ?>
+              <?php endif; ?>
+              <?php if ($showGuest && $initialPrice > 0 && !$isCustomQuote): ?>
+                <input type="hidden" id="sv-base-price" value="<?= (int) $initialPrice ?>">
               <?php endif; ?>
 
               <!-- Optional extras -->
@@ -670,9 +677,9 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
                     Edit Service
                   </a>
                 <?php elseif (!session()->has('user_id')): ?>
-                  <a href="/login" class="sv-btn sv-btn-primary sv-btn-lg" style="text-decoration:none">
+                  <button type="submit" class="sv-btn sv-btn-primary sv-btn-lg">
                     <?= svIcon('calendar', '', 'width:18px;height:18px') ?>Log in to book
-                  </a>
+                  </button>
                 <?php else: ?>
                   <button type="submit" class="sv-btn sv-btn-primary sv-btn-lg">
                     <?= svIcon('calendar', '', 'width:18px;height:18px') ?>
@@ -766,8 +773,20 @@ function svSyncExtra(cb) {
 
 /* ── Price total update ───────────────────────────────────────────────── */
 function svUpdateTotal() {
+    var base = 0;
     var pkgBtn = document.querySelector('.sv-pkg.is-active');
-    var base   = pkgBtn ? parseInt(pkgBtn.dataset.pkgPrice || 0, 10) : 0;
+    if (pkgBtn) {
+        base = parseInt(pkgBtn.dataset.pkgPrice || 0, 10);
+    } else {
+        var durSel = document.getElementById('durationPricing');
+        if (durSel && durSel.options.length > 0) {
+            var selOpt = durSel.options[durSel.selectedIndex];
+            base = selOpt ? parseInt(selOpt.dataset.price || 0, 10) : 0;
+        } else {
+            var basePriceEl = document.getElementById('sv-base-price');
+            base = basePriceEl ? parseInt(basePriceEl.value || 0, 10) : 0;
+        }
+    }
     var extras = 0;
     document.querySelectorAll('.sv-extra.is-on').forEach(function(el) {
         extras += parseInt(el.dataset.extraPrice || 0, 10);
@@ -838,7 +857,11 @@ function svRunLiveQuote() {
 
     var durationSelect = document.getElementById('durationPricing');
     if (durationSelect) {
-        durationSelect.addEventListener('change', svTriggerLiveQuote);
+        durationSelect.addEventListener('change', function() {
+            svUpdateTotal();
+            svTriggerLiveQuote();
+        });
+        svUpdateTotal();
     }
 })();
 
