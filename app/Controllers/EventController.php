@@ -300,6 +300,18 @@ class EventController extends BaseController
             return redirect()->to('/event/create')->with('info', 'Create an event first, then we\'ll add this service to it.');
         }
 
+        // If the inline service-view selector already chose an event, skip the selection page.
+        $postedEventId = (int) $this->request->getPost('event_id');
+        if ($postedEventId > 0) {
+            foreach ($events as $ev) {
+                if ((int) $ev['id'] === $postedEventId) {
+                    session()->set('preferred_basket_event_id', $postedEventId);
+                    session()->set('pending_add_to_event', $selectedOptions);
+                    return redirect()->to('/event/add-to-basket/' . $serviceId . '?event_id=' . $postedEventId);
+                }
+            }
+        }
+
         $preferredEventId = session()->get('preferred_basket_event_id');
         if ($preferredEventId !== null) {
             foreach ($events as $ev) {

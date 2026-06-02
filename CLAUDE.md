@@ -103,7 +103,9 @@ scripts/safe-git.sh    # git operations wrapper
 ## Development Commands
 
 ```bash
-# The app runs via a virtual host at http://eventplanner.test — no spark serve needed.
+# The app runs via a virtual host at http://partyplanner.test — no spark serve needed.
+# If spark serve is required for a specific reason:
+# CI_ENVIRONMENT=cloud php spark serve --host partyplanner.test --port 8888
 
 # Fast validation
 find app -name "*.php" -exec php -l {} \;

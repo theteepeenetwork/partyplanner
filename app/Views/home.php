@@ -31,7 +31,7 @@ $inspirationBrowseUrl = $inspirationBrowseUrl ?? base_url('browse-services');
                         <fieldset class="hero-occasions">
                             <legend class="visually-hidden">What are you planning?</legend>
                             <?php foreach ($occasions as $i => $occasion): ?>
-                                <input type="radio" class="hero-occasion-input" name="q"
+                                <input type="radio" class="hero-occasion-input" name="occasion"
                                     id="occasion-<?= esc(strtolower($occasion), 'attr') ?>"
                                     value="<?= esc($occasion, 'attr') ?>" <?= $i === 0 ? 'checked' : '' ?>>
                                 <label class="hero-occasion-pill" for="occasion-<?= esc(strtolower($occasion), 'attr') ?>">

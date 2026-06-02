@@ -33,13 +33,6 @@
                         <tr><th class="text-muted">Setting</th><td><?= ucfirst(esc($step2['indoor_outdoor'])) ?></td></tr>
                     <?php endif; ?>
 
-                    <?php if (!empty($step3['budget_min']) || !empty($step3['budget_max'])): ?>
-                        <tr><th class="text-muted">Budget</th><td>
-                            <?= !empty($step3['budget_min']) ? '£' . number_format($step3['budget_min']) : '' ?>
-                            <?= (!empty($step3['budget_min']) && !empty($step3['budget_max'])) ? ' – ' : '' ?>
-                            <?= !empty($step3['budget_max']) ? '£' . number_format($step3['budget_max']) : '' ?>
-                        </td></tr>
-                    <?php endif; ?>
                     <?php if (!empty($step3['style_theme'])): ?>
                         <tr><th class="text-muted">Style</th><td><?= esc($step3['style_theme']) ?></td></tr>
                     <?php endif; ?>

@@ -129,10 +129,22 @@ if (!empty($service['water_required']))          $reqs[] = 'Water access require
 if (!empty($service['vehicle_access_required'])) $reqs[] = 'Vehicle access required';
 if (!empty($service['equipment_provided']))      $reqs[] = 'Supplier provides their own equipment';
 
+/* ── Active event guest count ────────────────────────────────────────────── */
+$activeEventGuests = !empty($activeEvent['guest_count']) ? (int) $activeEvent['guest_count'] : 0;
+
 /* ── Initial price for sidebar ──────────────────────────────────────────── */
 $initialPrice = 0.0;
 if ($showPackages && !empty($tieredPackages)) {
     $initialPrice = (float) ($tieredPackages[0]['package_price'] ?? $tieredPackages[0]['price'] ?? 0);
+} elseif ($showGuest && !empty($guestPricing) && $activeEventGuests > 0) {
+    foreach ($guestPricing as $tier) {
+        $tMin = (int) ($tier['min_guest'] ?? $tier['min_guests'] ?? 0);
+        $tMax = $tier['max_guest'] ?? $tier['max_guests'] ?? null;
+        if ($activeEventGuests >= $tMin && ($tMax === null || $tMax === '' || $activeEventGuests <= (int) $tMax)) {
+            $initialPrice = (float) ($tier['guest_price'] ?? $tier['price'] ?? 0) * $activeEventGuests;
+            break;
+        }
+    }
 } elseif (!$isCustomQuote) {
     $initialPrice = (float) ($service['price'] ?? 0);
 }
@@ -439,7 +451,7 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
 
       <!-- ───────── RIGHT: sticky booking panel ───────── -->
       <aside style="position:sticky;top:88px">
-        <form action="<?= site_url('event/add-to-event/' . (int) $service['id']) ?>" method="post" id="booking-form">
+        <form action="<?= site_url('event/add-to-event/' . (int) $service['id']) ?>" method="post" id="booking-form" autocomplete="off">
           <?= csrf_field() ?>
           <div class="sv-panel" style="overflow:hidden">
 
@@ -511,8 +523,9 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
                       <?php foreach ($timeBlocks as $block):
                         $start = preg_match('/^(\d{1,2}:\d{2})/', (string) ($block['start_time'] ?? ''), $sm) ? $sm[1] : '';
                         $end   = preg_match('/^(\d{1,2}:\d{2})/', (string) ($block['end_time']   ?? ''), $em) ? $em[1] : '';
+                        $blockPrice = (int) round((float) ($block['price'] ?? 0));
                       ?>
-                        <option value="timeblock_<?= esc($block['id']) ?>">
+                        <option value="timeblock_<?= esc($block['id']) ?>" data-price="<?= $blockPrice ?>">
                           <?= esc($start) ?> – <?= esc($end) ?>: £<?= number_format((float) ($block['price'] ?? 0), 2) ?>
                         </option>
                       <?php endforeach; ?>
@@ -520,8 +533,10 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
                   <?php endif; ?>
                   <?php if (!empty($durationPricing)): ?>
                     <optgroup label="Duration">
-                      <?php foreach ($durationPricing as $dp): ?>
-                        <option value="duration_<?= esc($dp['id']) ?>">
+                      <?php foreach ($durationPricing as $dp):
+                        $dpPrice = (int) round((float) ($dp['price'] ?? 0));
+                      ?>
+                        <option value="duration_<?= esc($dp['id']) ?>" data-price="<?= $dpPrice ?>">
                           <?= esc($dp['duration_hours'] ?? $dp['duration'] ?? '') ?>
                           <?= (($dp['duration_type'] ?? '') === 'day') ? 'Day(s)' : 'Hour(s)' ?>:
                           £<?= number_format((float) ($dp['price'] ?? 0), 2) ?>
@@ -569,7 +584,11 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
                   <p style="font-size:14px;color:var(--muted);margin-bottom:16px">
                     Fixed price — no options to choose.
                   </p>
+                  <input type="hidden" id="sv-base-price" value="<?= (int) $initialPrice ?>">
                 <?php endif; ?>
+              <?php endif; ?>
+              <?php if ($showGuest && $initialPrice > 0 && !$isCustomQuote): ?>
+                <input type="hidden" id="sv-base-price" value="<?= (int) $initialPrice ?>">
               <?php endif; ?>
 
               <!-- Optional extras -->
@@ -661,6 +680,41 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
               </div>
               <?php endif; ?>
 
+              <!-- Inline event selector -->
+              <?php if (!$isOwnService && !empty($customerEvents) && session()->get('role') === 'customer'): ?>
+              <div style="margin-top:20px;padding-top:16px;border-top:1px solid var(--line)">
+                <div style="font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:8px">
+                  Adding to event
+                </div>
+                <?php if (count($customerEvents) === 1): ?>
+                  <div style="font-size:14px;font-weight:600;color:var(--ink);margin-bottom:4px">
+                    <?= esc($customerEvents[0]['title']) ?>
+                    <?php if (!empty($customerEvents[0]['date'])): ?>
+                      <span style="font-weight:400;color:var(--muted)"> — <?= date('d M Y', strtotime($customerEvents[0]['date'])) ?></span>
+                    <?php endif; ?>
+                  </div>
+                  <div style="font-size:12.5px;color:var(--muted)"><?= (int)($customerEvents[0]['guest_count'] ?? 0) ?> guests</div>
+                  <input type="hidden" name="event_id" id="sv-event-id" value="<?= (int)$customerEvents[0]['id'] ?>">
+                <?php else: ?>
+                  <select id="sv-event-selector" class="form-control" style="font-size:14px;margin-bottom:4px">
+                    <?php foreach ($customerEvents as $ev): ?>
+                      <option value="<?= (int)$ev['id'] ?>"
+                              data-guests="<?= (int)($ev['guest_count'] ?? 0) ?>"
+                              <?= (int)$ev['id'] === (int)($activeEvent['id'] ?? 0) ? 'selected' : '' ?>>
+                        <?= esc($ev['title']) ?>
+                        <?php if (!empty($ev['date'])): ?>
+                          — <?= date('d M Y', strtotime($ev['date'])) ?>
+                        <?php endif; ?>
+                        (<?= (int)($ev['guest_count'] ?? 0) ?> guests)
+                      </option>
+                    <?php endforeach; ?>
+                  </select>
+                  <input type="hidden" name="event_id" id="sv-event-id" value="<?= (int)($activeEvent['id'] ?? 0) ?>">
+                <?php endif; ?>
+                <a href="/profile/events" style="font-size:12px;color:var(--muted);text-decoration:underline">Manage events</a>
+              </div>
+              <?php endif; ?>
+
               <!-- CTAs -->
               <div style="margin-top:16px;display:flex;flex-direction:column;gap:10px">
                 <?php if ($isOwnService): ?>
@@ -670,9 +724,9 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
                     Edit Service
                   </a>
                 <?php elseif (!session()->has('user_id')): ?>
-                  <a href="/login" class="sv-btn sv-btn-primary sv-btn-lg" style="text-decoration:none">
+                  <button type="submit" class="sv-btn sv-btn-primary sv-btn-lg">
                     <?= svIcon('calendar', '', 'width:18px;height:18px') ?>Log in to book
-                  </a>
+                  </button>
                 <?php else: ?>
                   <button type="submit" class="sv-btn sv-btn-primary sv-btn-lg">
                     <?= svIcon('calendar', '', 'width:18px;height:18px') ?>
@@ -723,6 +777,22 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
 <?= $this->include('footer') ?>
 
 <script>
+/* ── Guest pricing tiers (for JS price calculation) ──────────────────── */
+var svGuestTiers = <?= json_encode(array_map(static function ($t) {
+    return [
+        'min'   => (int) ($t['min_guest'] ?? $t['min_guests'] ?? 0),
+        'max'   => isset($t['max_guest']) && $t['max_guest'] !== '' && $t['max_guest'] !== null ? (int) $t['max_guest']
+                   : (isset($t['max_guests']) && $t['max_guests'] !== '' && $t['max_guests'] !== null ? (int) $t['max_guests'] : null),
+        'price' => (float) ($t['guest_price'] ?? $t['price'] ?? 0),
+    ];
+}, $guestPricing ?? [])) ?>;
+
+/* ── Customer events with guest counts ────────────────────────────────── */
+var svCustomerEvents = <?= json_encode(array_map(static fn ($e) => [
+    'id'     => (int) $e['id'],
+    'guests' => (int) ($e['guest_count'] ?? 0),
+], $customerEvents ?? [])) ?>;
+
 /* ── Gallery ──────────────────────────────────────────────────────────── */
 function svSwapMain(thumbEl, url) {
     var img = document.getElementById('sv-main-img');
@@ -764,16 +834,60 @@ function svSyncExtra(cb) {
     svTriggerLiveQuote();
 }
 
+/* ── Guest count for selected event ──────────────────────────────────── */
+function svActiveGuests() {
+    var evId = parseInt((document.getElementById('sv-event-id') || {}).value || 0, 10);
+    if (!evId) return 0;
+    for (var i = 0; i < svCustomerEvents.length; i++) {
+        if (svCustomerEvents[i].id === evId) return svCustomerEvents[i].guests || 0;
+    }
+    return 0;
+}
+
+/* ── Guest-based price from tier table ───────────────────────────────── */
+function svGuestPrice(guests) {
+    for (var i = 0; i < svGuestTiers.length; i++) {
+        var t = svGuestTiers[i];
+        if (guests >= t.min && (t.max === null || guests <= t.max)) {
+            return t.price * guests;
+        }
+    }
+    return 0;
+}
+
 /* ── Price total update ───────────────────────────────────────────────── */
 function svUpdateTotal() {
-    var pkgBtn = document.querySelector('.sv-pkg.is-active');
-    var base   = pkgBtn ? parseInt(pkgBtn.dataset.pkgPrice || 0, 10) : 0;
+    var guests = svActiveGuests();
+    var base = 0;
+
+    if (svGuestTiers.length > 0) {
+        base = guests > 0 ? svGuestPrice(guests) : 0;
+    } else {
+        var pkgBtn = document.querySelector('.sv-pkg.is-active');
+        if (pkgBtn) {
+            base = parseInt(pkgBtn.dataset.pkgPrice || 0, 10);
+        } else {
+            var durSel = document.getElementById('durationPricing');
+            if (durSel && durSel.options.length > 0) {
+                var selOpt = durSel.options[durSel.selectedIndex];
+                base = selOpt ? parseInt(selOpt.dataset.price || 0, 10) : 0;
+            } else {
+                var basePriceEl = document.getElementById('sv-base-price');
+                base = basePriceEl ? parseInt(basePriceEl.value || 0, 10) : 0;
+            }
+        }
+    }
+
     var extras = 0;
     document.querySelectorAll('.sv-extra.is-on').forEach(function(el) {
-        extras += parseInt(el.dataset.extraPrice || 0, 10);
+        var extraPrice = parseInt(el.dataset.extraPrice || 0, 10);
+        var cb = el.querySelector('.extra-checkbox');
+        var perItem = cb && cb.getAttribute('data-per-item') === '1';
+        extras += (perItem && guests > 0) ? extraPrice * guests : extraPrice;
     });
+
     var total = base + extras;
-    var fmt = '£' + total.toLocaleString('en-GB');
+    var fmt = total > 0 ? '£' + total.toLocaleString('en-GB') : (svGuestTiers.length > 0 ? 'Select an event' : '—');
     var hdr = document.getElementById('sv-price-display');
     var amt = document.getElementById('sv-total-amt');
     if (hdr) hdr.textContent = fmt;
@@ -838,12 +952,33 @@ function svRunLiveQuote() {
 
     var durationSelect = document.getElementById('durationPricing');
     if (durationSelect) {
-        durationSelect.addEventListener('change', svTriggerLiveQuote);
+        durationSelect.addEventListener('change', function() {
+            svUpdateTotal();
+            svTriggerLiveQuote();
+        });
+        svUpdateTotal();
     }
+})();
+
+/* ── Inline event selector ────────────────────────────────────────────── */
+(function() {
+    var evSel    = document.getElementById('sv-event-selector');
+    var evHidden = document.getElementById('sv-event-id');
+    if (!evSel || !evHidden) return;
+    evSel.addEventListener('change', function() {
+        evHidden.value = this.value;
+        svUpdateTotal();
+        svTriggerLiveQuote();
+        // Persist preferred event via AJAX (no page reload).
+        fetch('/profile/set-active-event/' + encodeURIComponent(this.value), {
+            headers: { 'X-Requested-With': 'XMLHttpRequest' }
+        }).catch(function() {});
+    });
 })();
 
 /* ── Run live quote on page load ──────────────────────────────────────── */
 document.addEventListener('DOMContentLoaded', function() {
+    svUpdateTotal();
     svRunLiveQuote();
 });
 </script>
