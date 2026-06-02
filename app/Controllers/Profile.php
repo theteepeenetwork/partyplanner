@@ -806,6 +806,10 @@ class Profile extends BaseController
 
         session()->set('preferred_basket_event_id', (int) $eventId);
 
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON(['ok' => true]);
+        }
+
         $redirect = $this->request->getGet('redirect');
         if (is_string($redirect) && $redirect !== '' && str_starts_with($redirect, '/')) {
             return redirect()->to($redirect);
@@ -843,14 +847,32 @@ class Profile extends BaseController
         $allItems = $builder->findAll();
         $vqModel = new VendorQuoteModel();
 
+        // Pre-calculate total price per booking so deposit can be split proportionally.
+        $bookingTotals = [];
+        foreach ($allItems as $bItem) {
+            $bid = (int) $bItem['booking_id'];
+            $bookingTotals[$bid] = ($bookingTotals[$bid] ?? 0.0) + (float) ($bItem['price'] ?? $bItem['service_price'] ?? 0);
+        }
+
+        // Cache payments by booking_id to avoid repeated queries.
+        $paymentsCache = [];
+
         foreach ($allItems as &$item) {
             $vendor = $userModel->find($item['vendor_id']);
             $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
-            $payment = $paymentsModel->where('booking_id', $item['booking_id'])->first();
+            $bid = (int) $item['booking_id'];
+            if (! array_key_exists($bid, $paymentsCache)) {
+                $paymentsCache[$bid] = $paymentsModel->where('booking_id', $bid)->first();
+            }
+            $payment = $paymentsCache[$bid];
             $item['payment_status'] = $payment ? $payment['payment_status'] : 'unpaid';
-            $item['amount_paid'] = $payment ? $payment['amount_paid'] : 0;
             $itemPrice = (float) ($item['price'] ?? $item['service_price'] ?? 0);
-            $item['outstanding'] = max(0, $itemPrice - (float) $item['amount_paid']);
+            $bookingTotal = $bookingTotals[$bid] ?: $itemPrice;
+            $totalPaid    = $payment ? (float) ($payment['amount_paid'] ?? 0) : 0.0;
+            $item['amount_paid'] = ($bookingTotal > 0 && $totalPaid > 0)
+                ? round($itemPrice / $bookingTotal * $totalPaid, 2)
+                : 0.0;
+            $item['outstanding'] = max(0.0, $itemPrice - $item['amount_paid']);
             $qd = json_decode($item['quote_breakdown'] ?? '', true);
             $item['quote_detail'] = is_array($qd) ? $qd : null;
             $item['pending_vendor_quote'] = $vqModel->where('booking_item_id', (int) $item['id'])

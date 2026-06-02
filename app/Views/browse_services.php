@@ -12,24 +12,6 @@
         <div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div>
     <?php endif; ?>
 
-    <?php if (!empty($customerEvents)): ?>
-        <?= view('partials/customer_event_switcher', [
-            'customerEvents' => $customerEvents,
-            'activeEvent' => $activeEvent ?? null,
-        ]) ?>
-    <?php endif; ?>
-
-    <?php if (!empty($activeEvent)): ?>
-        <div class="alert alert-info mb-3">
-            <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
-            Services you add from this page go into the basket for
-            <strong><?= esc($activeEvent['title'] ?? 'your event') ?></strong>
-            <?php if (!empty($activeEvent['date'])): ?>
-                (<?= date('d M Y', strtotime($activeEvent['date'])) ?>)
-            <?php endif; ?>.
-            <a href="/event/basket/<?= (int) $activeEvent['id'] ?>" class="alert-link">View basket</a>
-        </div>
-    <?php endif; ?>
 
     <?php
     $catById = [];
@@ -181,41 +163,88 @@
         </p>
     <?php endif; ?>
 
+    <?php if (!empty($customerEvents)): ?>
+    <div class="browse-event-bar mb-4">
+        <div class="browse-event-bar__label">
+            <i class="fas fa-calendar-check" aria-hidden="true"></i>
+            Shopping for:
+        </div>
+        <?php if (count($customerEvents) === 1): ?>
+            <div class="browse-event-bar__name">
+                <?= esc($customerEvents[0]['title']) ?>
+                <?php if (!empty($customerEvents[0]['date'])): ?>
+                    <span class="browse-event-bar__date">— <?= date('d M Y', strtotime($customerEvents[0]['date'])) ?></span>
+                <?php endif; ?>
+                <span class="browse-event-bar__guests"><?= (int)($customerEvents[0]['guest_count'] ?? 0) ?> guests</span>
+            </div>
+        <?php else: ?>
+            <select class="browse-event-bar__select" id="browse-active-event-select">
+                <?php foreach ($customerEvents as $ev): ?>
+                    <option value="<?= (int)$ev['id'] ?>" <?= !empty($activeEvent) && (int)$activeEvent['id'] === (int)$ev['id'] ? 'selected' : '' ?>>
+                        <?= esc($ev['title']) ?>
+                        <?php if (!empty($ev['date'])): ?>— <?= date('d M Y', strtotime($ev['date'])) ?><?php endif; ?>
+                        (<?= (int)($ev['guest_count'] ?? 0) ?> guests)
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        <?php endif; ?>
+        <?php if (!empty($activeEvent)): ?>
+            <a href="/event/basket/<?= (int)$activeEvent['id'] ?>" class="browse-event-bar__basket">
+                <i class="fas fa-shopping-basket me-1" aria-hidden="true"></i>View basket
+            </a>
+        <?php endif; ?>
+        <a href="/profile/events" class="browse-event-bar__manage">All events</a>
+    </div>
+    <script>
+    (function () {
+        var sel = document.getElementById('browse-active-event-select');
+        if (!sel) return;
+        sel.addEventListener('change', function () {
+            var id = encodeURIComponent(this.value);
+            var redirect = encodeURIComponent(window.location.href);
+            window.location.href = '/profile/set-active-event/' + id + '?redirect=' + redirect;
+        });
+    })();
+    </script>
+    <?php endif; ?>
+
     <?php if (!empty($services)): ?>
         <div class="service-card-container">
             <?php foreach ($services as $service): ?>
                 <div class="service-card">
-                    <a href="<?= base_url('service/view/' . esc($service['id'])) ?>" class="service-card-link text-decoration-none text-body">
-                        <?php if (!empty($service['images'])): ?>
-                            <img src="<?= base_url(esc($service['images'][0]['thumbnail_path'])) ?>"
-                                alt="<?= esc($service['title']) ?>" class="service-card-image" loading="lazy" decoding="async"
-                                onerror="this.onerror=null;this.src='<?= base_url('assets/images/fallback-service-card.jpg') ?>';">
-                        <?php else: ?>
-                            <img src="<?= base_url('assets/images/fallback-service-card.jpg') ?>" alt="No image available"
-                                class="service-card-image" loading="lazy" decoding="async">
-                        <?php endif; ?>
+                    <?php if (!empty($service['images'])): ?>
+                        <img src="<?= base_url(esc($service['images'][0]['thumbnail_path'])) ?>"
+                            alt="<?= esc($service['title']) ?>" class="service-card-image" loading="lazy" decoding="async"
+                            onerror="this.onerror=null;this.src='<?= base_url('assets/images/fallback-service-card.jpg') ?>';">
+                    <?php else: ?>
+                        <img src="<?= base_url('assets/images/fallback-service-card.jpg') ?>" alt="No image available"
+                            class="service-card-image" loading="lazy" decoding="async">
+                    <?php endif; ?>
 
-                        <div class="service-card-content">
-                            <h3 class="service-card-title"><?= esc($service['title']) ?></h3>
-                            <?php if (!empty($service['category_name'])): ?>
-                                <span class="badge bg-secondary mb-2"><?= esc($service['category_name']) ?></span>
-                            <?php endif; ?>
-                            <p class="service-card-description">
-                                <?= esc($service['short_description'] ?? 'No description available.') ?>
-                            </p>
-                            <?php if ((float) ($service['price'] ?? 0) > 0): ?>
-                                <p class="service-price">From &pound;<?= number_format((float) $service['price'], 2) ?></p>
-                            <?php else: ?>
-                                <p class="service-price text-muted">Price on request</p>
-                            <?php endif; ?>
-                        </div>
-                    </a>
-                    <div class="text-center pb-3">
-                        <a href="<?= base_url('service/view/' . esc($service['id'])) ?>" class="service-card-button">View Details</a>
-                        <?php if (session()->has('user_id') && session()->get('role') === 'customer' && !empty($message_eligible_by_service_id[$service['id']])): ?>
-                            <a href="<?= base_url('profile/messages/start/' . esc($service['id'])) ?>" class="btn btn-sm btn-outline-primary ms-1">Message vendor</a>
+                    <div class="service-card-content">
+                        <h3 class="service-card-title"><?= esc($service['title']) ?></h3>
+                        <?php if (!empty($service['category_name'])): ?>
+                            <span class="badge bg-secondary mb-2"><?= esc($service['category_name']) ?></span>
+                        <?php endif; ?>
+                        <p class="service-card-description">
+                            <?= esc($service['short_description'] ?? 'No description available.') ?>
+                        </p>
+                        <?php if ((float) ($service['price'] ?? 0) > 0): ?>
+                            <p class="service-price">From &pound;<?= number_format((float) $service['price'], 2) ?></p>
+                        <?php else: ?>
+                            <p class="service-price text-muted">Price on request</p>
                         <?php endif; ?>
                     </div>
+
+                    <a href="<?= base_url('service/view/' . esc($service['id'])) ?>"
+                       class="stretched-link"
+                       aria-label="View <?= esc($service['title']) ?>"></a>
+
+                    <?php if (session()->has('user_id') && session()->get('role') === 'customer' && !empty($message_eligible_by_service_id[$service['id']])): ?>
+                        <div class="text-center pb-3" style="position:relative;z-index:2">
+                            <a href="<?= base_url('profile/messages/start/' . esc($service['id'])) ?>" class="btn btn-sm btn-outline-primary">Message vendor</a>
+                        </div>
+                    <?php endif; ?>
                 </div>
             <?php endforeach; ?>
         </div>
