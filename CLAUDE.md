@@ -49,7 +49,7 @@ mysql --default-character-set=utf8mb4 event_marketplace < database_service_requi
 **Credentials** (`.env` defaults match):
 
 ```
-database.app.hostname = 127.0.0.1
+database.app.hostname = eventplanner.test
 database.app.database = event_marketplace
 database.app.username = root
 database.app.password =
@@ -103,8 +103,7 @@ scripts/safe-git.sh    # git operations wrapper
 ## Development Commands
 
 ```bash
-# Start development server
-CI_ENVIRONMENT=cloud php spark serve --host 127.0.0.1 --port 8888
+# The app runs via a virtual host at http://eventplanner.test — no spark serve needed.
 
 # Fast validation
 find app -name "*.php" -exec php -l {} \;
