@@ -498,6 +498,10 @@ class Profile extends BaseController
 
         session()->set('preferred_basket_event_id', (int) $eventId);
 
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON(['ok' => true]);
+        }
+
         $redirect = $this->request->getGet('redirect');
         if (is_string($redirect) && $redirect !== '' && str_starts_with($redirect, '/')) {
             return redirect()->to($redirect);

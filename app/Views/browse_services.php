@@ -12,24 +12,6 @@
         <div class="alert alert-danger"><?= esc(session()->getFlashdata('error')) ?></div>
     <?php endif; ?>
 
-    <?php if (!empty($customerEvents)): ?>
-        <?= view('partials/customer_event_switcher', [
-            'customerEvents' => $customerEvents,
-            'activeEvent' => $activeEvent ?? null,
-        ]) ?>
-    <?php endif; ?>
-
-    <?php if (!empty($activeEvent)): ?>
-        <div class="alert alert-info mb-3">
-            <i class="fas fa-info-circle me-1" aria-hidden="true"></i>
-            Services you add from this page go into the basket for
-            <strong><?= esc($activeEvent['title'] ?? 'your event') ?></strong>
-            <?php if (!empty($activeEvent['date'])): ?>
-                (<?= date('d M Y', strtotime($activeEvent['date'])) ?>)
-            <?php endif; ?>.
-            <a href="/event/basket/<?= (int) $activeEvent['id'] ?>" class="alert-link">View basket</a>
-        </div>
-    <?php endif; ?>
 
     <?php
     $catById = [];
@@ -179,6 +161,51 @@
             ?>
             Showing results for <?= implode(' &middot; ', $filterParts) ?>
         </p>
+    <?php endif; ?>
+
+    <?php if (!empty($customerEvents)): ?>
+    <div class="browse-event-bar mb-4">
+        <div class="browse-event-bar__label">
+            <i class="fas fa-calendar-check" aria-hidden="true"></i>
+            Shopping for:
+        </div>
+        <?php if (count($customerEvents) === 1): ?>
+            <div class="browse-event-bar__name">
+                <?= esc($customerEvents[0]['title']) ?>
+                <?php if (!empty($customerEvents[0]['date'])): ?>
+                    <span class="browse-event-bar__date">— <?= date('d M Y', strtotime($customerEvents[0]['date'])) ?></span>
+                <?php endif; ?>
+                <span class="browse-event-bar__guests"><?= (int)($customerEvents[0]['guest_count'] ?? 0) ?> guests</span>
+            </div>
+        <?php else: ?>
+            <select class="browse-event-bar__select" id="browse-active-event-select">
+                <?php foreach ($customerEvents as $ev): ?>
+                    <option value="<?= (int)$ev['id'] ?>" <?= !empty($activeEvent) && (int)$activeEvent['id'] === (int)$ev['id'] ? 'selected' : '' ?>>
+                        <?= esc($ev['title']) ?>
+                        <?php if (!empty($ev['date'])): ?>— <?= date('d M Y', strtotime($ev['date'])) ?><?php endif; ?>
+                        (<?= (int)($ev['guest_count'] ?? 0) ?> guests)
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        <?php endif; ?>
+        <?php if (!empty($activeEvent)): ?>
+            <a href="/event/basket/<?= (int)$activeEvent['id'] ?>" class="browse-event-bar__basket">
+                <i class="fas fa-shopping-basket me-1" aria-hidden="true"></i>View basket
+            </a>
+        <?php endif; ?>
+        <a href="/profile/events" class="browse-event-bar__manage">All events</a>
+    </div>
+    <script>
+    (function () {
+        var sel = document.getElementById('browse-active-event-select');
+        if (!sel) return;
+        sel.addEventListener('change', function () {
+            var id = encodeURIComponent(this.value);
+            var redirect = encodeURIComponent(window.location.href);
+            window.location.href = '/profile/set-active-event/' + id + '?redirect=' + redirect;
+        });
+    })();
+    </script>
     <?php endif; ?>
 
     <?php if (!empty($services)): ?>
