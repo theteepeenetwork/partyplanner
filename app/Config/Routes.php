@@ -40,14 +40,18 @@ $routes->post('/profile/vendor-quote/(:num)/accept', 'Profile::acceptVendorQuote
 // Vendor tabs
 $routes->get('/profile/services', 'Profile::services');
 $routes->get('/profile/bookings', 'Profile::vendorBookings');
+$routes->get('/profile/request/(:num)', 'Profile::vendorRequestDetail/$1');
+$routes->get('/profile/earnings', 'Profile::vendorEarnings');
 $routes->get('/profile/calendar', 'Profile::vendorCalendar');
 $routes->get('/profile/calendar-data', 'Profile::calendarData');
 $routes->match(['GET', 'POST'], '/profile/host-profile', 'Profile::hostProfile');
 
 // Customer tabs
 $routes->get('/profile/events', 'Profile::customerEvents');
+$routes->get('/profile/events/(:num)', 'Profile::customerEventDetail/$1');
 $routes->get('/profile/set-active-event/(:num)', 'Profile::setActiveEvent/$1');
 $routes->get('/profile/my-bookings', 'Profile::customerBookings');
+$routes->get('/profile/my-bookings/(:num)', 'Profile::customerBookingDetail/$1');
 $routes->get('/profile/messages', 'Profile::customerMessages');
 $routes->get('/profile/messages/start/(:num)', 'Profile::startMessageForService/$1');
 $routes->get('/profile/messages/by-booking/(:num)', 'Profile::openThreadForBookingItem/$1');

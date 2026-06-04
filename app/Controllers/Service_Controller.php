@@ -127,16 +127,51 @@ class Service_Controller extends BaseController
 
         $builder = $this->applyBrowseSort($builder, $sort, $cols);
 
+        // Resolve active event ID before filtering (URL param takes precedence over session).
+        $queryEventId = $this->request->getGet('event_id');
+        $basketEventId = null;
+        if ($queryEventId !== null && $queryEventId !== '') {
+            $basketEventId = (int) $queryEventId;
+        } elseif (session()->get('preferred_basket_event_id') !== null) {
+            $basketEventId = (int) session()->get('preferred_basket_event_id');
+        }
+
+        $showUnavailable = $this->request->getGet('show_unavailable') === '1';
+
         $services = $builder->findAll();
-        $services = $this->filterServicesByEventCoverage($services);
+        $services = $this->filterAndTagServicesByActiveEvent($services, $basketEventId, $showUnavailable);
+
+        // Bulk-fetch vendor ratings to avoid N+1 queries.
+        $vendorIds = array_unique(array_column($services, 'vendor_id'));
+        $ratingsByVendor = [];
+        if (!empty($vendorIds)) {
+            $db = \Config\Database::connect();
+            $rows = $db->table('reviews')
+                ->select('vendor_id, AVG(rating) AS avg_rating, COUNT(*) AS cnt')
+                ->whereIn('vendor_id', $vendorIds)
+                ->groupBy('vendor_id')
+                ->get()->getResultArray();
+            foreach ($rows as $r) {
+                $ratingsByVendor[(int) $r['vendor_id']] = [
+                    'avg' => round((float) $r['avg_rating'], 1),
+                    'cnt' => (int) $r['cnt'],
+                ];
+            }
+        }
 
         foreach ($services as &$service) {
             $service['images'] = $serviceImageModel
                 ->where(['service_id' => $service['id'], 'is_primary' => 1])
                 ->findAll();
             $service['category_name'] = $categoryModel->getServiceCategoryLabel($service);
+            $vid = (int) $service['vendor_id'];
+            $service['avg_rating']   = $ratingsByVendor[$vid]['avg'] ?? null;
+            $service['review_count'] = $ratingsByVendor[$vid]['cnt'] ?? 0;
         }
+        unset($service);
 
+        // Which services are already in the active event's basket?
+        $basketServiceIds = [];
         $messageEligibleByServiceId = [];
         if (session()->has('user_id') && session()->get('role') === 'customer') {
             $serviceIds = array_column($services, 'id');
@@ -149,12 +184,16 @@ class Service_Controller extends BaseController
 
         $customerEventContext = $this->customerEventContextForBrowse();
 
-        $queryEventId = $this->request->getGet('event_id');
-        $basketEventId = null;
-        if ($queryEventId !== null && $queryEventId !== '') {
-            $basketEventId = (int) $queryEventId;
-        } elseif (session()->get('preferred_basket_event_id') !== null) {
-            $basketEventId = (int) session()->get('preferred_basket_event_id');
+        // Which service IDs are already in the active event's basket?
+        $activeEventId = $customerEventContext['active']['id'] ?? $basketEventId;
+        if ($activeEventId && session()->has('user_id')) {
+            $db = \Config\Database::connect();
+            $rows = $db->table('event_basket_items')
+                ->select('service_id')
+                ->where('event_id', (int) $activeEventId)
+                ->where('user_id', (int) session()->get('user_id'))
+                ->get()->getResultArray();
+            $basketServiceIds = array_column($rows, 'service_id');
         }
 
         $data = [
@@ -173,9 +212,11 @@ class Service_Controller extends BaseController
             'selectedDate' => $date,
             'searchQuery' => $searchQuery ?? '',
             'basketEventId' => $basketEventId,
+            'showUnavailable' => $showUnavailable,
             'message_eligible_by_service_id' => $messageEligibleByServiceId,
             'customerEvents' => $customerEventContext['events'],
-            'activeEvent' => $customerEventContext['active'],
+            'activeEvent'    => $customerEventContext['active'],
+            'basketServiceIds' => $basketServiceIds,
         ];
 
         return view('browse_services', $data);
@@ -490,6 +531,19 @@ class Service_Controller extends BaseController
         $preferred = session()->get('preferred_basket_event_id');
         $preferredId = $preferred !== null ? (int) $preferred : null;
         $active = $summary->resolveActiveEvent($events, $preferredId);
+
+        // Add basket item counts and estimated totals per event.
+        $db = \Config\Database::connect();
+        foreach ($events as &$ev) {
+            $rows = $db->table('event_basket_items')
+                ->select('COUNT(*) as cnt, SUM(estimated_total) as total')
+                ->where('event_id', $ev['id'])
+                ->where('user_id', $userId)
+                ->get()->getRowArray();
+            $ev['basket_count'] = (int) ($rows['cnt'] ?? 0);
+            $ev['basket_total'] = (float) ($rows['total'] ?? 0);
+        }
+        unset($ev);
 
         return ['events' => $events, 'active' => $active];
     }
@@ -3081,56 +3135,116 @@ class Service_Controller extends BaseController
     }
 
     /**
-     * When browsing with ?event_id=, hide vendors outside strict travel radius.
+     * Filter or tag services based on the active event's compatibility.
+     *
+     * When $showUnavailable is false (default), incompatible services are removed.
+     * When true, they are kept but tagged with a '_unavailable_reasons' array so
+     * the view can render them as greyed-out with a tooltip.
+     *
+     * Checks: travel distance, guest-count capacity, and date availability.
      *
      * @param list<array<string,mixed>> $services
      * @return list<array<string,mixed>>
      */
-    private function filterServicesByEventCoverage(array $services): array
+    private function filterAndTagServicesByActiveEvent(array $services, ?int $eventId, bool $showUnavailable): array
     {
-        $eventId = $this->request->getGet('event_id');
-        if ($eventId === null || $eventId === '') {
+        if (!$eventId || empty($services)) {
             return $services;
         }
 
         $eventModel = new EventModel();
-        $event = $eventModel->find((int) $eventId);
-        if (!$event || empty($event['latitude']) || empty($event['longitude'])) {
+        $event = $eventModel->find($eventId);
+        if (!$event) {
             return $services;
         }
 
         $locationModel = new ServiceLocationModel();
-        $quoteBuilder = new EventQuoteBuilder();
-        $filtered = [];
+        $quoteBuilder  = new EventQuoteBuilder();
+        $db            = \Config\Database::connect();
+        $cols          = $this->getServicesTableColumns();
 
-        foreach ($services as $service) {
-            $locRow = $locationModel->where('service_id', (int) $service['id'])->first();
-            $loc = $quoteBuilder->mergeServiceLocation($service, $locRow);
-            if (empty($loc['strict_travel_radius'])) {
-                $filtered[] = $service;
-                continue;
-            }
+        $eventLat     = !empty($event['latitude'])    ? (float) $event['latitude']    : null;
+        $eventLng     = !empty($event['longitude'])   ? (float) $event['longitude']   : null;
+        $eventGuests  = (int) ($event['guest_count'] ?? 0);
+        $eventDate    = !empty($event['date']) ? (string) $event['date'] : null;
+        $eventSetting = $event['event_setting'] ?? 'private'; // 'private' or 'public'
 
-            $distance = EventBookingQuote::haversineKm(
-                (float) $loc['latitude'],
-                (float) $loc['longitude'],
-                (float) $event['latitude'],
-                (float) $event['longitude']
-            );
-            $travel = (new EventBookingQuote())->computeTravel($distance, $loc);
-            $blocked = false;
-            foreach ($travel['warnings'] as $w) {
-                if (str_contains($w, 'exceeds the vendor') || str_contains($w, 'beyond the maximum')) {
-                    $blocked = true;
-                    break;
-                }
-            }
-            if (!$blocked) {
-                $filtered[] = $service;
+        // Bulk-fetch service event types to avoid N+1 queries.
+        $serviceIds = array_column($services, 'id');
+        $typesByServiceId = [];
+        if ($db->tableExists('services_event_types')) {
+            $typeRows = $db->table('services_event_types')
+                ->whereIn('service_id', $serviceIds)
+                ->get()->getResultArray();
+            foreach ($typeRows as $row) {
+                $typesByServiceId[(int) $row['service_id']][] = $row['event_type'];
             }
         }
 
-        return $filtered;
+        $result = [];
+        foreach ($services as $service) {
+            $reasons = [];
+
+            // Event setting compatibility: mirrors the addToBasket guard in EventController.
+            $typeSlugs = $typesByServiceId[(int) $service['id']] ?? [];
+            if ($eventSetting === 'public' && !in_array('public', $typeSlugs, true)) {
+                $reasons[] = 'Not offered for public events';
+            } elseif ($eventSetting === 'private' && !in_array('private', $typeSlugs, true)) {
+                $reasons[] = 'Not offered for private events';
+            }
+
+            // Distance: only block if vendor has a strict travel radius set.
+            if ($eventLat !== null && $eventLng !== null) {
+                $locRow = $locationModel->where('service_id', (int) $service['id'])->first();
+                $loc    = $quoteBuilder->mergeServiceLocation($service, $locRow);
+                if (!empty($loc['strict_travel_radius'])) {
+                    $distance = EventBookingQuote::haversineKm(
+                        (float) $loc['latitude'],
+                        (float) $loc['longitude'],
+                        $eventLat,
+                        $eventLng
+                    );
+                    $travel = (new EventBookingQuote())->computeTravel($distance, $loc);
+                    foreach ($travel['warnings'] as $w) {
+                        if (str_contains($w, 'exceeds the vendor') || str_contains($w, 'beyond the maximum')) {
+                            $reasons[] = 'Too far from your event location';
+                            break;
+                        }
+                    }
+                }
+            }
+
+            // Guest count: skip when event has no guests or service has no capacity limits.
+            if ($eventGuests > 0) {
+                $minCap = in_array('min_capacity', $cols, true) ? $service['min_capacity'] : null;
+                $maxCap = in_array('max_capacity', $cols, true) ? $service['max_capacity'] : null;
+                if ($minCap !== null && $minCap !== '' && (int) $minCap > $eventGuests) {
+                    $reasons[] = 'Minimum ' . (int) $minCap . ' guests required (your event has ' . $eventGuests . ')';
+                } elseif ($maxCap !== null && $maxCap !== '' && (int) $maxCap < $eventGuests) {
+                    $reasons[] = 'Maximum capacity is ' . (int) $maxCap . ' guests (your event has ' . $eventGuests . ')';
+                }
+            }
+
+            // Date: vendor has marked the event date unavailable.
+            if ($eventDate !== null && $db->tableExists('unavailable_dates')) {
+                $blocked = $db->table('unavailable_dates')
+                    ->where('vendor_id', (int) $service['vendor_id'])
+                    ->where('date', $eventDate)
+                    ->countAllResults() > 0;
+                if ($blocked) {
+                    $reasons[] = 'Not available on your event date';
+                }
+            }
+
+            if (empty($reasons)) {
+                $result[] = $service;
+            } elseif ($showUnavailable) {
+                $service['_unavailable_reasons'] = $reasons;
+                $result[] = $service;
+            }
+        }
+
+        return $result;
     }
 
     /**

@@ -342,15 +342,18 @@ class Profile extends BaseController
         $serviceImageModel = new ServiceImageModel();
         $categoryModel = new CategoryModel();
 
+        $bookingItemModel = new BookingItemModel();
         $allServices = $serviceModel->where('vendor_id', $userId)->where('deleted_at', null)->findAll();
         foreach ($allServices as &$svc) {
-            $svc['images'] = $serviceImageModel->where('service_id', $svc['id'])->findAll();
-            $svc['category_name'] = $categoryModel->getServiceCategoryLabel($svc);
+            $svc['images']         = $serviceImageModel->where(['service_id' => $svc['id'], 'is_primary' => 1])->findAll();
+            $svc['category_name']  = $categoryModel->getServiceCategoryLabel($svc);
+            $svc['bookings_count'] = $bookingItemModel->where('service_id', $svc['id'])->countAllResults();
         }
+        unset($svc);
 
         return view('dashboard/vendor_services', [
-            'user' => $user,
-            'services' => $allServices,
+            'user'       => $user,
+            'services'   => $allServices,
             'currentTab' => 'services',
         ]);
     }
@@ -413,6 +416,141 @@ class Profile extends BaseController
         ]);
     }
 
+    public function vendorEarnings()
+    {
+        if ($r = $this->requireVendor()) return $r;
+        $user   = $this->getUser();
+        $userId = (int) $user['id'];
+
+        $serviceModel     = new ServiceModel();
+        $bookingItemModel = new BookingItemModel();
+        $paymentsModel    = new PaymentsModel();
+
+        $services       = $serviceModel->where('vendor_id', $userId)->where('status', 'active')->findAll();
+        $serviceIds     = array_column($services, 'id');
+
+        $earningsThisMonth = 0.0;
+        $settledTotal      = 0.0;
+        $pendingTotal      = 0.0;
+        $monthlyEarnings   = [];
+        $payoutHistory     = [];
+
+        if (! empty($serviceIds)) {
+            $db = \Config\Database::connect();
+
+            // This month
+            $monthStart = date('Y-m-01 00:00:00');
+            $monthEnd   = date('Y-m-t 23:59:59');
+            $row = $db->table('payments')
+                ->select('SUM(payments.amount_paid) as total')
+                ->join('booking_items', 'booking_items.booking_id = payments.booking_id')
+                ->whereIn('booking_items.service_id', $serviceIds)
+                ->where('payments.payment_status', 'succeeded')
+                ->where('payments.created_at >=', $monthStart)
+                ->where('payments.created_at <=', $monthEnd)
+                ->get()->getRowArray();
+            $earningsThisMonth = (float) ($row['total'] ?? 0);
+
+            // Last 6 months
+            for ($i = 5; $i >= 0; $i--) {
+                $ts    = strtotime("-{$i} months");
+                $mStart = date('Y-m-01 00:00:00', $ts);
+                $mEnd   = date('Y-m-t 23:59:59', $ts);
+                $mRow   = $db->table('payments')
+                    ->select('SUM(payments.amount_paid) as total')
+                    ->join('booking_items', 'booking_items.booking_id = payments.booking_id')
+                    ->whereIn('booking_items.service_id', $serviceIds)
+                    ->where('payments.payment_status', 'succeeded')
+                    ->where('payments.created_at >=', $mStart)
+                    ->where('payments.created_at <=', $mEnd)
+                    ->get()->getRowArray();
+                $monthlyEarnings[] = [
+                    'month'  => date('M', $ts),
+                    'amount' => (float) ($mRow['total'] ?? 0),
+                ];
+            }
+            $settledTotal = array_sum(array_column($monthlyEarnings, 'amount'));
+
+            // Pending = accepted booking items not yet paid
+            $pendingItems = $bookingItemModel
+                ->join('payments', 'payments.booking_id = booking_items.booking_id', 'left')
+                ->whereIn('booking_items.service_id', $serviceIds)
+                ->where('booking_items.status', 'accepted')
+                ->where('(payments.id IS NULL OR payments.payment_status != \'succeeded\')', null, false)
+                ->findAll();
+            foreach ($pendingItems as $pi) {
+                $pendingTotal += (float) ($pi['price'] ?? 0) * 0.15;
+            }
+
+            // Recent payments as payout history
+            $payoutHistory = $db->table('payments')
+                ->select('payments.amount_paid as amount, payments.payment_status as status, payments.created_at as date, payments.id as ref')
+                ->join('booking_items', 'booking_items.booking_id = payments.booking_id')
+                ->whereIn('booking_items.service_id', $serviceIds)
+                ->orderBy('payments.created_at', 'DESC')
+                ->limit(8)
+                ->get()->getResultArray();
+            foreach ($payoutHistory as &$ph) {
+                $ph['status']    = $ph['status'] === 'succeeded' ? 'settled' : 'pending';
+                $ph['date']      = date('d M Y', strtotime($ph['date']));
+                $ph['reference'] = 'PAY-' . str_pad($ph['ref'], 6, '0', STR_PAD_LEFT);
+            }
+            unset($ph);
+        }
+
+        $allMonths = array_column($monthlyEarnings, 'amount');
+        $avgMonthly = count($allMonths) > 0 ? array_sum($allMonths) / count($allMonths) : 0;
+
+        return view('dashboard/vendor_earnings', [
+            'user'              => $user,
+            'earningsThisMonth' => $earningsThisMonth,
+            'settledTotal'      => $settledTotal,
+            'pendingTotal'      => $pendingTotal,
+            'avgMonthly'        => $avgMonthly,
+            'monthlyEarnings'   => $monthlyEarnings,
+            'payoutHistory'     => $payoutHistory,
+            'currentTab'        => 'earnings',
+        ]);
+    }
+
+    public function vendorRequestDetail($bookingItemId)
+    {
+        if ($r = $this->requireVendor()) return $r;
+        $user   = $this->getUser();
+        $userId = (int) $user['id'];
+
+        $bookingItemModel = new BookingItemModel();
+        $serviceModel     = new ServiceModel();
+
+        $item = $bookingItemModel
+            ->select('booking_items.*, bookings.event_id, bookings.id as booking_id,
+                      services.title as service_title, services.vendor_id,
+                      events.title as event_title, events.date as event_date, events.location, events.guest_count,
+                      users.name as customer_name,
+                      payments.payment_status, payments.amount_paid', false)
+            ->join('bookings', 'bookings.id = booking_items.booking_id')
+            ->join('events', 'events.id = bookings.event_id')
+            ->join('services', 'services.id = booking_items.service_id')
+            ->join('users', 'users.id = bookings.user_id')
+            ->join('payments', 'payments.booking_id = booking_items.booking_id', 'left')
+            ->where('booking_items.id', (int) $bookingItemId)
+            ->where('services.vendor_id', $userId)
+            ->first();
+
+        if (! $item) {
+            return redirect()->to('/profile/bookings')->with('error', 'Request not found.');
+        }
+
+        $qd = json_decode($item['quote_breakdown'] ?? '', true);
+        $item['quote_detail'] = is_array($qd) ? $qd : null;
+
+        return view('dashboard/vendor_request_detail', [
+            'user'       => $user,
+            'item'       => $item,
+            'currentTab' => 'bookings',
+        ]);
+    }
+
     public function hostProfile()
     {
         if ($r = $this->requireVendor()) {
@@ -451,8 +589,17 @@ class Profile extends BaseController
             return redirect()->to('/profile/host-profile')->with('success', 'Host profile saved.');
         }
 
+        $serviceModel      = new ServiceModel();
+        $serviceImageModel = new ServiceImageModel();
+        $hostServices      = $serviceModel->where('vendor_id', $user['id'])->where('status', 'active')->where('deleted_at', null)->findAll();
+        foreach ($hostServices as &$svc) {
+            $svc['images'] = $serviceImageModel->where(['service_id' => $svc['id'], 'is_primary' => 1])->findAll();
+        }
+        unset($svc);
+
         return view('dashboard/vendor_host_profile', [
             'user'       => $user,
+            'services'   => $hostServices,
             'currentTab' => 'host-profile',
         ]);
     }
@@ -518,16 +665,130 @@ class Profile extends BaseController
 
         $events = $eventModel->where('user_id', $userId)->orderBy('date', 'ASC')->findAll();
         $events = $summary->enrichMany($userId, $events);
+        $today  = new \DateTime('today');
         foreach ($events as &$event) {
             $event['servicesBooked'] = $event['services_booked'] ?? 0;
-            $event['totalCost'] = $event['total_cost'] ?? 0;
+            $event['totalCost']      = $event['total_cost'] ?? 0;
+            if (! empty($event['date'])) {
+                $d             = new \DateTime($event['date']);
+                $event['days'] = (int) $today->diff($d)->days * ($d >= $today ? 1 : -1);
+            } else {
+                $event['days'] = null;
+            }
         }
         unset($event);
+        usort($events, static fn ($a, $b) => ($a['days'] ?? PHP_INT_MAX) <=> ($b['days'] ?? PHP_INT_MAX));
 
         return view('dashboard/customer_events', [
-            'user' => $user,
-            'events' => $events,
+            'user'       => $user,
+            'events'     => $events,
             'currentTab' => 'events',
+        ]);
+    }
+
+    public function customerEventDetail($eventId)
+    {
+        if ($r = $this->requireCustomer()) return $r;
+        $user   = $this->getUser();
+        $userId = (int) $user['id'];
+
+        $eventModel       = new EventModel();
+        $bookingModel     = new BookingModel();
+        $bookingItemModel = new BookingItemModel();
+        $paymentsModel    = new PaymentsModel();
+        $userModel        = new UserModel();
+
+        $event = $eventModel->find((int) $eventId);
+        if (! $event || (int) ($event['user_id'] ?? 0) !== $userId) {
+            return redirect()->to('/profile/events')->with('error', 'Event not found.');
+        }
+
+        $today = new \DateTime('today');
+        if (! empty($event['date'])) {
+            $d              = new \DateTime($event['date']);
+            $event['days']  = (int) $today->diff($d)->days * ($d >= $today ? 1 : -1);
+        }
+
+        $bookings     = $bookingModel->where('event_id', $event['id'])->findAll();
+        $liveBookings = [];
+        foreach ($bookings as $booking) {
+            $items = $bookingItemModel
+                ->select('booking_items.*, services.title as service_title, services.category_id, users.name as vendor_name, payments.payment_status, payments.amount_paid', false)
+                ->join('services', 'services.id = booking_items.service_id')
+                ->join('users', 'users.id = services.vendor_id')
+                ->join('payments', 'payments.booking_id = booking_items.booking_id', 'left')
+                ->where('booking_items.booking_id', $booking['id'])
+                ->findAll();
+            foreach ($items as $item) {
+                if (! in_array($item['status'] ?? '', ['rejected', 'cancelled'], true)) {
+                    $liveBookings[] = array_merge($item, [
+                        'event_id'       => $event['id'],
+                        'event_title'    => $event['title'],
+                        'event_date'     => $event['date'] ?? null,
+                        'event_location' => $event['location'] ?? '',
+                    ]);
+                }
+            }
+        }
+
+        $categoryModel      = new \App\Models\CategoryModel();
+        $planningCategories = ['Venue', 'Catering', 'Photography', 'Entertainment', 'Flowers', 'Cake', 'Transport', 'Hair & beauty'];
+
+        return view('dashboard/customer_event_detail', [
+            'user'               => $user,
+            'event'              => $event,
+            'liveBookings'       => $liveBookings,
+            'planningCategories' => $planningCategories,
+            'currentTab'         => 'events',
+        ]);
+    }
+
+    public function customerBookingDetail($bookingItemId)
+    {
+        if ($r = $this->requireCustomer()) return $r;
+        $user   = $this->getUser();
+        $userId = (int) $user['id'];
+
+        $bookingItemModel = new BookingItemModel();
+        $vqModel          = new VendorQuoteModel();
+
+        $item = $bookingItemModel
+            ->select('booking_items.*, bookings.event_id, bookings.id as booking_id, bookings.user_id,
+                      services.title as service_title, services.vendor_id, services.price as service_price, services.id as service_id,
+                      events.title as event_title, events.date as event_date, events.location as event_location,
+                      users.name as vendor_name,
+                      payments.payment_status, payments.amount_paid', false)
+            ->join('bookings', 'bookings.id = booking_items.booking_id')
+            ->join('events', 'events.id = bookings.event_id')
+            ->join('services', 'services.id = booking_items.service_id')
+            ->join('users', 'users.id = services.vendor_id')
+            ->join('payments', 'payments.booking_id = booking_items.booking_id', 'left')
+            ->where('booking_items.id', (int) $bookingItemId)
+            ->where('bookings.user_id', $userId)
+            ->first();
+
+        if (! $item) {
+            return redirect()->to('/profile/my-bookings')->with('error', 'Booking not found.');
+        }
+
+        $qd = json_decode($item['quote_breakdown'] ?? '', true);
+        $item['quote_detail'] = is_array($qd) ? $qd : null;
+        $item['pending_vendor_quote'] = $vqModel
+            ->where('booking_item_id', (int) $item['id'])
+            ->where('status', 'sent')
+            ->orderBy('id', 'DESC')
+            ->first();
+
+        $reviewableIds = array_map(
+            static fn ($r) => (int) $r['booking_item_id'],
+            $bookingItemModel->reviewableItemsForCustomer($userId)
+        );
+
+        return view('dashboard/customer_booking_detail', [
+            'user'          => $user,
+            'item'          => $item,
+            'reviewableIds' => $reviewableIds,
+            'currentTab'    => 'bookings',
         ]);
     }
 
@@ -687,9 +948,19 @@ class Profile extends BaseController
             $room['unread_count'] = $chatMessageModel->where('chat_room_id', $room['id'])->where('receiver_id', $userId)->where('is_read', 0)->countAllResults();
         }
 
+        // Open the first room by default (or the one from the URL if called via customerMessageThread)
+        $activeRoom = ! empty($rooms) ? $rooms[0] : null;
+        $messages   = [];
+        if ($activeRoom) {
+            $chatMessageModel->where('chat_room_id', $activeRoom['id'])->where('receiver_id', $userId)->where('is_read', 0)->set(['is_read' => 1])->update();
+            $messages = $chatMessageModel->where('chat_room_id', $activeRoom['id'])->orderBy('created_at', 'ASC')->findAll();
+        }
+
         return view('dashboard/customer_messages', [
-            'user' => $user,
-            'rooms' => $rooms,
+            'user'       => $user,
+            'rooms'      => $rooms,
+            'activeRoom' => $activeRoom,
+            'messages'   => $messages,
             'currentTab' => 'messages',
         ]);
     }

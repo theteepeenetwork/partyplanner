@@ -1,55 +1,42 @@
 <?= $this->include('header') ?>
-
 <main class="page-main">
 <div class="dashboard-wrapper">
-    <div class="container">
-        <?= $this->include('dashboard/_customer_tabs') ?>
-
-        <div class="mb-4">
-            <h4 class="mb-2">My Favourites</h4>
-            <p class="dash-page-lead mb-0">Your shortlist of services from the marketplace. Open any card to read details, compare pricing, or move forward with a booking.</p>
-        </div>
-
-        <?php if (session()->getFlashdata('success')): ?>
-            <div class="alert alert-success"><?= session()->getFlashdata('success') ?></div>
-        <?php endif; ?>
+<div class="container">
+    <?= $this->include('dashboard/_customer_tabs') ?>
+    <?= $this->include('dashboard/_flash_alerts') ?>
+    <div class="fye-page">
+        <h1 class="fye-page-title">Saved suppliers</h1>
+        <p class="fye-page-sub" style="margin-bottom:22px">Suppliers you've favourited while browsing. Send a request when you're ready.</p>
 
         <?php if (!empty($favourites)): ?>
-            <div class="row g-3">
-                <?php foreach ($favourites as $fav): ?>
-                    <div class="col-md-6 col-lg-4">
-                        <div class="dash-card h-100">
-                            <?php if (!empty($fav['image'])): ?>
-                                <img src="<?= base_url($fav['image']) ?>" class="rounded mb-2" style="width:100%; height:140px; object-fit:cover;" alt="<?= esc($fav['service']['title']) ?>">
-                            <?php else: ?>
-                                <div class="rounded mb-2 d-flex align-items-center justify-content-center bg-light" style="height:140px;">
-                                    <i class="fas fa-image fa-2x text-muted"></i>
-                                </div>
-                            <?php endif; ?>
-
-                            <h6 class="mb-1"><?= esc($fav['service']['title']) ?></h6>
-                            <div class="text-muted small mb-1">
-                                <i class="fas fa-store me-1"></i><?= esc($fav['vendor_name']) ?>
-                            </div>
+            <div class="fye-gal">
+                <?php foreach ($favourites as $fav):
+                    $svc     = $fav['service'];
+                    $price   = !empty($svc['price']) ? 'from £' . number_format((float)$svc['price'], 2) : null;
+                    $loc     = $svc['service_location'] ?? null;
+                ?>
+                    <div class="gcard" style="position:relative">
+                        <?php if (!empty($fav['image'])): ?>
+                            <img src="<?= base_url(esc($fav['image'])) ?>" class="gc-img" alt="<?= esc($svc['title']) ?>">
+                        <?php else: ?>
+                            <div class="gc-ph"><?= esc($fav['category_name'] ?? 'service') ?></div>
+                        <?php endif; ?>
+                        <div class="gc-body">
+                            <div class="gn"><?= esc($svc['title']) ?></div>
+                            <div class="gc"><?= esc($fav['vendor_name']) ?><?= $loc ? ' · ' . esc($loc) : '' ?></div>
                             <?php if (!empty($fav['category_name'])): ?>
-                                <span class="badge bg-light text-dark small mb-1"><?= esc($fav['category_name']) ?></span>
+                                <div style="margin-top:4px"><span class="fye-pill action" style="font-size:11px"><?= esc($fav['category_name']) ?></span></div>
                             <?php endif; ?>
-
-                            <?php if (!empty($fav['service']['price'])): ?>
-                                <p class="fw-bold text-primary mb-2">From £<?= number_format($fav['service']['price'], 2) ?></p>
-                            <?php endif; ?>
-
-                            <?php if (!empty($fav['service']['service_location'])): ?>
-                                <div class="text-muted small mb-2">
-                                    <i class="fas fa-map-marker-alt me-1"></i><?= esc($fav['service']['service_location']) ?>
-                                </div>
-                            <?php endif; ?>
-
-                            <div class="d-flex gap-1 flex-wrap">
-                                <a href="/service/view/<?= $fav['service']['id'] ?>" class="btn btn-sm btn-outline-primary">View</a>
-                                <a href="/service/view/<?= $fav['service']['id'] ?>" class="btn btn-sm btn-outline-success">Add to Event</a>
-                                <a href="/profile/favourites/remove/<?= $fav['favourite_id'] ?>" class="btn btn-sm btn-outline-danger" onclick="return confirm('Remove from favourites?');">
-                                    <i class="fas fa-heart-broken"></i>
+                            <div class="gmeta" style="margin-top:11px">
+                                <span class="price"><?= $price ?? 'Price on request' ?></span>
+                            </div>
+                            <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+                                <a href="/service/view/<?= (int)$svc['id'] ?>" class="fye-btn ghost sm">View</a>
+                                <a href="/service/view/<?= (int)$svc['id'] ?>" class="fye-btn primary sm">Add to event</a>
+                                <a href="/profile/favourites/remove/<?= (int)$fav['favourite_id'] ?>"
+                                   class="fye-btn sm" style="background:transparent;color:var(--fye-plum);border-color:var(--fye-plum-tint)"
+                                   onclick="return confirm('Remove from favourites?')">
+                                    <i class="fa-solid fa-heart-crack"></i>
                                 </a>
                             </div>
                         </div>
@@ -57,20 +44,15 @@
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <div class="dash-card text-center py-5 px-3">
-                <div class="dash-empty-state">
-                    <i class="fas fa-heart fa-3x text-muted mb-3 d-block" aria-hidden="true"></i>
-                    <h5 class="fw-semibold">No favourites yet</h5>
-                    <p class="text-muted mb-4">Browse the marketplace and save services you are considering. They will appear here for quick access anytime.</p>
-                    <div class="d-flex flex-column flex-sm-row gap-2 justify-content-center">
-                        <a href="/browse-services" class="btn btn-primary">Browse services</a>
-                        <a href="/event/create" class="btn btn-outline-primary"><i class="fas fa-plus me-1"></i>Create an event</a>
-                    </div>
-                </div>
+            <div class="icard text-center py-5">
+                <i class="fa-solid fa-heart fa-3x mb-3 d-block fye-faint"></i>
+                <h5 style="font-family:var(--fye-display)">Nothing saved yet</h5>
+                <p class="fye-muted mb-4" style="font-size:13.5px">Tap the heart on a service page to add it to your favourites.</p>
+                <a href="/browse-services" class="fye-btn primary">Browse services</a>
             </div>
         <?php endif; ?>
     </div>
 </div>
+</div>
 </main>
-
 <?= $this->include('footer') ?>

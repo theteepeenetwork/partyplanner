@@ -1,114 +1,71 @@
 <?= $this->include('header') ?>
-
 <main class="page-main">
 <div class="dashboard-wrapper">
-    <div class="container">
-        <?= $this->include('dashboard/_vendor_tabs') ?>
-
-        <div class="d-flex flex-column flex-md-row justify-content-md-between align-items-md-center gap-3 mb-4">
+<div class="container">
+    <?= $this->include('dashboard/_vendor_tabs') ?>
+    <?= $this->include('dashboard/_flash_alerts') ?>
+    <div class="fye-page">
+        <div class="fye-page-head">
             <div>
-                <h4 class="mb-2 mb-md-0">My Services</h4>
-                <p class="dash-page-lead mb-0">Every listing customers can book from your profile. Keep photos and pricing fresh to stay competitive.</p>
+                <h1 class="fye-page-title">My services</h1>
+                <p class="fye-page-sub">The listings customers can request. Complete listings convert more enquiries.</p>
             </div>
-            <a href="/service/create" class="btn btn-primary flex-shrink-0 align-self-stretch align-self-md-auto"><i class="fas fa-plus me-1"></i>Add New Service</a>
+            <a href="/service/create" class="fye-btn primary"><i class="fa-solid fa-plus"></i> Add a service</a>
         </div>
 
-        <?php if (session()->getFlashdata('success')): ?>
-            <div class="alert alert-success alert-dismissible fade show">
-                <?= session()->getFlashdata('success') ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-        <?php if (session()->getFlashdata('error')): ?>
-            <div class="alert alert-danger alert-dismissible fade show">
-                <?= session()->getFlashdata('error') ?>
-                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-            </div>
-        <?php endif; ?>
-
         <?php if (!empty($services)): ?>
-            <div class="row g-3">
-                <?php foreach ($services as $service): ?>
-                    <?php $isActive = ($service['status'] ?? '') === 'active'; ?>
-                    <div class="col-md-6 col-lg-4">
-                        <div class="dash-card h-100 <?= !$isActive ? 'border-start border-3 border-secondary' : '' ?>" style="<?= !$isActive ? 'opacity:0.75;' : '' ?>">
-
-                            <!-- Image -->
-                            <?php if (!empty($service['images'])): ?>
-                                <img src="<?= base_url($service['images'][0]['thumbnail_path'] ?? $service['images'][0]['image_path']) ?>"
-                                     class="rounded mb-2" style="width:100%; height:160px; object-fit:cover;" alt="<?= esc($service['title']) ?>">
-                            <?php else: ?>
-                                <div class="rounded mb-2 d-flex align-items-center justify-content-center bg-light" style="height:160px;">
-                                    <div class="text-center text-muted">
-                                        <i class="fas fa-image fa-2x mb-1"></i>
-                                        <div class="small">No image</div>
-                                    </div>
+            <div class="fye-gal">
+                <?php foreach ($services as $svc):
+                    $checks = [
+                        !empty($svc['description']),
+                        !empty($svc['images']),
+                        !empty($svc['price']),
+                        !empty($svc['cancellation_policy']),
+                    ];
+                    $done  = count(array_filter($checks));
+                    $pct   = round($done / 4 * 100);
+                    $fillColor = $done === 4 ? 'var(--fye-sage)' : 'var(--fye-gold)';
+                    $pillClass = $done === 4 ? 'confirmed' : 'pending';
+                ?>
+                    <a href="/service/edit/<?= (int)$svc['id'] ?>" class="gcard">
+                        <?php if (!empty($svc['images'])): ?>
+                            <img src="<?= base_url(esc($svc['images'][0]['thumbnail_path'] ?? $svc['images'][0]['image_path'] ?? '')) ?>" class="gc-img" alt="<?= esc($svc['title']) ?>">
+                        <?php else: ?>
+                            <div class="gc-ph" style="background:var(--fye-gold-tint);color:var(--fye-gold)">
+                                <i class="fa-solid fa-image" style="font-size:20px"></i>
+                            </div>
+                        <?php endif; ?>
+                        <div class="gc-body">
+                            <div style="display:flex;justify-content:space-between;align-items:center;gap:8px">
+                                <div class="gn"><?= esc($svc['title']) ?></div>
+                                <span class="fye-pill <?= $pillClass ?>" style="font-size:11px;white-space:nowrap"><?= $done ?>/4</span>
+                            </div>
+                            <div class="gc" style="margin-top:4px">
+                                <?php if (!empty($svc['price'])): ?>from £<?= number_format((float)$svc['price'], 2) ?> · <?php endif; ?>
+                                <?php if (isset($svc['bookings_count'])): ?><?= (int)$svc['bookings_count'] ?> bookings<?php endif; ?>
+                            </div>
+                            <div class="ev-prog" style="margin-top:12px">
+                                <div class="bar">
+                                    <div class="fill" style="width:<?= $pct ?>%;background:<?= $fillColor ?>"></div>
                                 </div>
-                            <?php endif; ?>
-
-                            <!-- Title + Status Badge -->
-                            <div class="d-flex justify-content-between align-items-start mb-1">
-                                <h6 class="mb-0 me-2"><?= esc($service['title']) ?></h6>
-                                <span class="badge <?= $isActive ? 'bg-success' : 'bg-secondary' ?> flex-shrink-0">
-                                    <?= $isActive ? 'Active' : 'Inactive' ?>
-                                </span>
                             </div>
-
-                            <!-- Category -->
-                            <?php if (!empty($service['category_name'])): ?>
-                                <div class="small text-muted mb-1"><i class="fas fa-tag me-1"></i><?= esc($service['category_name']) ?></div>
+                            <?php if (($svc['status'] ?? '') !== 'active'): ?>
+                                <div style="margin-top:8px"><span class="fye-pill declined" style="font-size:11px">Inactive</span></div>
                             <?php endif; ?>
-
-                            <!-- Short description -->
-                            <?php if (!empty($service['short_description'])): ?>
-                                <p class="small text-muted mb-2"><?= esc(substr($service['short_description'], 0, 80)) ?><?= strlen($service['short_description'] ?? '') > 80 ? '...' : '' ?></p>
-                            <?php endif; ?>
-
-                            <!-- Price -->
-                            <?php if (!empty($service['price']) && $service['price'] > 0): ?>
-                                <p class="fw-bold text-primary mb-2">From £<?= number_format($service['price'], 2) ?></p>
-                            <?php endif; ?>
-
-                            <!-- Toggle Switch -->
-                            <div class="d-flex align-items-center justify-content-between mb-3 p-2 bg-light rounded">
-                                <span class="small fw-bold"><?= $isActive ? 'Live on marketplace' : 'Hidden from customers' ?></span>
-                                <form method="post" action="/service/toggle-status/<?= $service['id'] ?>" class="mb-0">
-                                    <?= csrf_field() ?>
-                                    <div class="form-check form-switch mb-0">
-                                        <input class="form-check-input" type="checkbox" role="switch"
-                                               id="toggle-<?= $service['id'] ?>"
-                                               <?= $isActive ? 'checked' : '' ?>
-                                               onchange="this.closest('form').submit();"
-                                               style="cursor:pointer; width:3em; height:1.5em;">
-                                    </div>
-                                </form>
-                            </div>
-
-                            <!-- Action Buttons -->
-                            <div class="d-flex gap-2 flex-wrap">
-                                <a href="/service/view/<?= $service['id'] ?>" class="btn btn-sm btn-outline-primary flex-fill">
-                                    <i class="fas fa-eye me-1"></i>View
-                                </a>
-                                <a href="/service/edit/<?= $service['id'] ?>" class="btn btn-sm btn-outline-secondary flex-fill">
-                                    <i class="fas fa-pen me-1"></i>Edit
-                                </a>
-                            </div>
                         </div>
-                    </div>
+                    </a>
                 <?php endforeach; ?>
             </div>
         <?php else: ?>
-            <div class="dash-card text-center py-5 px-3">
-                <div class="dash-empty-state">
-                    <i class="fas fa-briefcase fa-3x text-muted mb-3 d-block" aria-hidden="true"></i>
-                    <h5 class="fw-semibold">No services yet</h5>
-                    <p class="text-muted mb-4">Tell customers what you offer, where you travel, and how pricing works. You can edit or hide a listing anytime before you go live.</p>
-                    <a href="/service/create" class="btn btn-primary"><i class="fas fa-plus me-1"></i>Create your first service</a>
-                </div>
+            <div class="icard text-center py-5">
+                <i class="fa-solid fa-concierge-bell fa-3x mb-3 d-block fye-faint"></i>
+                <h5 style="font-family:var(--fye-display)">No services yet</h5>
+                <p class="fye-muted mb-4" style="font-size:13.5px">Create your first listing to start receiving enquiries from customers.</p>
+                <a href="/service/create" class="fye-btn primary"><i class="fa-solid fa-plus"></i> Add your first service</a>
             </div>
         <?php endif; ?>
     </div>
 </div>
+</div>
 </main>
-
 <?= $this->include('footer') ?>

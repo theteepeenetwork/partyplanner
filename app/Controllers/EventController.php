@@ -381,6 +381,7 @@ class EventController extends BaseController
         $userId = session()->get('user_id');
 
         if (!$service || !$event || $event['user_id'] != $userId) {
+            if ($this->request->isAJAX()) return $this->response->setJSON(['ok' => false, 'message' => 'Invalid service or event.']);
             return redirect()->to('/browse-services')->with('error', 'Invalid service or event.');
         }
 
@@ -392,6 +393,7 @@ class EventController extends BaseController
             ->first();
         if ($alreadyInBasket) {
             session()->remove('pending_add_to_event');
+            if ($this->request->isAJAX()) return $this->response->setJSON(['ok' => true, 'already' => true, 'message' => '"' . $service['title'] . '" is already in this basket.']);
             return redirect()->to('/event/basket/' . $eventId)
                 ->with('info', '"' . $service['title'] . '" is already in this event\'s basket.');
         }
@@ -499,6 +501,16 @@ class EventController extends BaseController
         $flashSuccess = $isCustomQuote
             ? '"' . $service['title'] . '" added to your event. This supplier prices on request — submit your event to ask them for a quote.'
             : '"' . $service['title'] . '" added to your event basket. Estimated total: £' . number_format($estimated, 2);
+
+        if ($this->request->isAJAX()) {
+            return $this->response->setJSON([
+                'ok'      => true,
+                'message' => 'Added "' . $service['title'] . '" to ' . ($event['title'] ?? 'your event'),
+                'title'   => $service['title'],
+                'event'   => $event['title'] ?? '',
+            ]);
+        }
+
         session()->setFlashdata('success', $flashSuccess);
         if (!empty($quote['warnings'])) {
             session()->setFlashdata('info', implode(' ', $quote['warnings']));

@@ -53,19 +53,19 @@
             <div class="ra-stats">
                 <?php
                 $statTiles = [
-                    ['v' => $totalPendingRequests, 'l' => 'Pending',      'ic' => 'fa-clock',         'tone' => 'gold'],
-                    ['v' => $totalAccepted,        'l' => 'Accepted',     'ic' => 'fa-check',         'tone' => 'sage'],
-                    ['v' => $totalAwaitingPayment, 'l' => 'Awaiting pay', 'ic' => 'fa-pound-sign',    'tone' => 'terra'],
-                    ['v' => $totalConfirmed,       'l' => 'Confirmed',    'ic' => 'fa-calendar-check','tone' => 'slate'],
-                    ['v' => $totalDeclined,        'l' => 'Declined',     'ic' => 'fa-xmark',         'tone' => 'plum'],
+                    ['v' => $totalPendingRequests, 'l' => 'Pending',      'ic' => 'fa-clock',         'tone' => 'gold',  'href' => '/profile/my-bookings#pending'],
+                    ['v' => $totalAccepted,        'l' => 'Accepted',     'ic' => 'fa-check',         'tone' => 'sage',  'href' => '/profile/my-bookings#accepted'],
+                    ['v' => $totalAwaitingPayment, 'l' => 'Awaiting pay', 'ic' => 'fa-pound-sign',    'tone' => 'terra', 'href' => '/profile/payments'],
+                    ['v' => $totalConfirmed,       'l' => 'Confirmed',    'ic' => 'fa-calendar-check','tone' => 'slate', 'href' => '/profile/my-bookings#confirmed'],
+                    ['v' => $totalDeclined,        'l' => 'Declined',     'ic' => 'fa-xmark',         'tone' => 'plum',  'href' => '/profile/my-bookings#declined'],
                 ];
                 ?>
                 <?php foreach ($statTiles as $tile): ?>
-                    <div class="ra-stat">
+                    <a href="<?= $tile['href'] ?>" class="ra-stat" style="display:block;text-decoration:none;color:inherit;transition:box-shadow .15s" onmouseenter="this.style.boxShadow='var(--fye-shadow)'" onmouseleave="this.style.boxShadow=''">
                         <div class="ic <?= $tile['tone'] ?>"><i class="fa-solid <?= $tile['ic'] ?>"></i></div>
                         <div class="v fye-num"><?= (int) $tile['v'] ?></div>
                         <div class="l"><?= $tile['l'] ?></div>
-                    </div>
+                    </a>
                 <?php endforeach; ?>
             </div>
 
@@ -147,7 +147,7 @@
                                 $cost   = (float) ($event['totalCost'] ?? 0);
                                 $pct    = $max > 0 ? min(100, round($booked / $max * 100)) : 0;
                                 ?>
-                                <a href="/browse-services?event_id=<?= (int) $event['id'] ?>" class="ev">
+                                <a href="/profile/events/<?= (int) $event['id'] ?>" class="ev">
                                     <div class="ev-top">
                                         <div>
                                             <div class="ev-title"><?= esc($event['title']) ?></div>
@@ -195,7 +195,7 @@
                 <div class="ra-col">
 
                     <!-- Payment summary -->
-                    <div class="fye-card">
+                    <a href="/profile/payments" class="fye-card" style="display:block;text-decoration:none;color:inherit">
                         <h2><i class="fa-solid fa-credit-card"></i> Payment summary</h2>
                         <div class="kv">
                             <span class="k">Deposits paid</span>
@@ -209,7 +209,7 @@
                             <span class="k">Total event spend</span>
                             <span class="v">£<?= number_format($totalSpend, 2) ?></span>
                         </div>
-                    </div>
+                    </a>
 
                     <!-- Messages -->
                     <div class="fye-card">
@@ -223,7 +223,7 @@
                                 $isUnread = empty($msg['is_read']);
                                 $msgTime = !empty($msg['created_at']) ? date('d M', strtotime($msg['created_at'])) : '';
                                 ?>
-                                <div class="msg">
+                                <a href="/profile/messages<?= !empty($msg['chat_room_id']) ? '/' . (int)$msg['chat_room_id'] : '' ?>" class="msg" style="text-decoration:none;color:inherit">
                                     <div class="av"><?= esc($initials) ?></div>
                                     <div style="min-width:0">
                                         <div class="who"><?= esc($senderName) ?></div>
@@ -233,7 +233,7 @@
                                         <?= esc($msgTime) ?>
                                         <?php if ($isUnread): ?><span class="dot"></span><?php endif; ?>
                                     </div>
-                                </div>
+                                </a>
                             <?php endforeach; ?>
                             <div style="margin-top:12px">
                                 <a href="/profile/messages" class="fye-btn ghost sm">View all messages</a>
