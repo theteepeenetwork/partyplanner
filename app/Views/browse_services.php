@@ -274,7 +274,9 @@ $csrfName        = csrf_token();
                             <?php endif; ?>
                         </div>
                         <div class="pp-card-body">
-                            <a href="/service/view/<?= (int)$svc['id'] ?>" style="text-decoration:none">
+                            <a href="/service/view/<?= (int)$svc['id'] ?>"
+                               class="pp-card-title-link"
+                               aria-label="<?= esc($svc['title']) ?> — view details">
                                 <h3 class="pp-card-title"><?= esc($svc['title']) ?></h3>
                             </a>
                             <?php if ($location): ?>
@@ -303,29 +305,8 @@ $csrfName        = csrf_token();
                                         <small style="font-size:14px">Price on request</small>
                                     <?php endif; ?>
                                 </div>
-                                <?php if ($isUnavail): ?>
-                                    <a href="/service/view/<?= (int)$svc['id'] ?>" class="pp-add pp-add--muted">
-                                        <i class="fa-solid fa-arrow-right"></i>View
-                                    </a>
-                                <?php elseif ($isCustomer && $activeEventId): ?>
-                                    <button class="pp-add <?= $inBasket ? 'added' : '' ?>"
-                                            data-service-id="<?= (int)$svc['id'] ?>"
-                                            data-service-title="<?= esc($svc['title']) ?>"
-                                            onclick="ppAdd(this)">
-                                        <?php if ($inBasket): ?>
-                                            <i class="fa-solid fa-check"></i>Added
-                                        <?php else: ?>
-                                            <i class="fa-solid fa-plus"></i>Add to event
-                                        <?php endif; ?>
-                                    </button>
-                                <?php elseif ($isCustomer): ?>
-                                    <a href="/service/view/<?= (int)$svc['id'] ?>" class="pp-add">
-                                        <i class="fa-solid fa-arrow-right"></i>View
-                                    </a>
-                                <?php else: ?>
-                                    <a href="/login" class="pp-add">
-                                        <i class="fa-solid fa-arrow-right-to-bracket"></i>Log in
-                                    </a>
+                                <?php if ($isCustomer && $activeEventId && $inBasket && !$isUnavail): ?>
+                                    <span class="pp-added-badge"><i class="fa-solid fa-check"></i>Added</span>
                                 <?php endif; ?>
                             </div>
                         </div>

@@ -808,7 +808,8 @@ a.category-card-link:focus-visible .category-card-image {
 
 /* ==================== Containers ==================== */
 .full-width-container {
-    width: 100vw;
+    width: 100%;
+    max-width: 1920px;
     padding: 0;
     margin: 0 auto;
 }
@@ -1380,3 +1381,6 @@ a.category-card-link:focus-visible .category-card-image {
         padding: 1.5rem;
     }
 }
+
+/* Suppress Kint debug output — should never appear on a live page */
+.kint-rich, .kint-plain { display: none !important; }
