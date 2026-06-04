@@ -13,10 +13,14 @@ if (session()->has('user_id') && session()->get('role') === 'vendor') {
     <div class="container p-4 py-lg-5">
         <div class="row g-4">
             <div class="col-lg-4 col-md-6">
-                <h5>For Your Events</h5>
+                <a class="brand d-inline-flex mb-3" href="/" style="color:inherit;text-decoration:none">
+                    <span class="ps">P<span class="dot">.</span>S<span class="dot">.</span></span>
+                    <span class="name">Partysmith</span>
+                </a>
                 <p class="site-footer-muted">
                     A UK marketplace to discover event services, request quotes and manage bookings—from weddings and christenings to birthdays and corporate occasions.
                 </p>
+                <p class="site-footer-script mt-2 mb-0">P.S. leave the planning to us.</p>
             </div>
 
             <div class="col-lg-2 col-md-6">
@@ -73,6 +77,6 @@ if (session()->has('user_id') && session()->get('role') === 'vendor') {
         </div>
     </div>
     <div class="site-footer-bottom text-center p-3">
-        <p class="mb-0 small">&copy; <?= date('Y') ?> For Your Events. All rights reserved.</p>
+        <p class="mb-0 small">&copy; <?= date('Y') ?> Partysmith. All rights reserved.</p>
     </div>
 </footer>

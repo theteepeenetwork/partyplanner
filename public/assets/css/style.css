@@ -17,28 +17,46 @@
 
 /* ==================== Design tokens ==================== */
 :root {
-    --primary-blue-dark: #3A312D;
-    --primary-blue-medium: #FFFDFC;
-    --primary-blue-light: #EDE5D8;
-    --accent-orange: #B66A4D;
-    --dark-blue: #221B18;
-    --surface-page: #F6F1EB;
-    --surface-elevated: #ffffff;
-    --surface-warm: #F5EFE6;
-    --surface-warm-card: linear-gradient(180deg, #FFFDFC 0%, #F5EDE0 100%);
-    --text-muted-custom: #5F5853;
-    --font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
-    --site-header-height: 72px;
-    --shadow-soft: 0 8px 30px rgba(34, 27, 24, 0.08);
-    --shadow-premium: 0 18px 48px rgba(34, 27, 24, 0.12);
-    --shadow-lift: 0 12px 36px rgba(34, 27, 24, 0.14);
-    --radius-card: 16px;
-    --radius-button: 12px;
-    --section-spacing-y: 4.5rem;
+    /* Partysmith "Coral & Marigold" palette */
+    --paper:           #F6F1E9;
+    --paper-2:         #F1EADD;
+    --paper-3:         #ECE2D2;
+    --ink:             #2A2026;
+    --ink-soft:        rgba(42,32,38,0.62);
+    --ink-faint:       rgba(42,32,38,0.40);
+    --coral:           #D8503C;
+    --coral-deep:      #BE4030;
+    --marigold:        #E0A94F;
+    --wax:             #C0473E;
+    --line:            rgba(42,32,38,0.13);
+    --line-soft:       rgba(42,32,38,0.07);
+
+    /* Legacy aliases kept so non-homepage views still work */
+    --primary-blue-dark:   #2A2026;
+    --primary-blue-medium: #FFFFFF;
+    --primary-blue-light:  #F1EADD;
+    --accent-orange:       #D8503C;
+    --dark-blue:           #2A2026;
+    --surface-page:        #F6F1E9;
+    --surface-elevated:    #ffffff;
+    --surface-warm:        #F1EADD;
+    --surface-warm-card:   linear-gradient(180deg, #FFFFFF 0%, #F1EADD 100%);
+    --text-muted-custom:   rgba(42,32,38,0.62);
+
+    --font-sans:    'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-display: 'Hanken Grotesk', system-ui, sans-serif;
+    --script:       'Mr Dafoe', cursive;
+
+    --site-header-height: 70px;
+    --shadow-soft:    0 10px 30px rgba(42,32,38,0.08);
+    --shadow-premium: 0 18px 44px rgba(42,32,38,0.16);
+    --shadow-lift:    0 18px 44px rgba(42,32,38,0.16);
+    --radius-card:    16px;
+    --radius-button:  100px;
+    --section-spacing-y:    4.5rem;
     --section-spacing-y-lg: 7.5rem;
-    --bs-primary: #B66A4D;
-    --bs-primary-rgb: 182, 106, 77;
+    --bs-primary:     #D8503C;
+    --bs-primary-rgb: 216, 80, 60;
 }
 
 * {
@@ -88,67 +106,63 @@ main.container {
 
 .navbar {
     z-index: 1030;
-    background-color: var(--primary-blue-medium);
-    box-shadow: 0 2px 12px rgba(26, 46, 39, 0.08);
-    /* Anchor the navbar font so it stays identical on every page, including
-       the homepage where the <body> font is intentionally overridden. */
+    height: var(--site-header-height);
+    background-color: rgba(246,241,233,0.92);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-bottom: 1px solid var(--line-soft);
+    box-shadow: none;
     font-family: var(--font-sans);
 }
 
-.navbar-brand {
-    font-size: 1.5rem;
-    /* Adjust overall size */
-    font-weight: bold;
-    color: var(--dark-blue);
-    text-align: center;
-    line-height: 1.2;
-    /* Adjust spacing between lines */
-    transition: color 0.3s ease;
-    display: block;
-    /* Ensure it can handle multiple lines */
+/* P.S. brand mark */
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    text-decoration: none;
 }
 
-.logo-line {
-    display: block;
-    /* Stack the lines */
-    width: 100%;
-    /* Ensure both lines align */
-    text-transform: uppercase;
-    letter-spacing: 0.05rem;
+.brand .ps {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: var(--coral);
+    color: var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    font-weight: 700;
+    font-size: 21px;
+    letter-spacing: -0.04em;
+    line-height: 1;
 }
 
-.logo-line:first-child {
-    font-size: 1.6rem;
-    /* Slightly larger for emphasis */
+.brand .ps .dot {
+    color: var(--ink);
 }
 
-.logo-line:nth-child(2) {
-    font-size: 1.5rem;
-}
-
-.navbar-brand:hover {
-    color: var(--accent-orange);
-}
-
-.logo-accent {
-    color: var(--accent-orange);
-}
-
-.logo-line--muted {
-    color: var(--text-muted-custom);
+.brand .name {
+    font-weight: 600;
+    font-size: 20px;
+    letter-spacing: -0.025em;
+    color: var(--ink);
 }
 
 /* Navbar Left Links */
 .navbar-nav .nav-link {
-    color: var(--dark-blue);
+    color: var(--ink-soft);
     font-size: 1rem;
+    font-weight: 500;
     margin-right: 1rem;
-    transition: color 0.3s ease;
+    transition: color 0.2s ease;
     text-align: right;
 }
 
-.navbar-nav .nav-link:hover {
-    color: var(--accent-orange);
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link.active {
+    color: var(--ink);
 }
 
 /* Align dropdown menu to the right */
@@ -777,9 +791,16 @@ a.category-card-link:focus-visible .category-card-image {
 }
 
 .site-footer-social-link:hover {
-    background: var(--accent-orange);
+    background: var(--coral);
     color: #fff;
     transform: translateY(-2px);
+}
+
+.site-footer-script {
+    font-family: var(--script);
+    font-size: 1.5rem;
+    color: var(--marigold);
+    line-height: 1.3;
 }
 
 .site-footer-divider {

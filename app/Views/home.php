@@ -18,13 +18,14 @@ $inspirationBrowseUrl = $inspirationBrowseUrl ?? base_url('browse-services');
         <div class="hero-image" style="background-image: url('<?= $heroBg ?>');">
             <div class="overlay hero-overlay d-flex align-items-center justify-content-center">
                 <div class="text-center text-white hero-copy">
-                    <p class="hero-eyebrow">The all-in-one event planning platform</p>
+                    <p class="hero-eyebrow">The UK event marketplace, expertly made</p>
                     <h1 id="home-hero-heading" class="hero-headline">
-                        Plan your entire event in one organised place
+                        Plan your whole event in one organised place
                     </h1>
                     <p class="hero-sublead mx-auto">
-                        Find trusted suppliers, compare services and request quotes — all kept beautifully organised in one place.
+                        Find vetted suppliers, compare services and get structured quotes — booked and paid in one calm place.
                     </p>
+                    <p class="hero-ps-line">P.S. leave the planning to us.</p>
 
                     <form class="hero-event-search" action="<?= $browseUrl ?>" method="get" role="search"
                         aria-label="Search event suppliers">
@@ -61,7 +62,11 @@ $inspirationBrowseUrl = $inspirationBrowseUrl ?? base_url('browse-services');
                         </div>
                     </form>
 
-                    <p class="hero-reassurance">Free to use · No obligation · One place for every supplier</p>
+                    <p class="hero-reassurance">
+                        <i class="fas fa-check" aria-hidden="true"></i> Free to use
+                        <i class="fas fa-check" aria-hidden="true"></i> No obligation
+                        <i class="fas fa-check" aria-hidden="true"></i> One place for every supplier
+                    </p>
                 </div>
             </div>
         </div>
@@ -288,6 +293,7 @@ $inspirationBrowseUrl = $inspirationBrowseUrl ?? base_url('browse-services');
 
     <section class="home-final-cta home-section" aria-labelledby="home-cta-heading">
         <div class="container text-center cta-inner">
+            <p class="cta-ps-line">P.S. you're going to love this.</p>
             <h2 id="home-cta-heading" class="cta-heading">Ready to start planning?</h2>
             <p class="cta-lead mb-4">
                 Create your event, discover services and keep every supplier enquiry in one beautifully organised place.

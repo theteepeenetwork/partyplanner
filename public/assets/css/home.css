@@ -1,22 +1,23 @@
-/* Homepage — warm premium editorial marketplace */
+/* Homepage — Partysmith "Coral & Marigold" */
 
 :root {
-    --colour-espresso: #3A312D;
-    --colour-dark-brown: #221B18;
-    --colour-ivory: #F6F1EB;
-    --colour-warm-white: #FFFDFC;
-    --colour-terracotta: #B66A4D;
-    --colour-terracotta-dark: #9E573D;
-    --colour-olive: #4B5A46;
-    --colour-champagne: #D7C1A3;
-    --colour-heading: #2E2724;
-    --colour-body: #5F5853;
-    --colour-muted: #8A817A;
-    --colour-border: rgba(58, 49, 45, 0.10);
-    --shadow-soft: 0 16px 40px rgba(34, 27, 24, 0.08);
-    --shadow-hover: 0 22px 55px rgba(34, 27, 24, 0.13);
-    --font-display-home: 'Playfair Display', Georgia, 'Times New Roman', serif;
-    --font-body-home: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --colour-espresso:       #2A2026;
+    --colour-dark-brown:     #2A2026;
+    --colour-ivory:          #F6F1E9;
+    --colour-warm-white:     #FFFFFF;
+    --colour-terracotta:     #D8503C;
+    --colour-terracotta-dark:#BE4030;
+    --colour-olive:          #D8503C;   /* coral — replaces olive for accent use */
+    --colour-champagne:      #E0A94F;   /* marigold */
+    --colour-heading:        #2A2026;
+    --colour-body:           rgba(42,32,38,0.62);
+    --colour-muted:          rgba(42,32,38,0.40);
+    --colour-border:         rgba(42,32,38,0.13);
+    --colour-paper-2:        #F1EADD;
+    --shadow-soft: 0 10px 30px rgba(42,32,38,0.08);
+    --shadow-hover: 0 18px 44px rgba(42,32,38,0.16);
+    --font-display-home: 'Hanken Grotesk', system-ui, sans-serif;
+    --font-body-home: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
     --home-section-y: clamp(3.75rem, 7vw, 6rem);
 }
 
@@ -63,7 +64,7 @@ body.home-page-body .trust-value-card h3 {
 }
 
 .home-marketplace .hero-overlay {
-    background: rgba(34, 27, 24, 0.55);
+    background: linear-gradient(180deg, rgba(42,32,38,.78), rgba(42,32,38,.62) 45%, rgba(42,32,38,.70));
 }
 
 .home-marketplace .hero-copy {
@@ -72,10 +73,10 @@ body.home-page-body .trust-value-card h3 {
 }
 
 .home-marketplace .hero-eyebrow {
-    letter-spacing: 0.18em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
     font-size: 0.68rem;
-    font-weight: 600;
+    font-weight: 700;
     color: var(--colour-champagne);
     margin-bottom: 0.85rem;
 }
@@ -217,9 +218,9 @@ body.home-page-body .trust-value-card h3 {
 }
 
 .home-marketplace .hero-occasion-input:checked + .hero-occasion-pill {
-    background: var(--colour-olive);
+    background: var(--colour-terracotta);
     color: var(--colour-warm-white);
-    border-color: var(--colour-olive);
+    border-color: var(--colour-terracotta);
 }
 
 .home-marketplace .hero-occasion-input:focus-visible + .hero-occasion-pill {
@@ -271,8 +272,8 @@ body.home-page-body .trust-value-card h3 {
 
 .home-marketplace .hero-field-input:focus {
     outline: none;
-    border-color: var(--colour-olive);
-    box-shadow: 0 0 0 3px rgba(75, 90, 70, 0.15);
+    border-color: var(--colour-terracotta);
+    box-shadow: 0 0 0 3px rgba(216,80,60,0.14);
 }
 
 .home-marketplace .hero-search-submit {
@@ -291,23 +292,33 @@ body.home-page-body .trust-value-card h3 {
 .home-marketplace .hero-reassurance {
     margin: 1.15rem auto 0;
     font-size: 0.82rem;
-    color: rgba(255, 253, 252, 0.82);
+    color: rgba(246,241,233,0.82);
     letter-spacing: 0.01em;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 0.3rem 1rem;
 }
 
-/* Trust strip */
+.home-marketplace .hero-reassurance i {
+    color: var(--colour-champagne);
+    font-size: 0.75rem;
+}
+
+/* Trust strip — plum-ink band */
 .home-marketplace .home-trust-strip {
-    background: var(--colour-ivory);
-    padding: 1.5rem 0 0.5rem;
+    background: var(--colour-espresso);
+    padding: 2.25rem 0;
 }
 
 .home-marketplace .home-trust-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.85rem;
+    gap: 1rem 2rem;
     list-style: none;
     margin: 0;
-    padding: 0;
+    padding: 0 1.25rem;
     max-width: 1040px;
     margin-inline: auto;
 }
@@ -321,29 +332,39 @@ body.home-page-body .trust-value-card h3 {
 .home-marketplace .home-trust-item {
     display: flex;
     align-items: flex-start;
-    gap: 0.7rem;
-    padding: 1rem 1.05rem;
-    background: var(--colour-warm-white);
-    border-radius: 12px;
-    box-shadow: var(--shadow-soft);
-    border: 1px solid var(--colour-border);
+    gap: 0.85rem;
+    padding: 0;
+    background: transparent;
+    border: none;
+    box-shadow: none;
     font-size: 0.875rem;
     font-weight: 500;
-    color: var(--colour-heading);
+    color: rgba(246,241,233,0.92);
     line-height: 1.35;
+}
+
+.home-marketplace .home-trust-title {
+    color: #fff;
+    display: block;
+    margin-bottom: 0.2rem;
+}
+
+.home-marketplace .home-trust-text {
+    color: rgba(246,241,233,0.62);
+    font-weight: 400;
 }
 
 .home-marketplace .home-trust-icon {
     flex-shrink: 0;
-    width: 2.1rem;
-    height: 2.1rem;
+    width: 42px;
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    background: rgba(215, 193, 163, 0.35);
-    color: var(--colour-olive);
-    font-size: 0.85rem;
+    border-radius: 10px;
+    background: rgba(224,169,79,0.16);
+    color: var(--colour-champagne);
+    font-size: 1rem;
 }
 
 /* Section typography */
@@ -459,12 +480,12 @@ body.home-page-body .trust-value-card h3 {
 .home-marketplace .how-it-works-card .icon-wrapper {
     width: 68px;
     height: 68px;
-    background: rgba(215, 193, 163, 0.28);
+    background: var(--colour-paper-2);
     margin-bottom: 0.5rem;
 }
 
 .home-marketplace .how-it-works-card .icon-wrapper i {
-    color: var(--colour-olive);
+    color: var(--colour-terracotta);
     font-size: 1.25rem;
 }
 
@@ -637,7 +658,7 @@ body.home-page-body .trust-value-card h3 {
 
 .home-marketplace .vendor-cta-copy {
     padding: clamp(2rem, 5vw, 3.25rem);
-    background: var(--colour-olive);
+    background: var(--colour-espresso);
     color: var(--colour-warm-white);
     display: flex;
     flex-direction: column;
@@ -646,6 +667,7 @@ body.home-page-body .trust-value-card h3 {
 
 .home-marketplace .vendor-cta-copy .section-eyebrow {
     color: var(--colour-champagne);
+    font-weight: 700;
 }
 
 .home-marketplace .vendor-cta-copy .section-heading {
@@ -794,9 +816,26 @@ body.home-page-body .trust-value-card h3 {
     line-height: 1.45;
 }
 
-/* Final CTA */
+/* P.S. script voice lines */
+.home-marketplace .hero-ps-line {
+    font-family: 'Mr Dafoe', cursive;
+    font-size: clamp(1.5rem, 3vw, 2rem);
+    color: var(--colour-champagne);
+    margin: 0.5rem 0 1.25rem;
+    line-height: 1.3;
+}
+
+.home-marketplace .cta-ps-line {
+    font-family: 'Mr Dafoe', cursive;
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    color: rgba(246,241,233,0.92);
+    margin-bottom: 0.75rem;
+    line-height: 1.3;
+}
+
+/* Final CTA — coral gradient */
 .home-marketplace .home-final-cta {
-    background: var(--colour-espresso);
+    background: linear-gradient(135deg, #D8503C, #BE4030);
     padding-top: clamp(3.5rem, 6vw, 5rem);
     padding-bottom: clamp(3.5rem, 6vw, 5rem);
 }
@@ -829,7 +868,7 @@ body.home-page-body .trust-value-card h3 {
 /* Homepage footer */
 body.home-page-body .site-footer--home {
     background: var(--colour-espresso);
-    color: rgba(255, 253, 252, 0.88);
+    color: rgba(246,241,233,0.88);
     margin-top: 0;
 }
 
@@ -840,6 +879,10 @@ body.home-page-body .site-footer--home h5 {
 }
 
 body.home-page-body .site-footer--home .site-footer-muted {
+    color: rgba(246,241,233,0.6);
+}
+
+body.home-page-body .site-footer--home .site-footer-script {
     color: var(--colour-champagne);
 }
 
