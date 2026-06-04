@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>PartyPlanner — Information Pack</title>
+<style>
+  @page { size: A4; margin: 12mm; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; }
+  body {
+    font-family: "Helvetica Neue", Arial, sans-serif;
+    color: #1f2430;
+    font-size: 9.3px;
+    line-height: 1.34;
+    background: #fff;
+  }
+  .page {
+    width: 186mm;
+    min-height: 273mm;
+    margin: 0 auto;
+    padding: 0;
+  }
+  header {
+    border-bottom: 2.5px solid #6c3fb5;
+    padding-bottom: 6px;
+    margin-bottom: 9px;
+  }
+  .brand { display: flex; align-items: baseline; justify-content: space-between; }
+  h1 {
+    font-size: 24px;
+    margin: 0;
+    color: #4b277d;
+    letter-spacing: -0.3px;
+  }
+  .tag { font-size: 9.5px; color: #6c3fb5; font-weight: 600; }
+  .lead {
+    margin: 6px 0 0;
+    font-size: 10px;
+    color: #333;
+  }
+  .lead strong { color: #4b277d; }
+  .cols { display: flex; gap: 11px; }
+  .col { flex: 1; }
+  h2 {
+    font-size: 9.8px;
+    text-transform: uppercase;
+    letter-spacing: 0.6px;
+    color: #fff;
+    background: #6c3fb5;
+    padding: 3px 6px;
+    margin: 9px 0 5px;
+    border-radius: 3px;
+  }
+  h2.alt { background: #2b8a6e; }
+  h2.amber { background: #b8791f; }
+  p { margin: 0 0 5px; }
+  ul { margin: 0 0 6px; padding-left: 14px; }
+  li { margin-bottom: 2px; }
+  .muted { color: #5a6172; }
+  .pill {
+    display: inline-block;
+    background: #efe9f7;
+    color: #4b277d;
+    border-radius: 9px;
+    padding: 1px 7px;
+    margin: 0 3px 3px 0;
+    font-size: 8.4px;
+    font-weight: 600;
+  }
+  .grid3 { display: flex; gap: 8px; margin-bottom: 4px; }
+  .card {
+    flex: 1;
+    border: 1px solid #e2ddec;
+    border-radius: 4px;
+    padding: 5px 7px;
+    background: #faf8fd;
+  }
+  .card h3 { margin: 0 0 3px; font-size: 9.2px; color: #4b277d; }
+  .step { font-weight: 700; color: #6c3fb5; }
+  footer {
+    margin-top: 9px;
+    border-top: 1px solid #ddd;
+    padding-top: 5px;
+    font-size: 8.2px;
+    color: #6a7080;
+    display: flex;
+    justify-content: space-between;
+  }
+  .kpi { display:flex; gap:8px; margin: 2px 0 6px; }
+  .kpi div { flex:1; text-align:center; background:#f3eefa; border-radius:4px; padding:4px 2px; }
+  .kpi b { display:block; color:#4b277d; font-size:11px; }
+  .kpi span { font-size:7.8px; color:#5a6172; }
+</style>
+</head>
+<body>
+<div class="page">
+
+  <header>
+    <div class="brand">
+      <h1>PartyPlanner</h1>
+      <span class="tag">The UK Event Services Marketplace</span>
+    </div>
+    <p class="lead">
+      PartyPlanner is a UK marketplace where customers <strong>create an event, get instant pricing,
+      and book multiple suppliers in one place</strong>. Unlike traditional directories built on enquiries,
+      PartyPlanner runs on <strong>structured pricing and automated quotes</strong> — suppliers set their
+      pricing rules once, and customers receive accurate quotes instantly, with minimal back-and-forth.
+    </p>
+  </header>
+
+  <div class="cols">
+
+    <!-- LEFT COLUMN -->
+    <div class="col">
+
+      <h2>What We Do</h2>
+      <p>We connect people planning events with the suppliers who deliver them, and remove the slowest part
+      of the process: getting a price. Customers build a complete event package across several vendors and
+      check out together. Suppliers win qualified, ready-to-book work instead of chasing unsuitable enquiries.</p>
+      <p class="muted"><strong>This is a marketplace, not an event-planning agency.</strong> Customers book
+      services directly — not consultations.</p>
+
+      <h2>Our Core Difference: Automated Quotes</h2>
+      <p>Suppliers define pricing rules once. The platform then calculates an instant, itemised quote from:</p>
+      <ul>
+        <li>Guest numbers &amp; event duration</li>
+        <li>Packages, optional extras &amp; quantities</li>
+        <li>Coverage area &amp; travel charges</li>
+      </ul>
+      <p>The result is faster bookings, transparent pricing, and far less manual admin on both sides.</p>
+
+      <h2>Pricing Models</h2>
+      <p>Every service uses exactly one structured, machine-readable model:</p>
+      <span class="pill">Guest-based</span><span class="pill">Duration-based</span>
+      <span class="pill">Package tiers</span><span class="pill">Quantity-based</span>
+      <span class="pill">Public event</span><span class="pill">Private event</span>
+      <p class="muted">Pricing uses fixed numerical ranges (e.g. 1–50, 51–100) — never vague "100+" bands —
+      so automation stays reliable. Public and private pricing are deliberately separate systems.</p>
+
+      <h2>Who It's For</h2>
+      <p><strong>Event types:</strong> weddings, birthdays, christenings, corporate events, conferences,
+      summer fairs, community events and private parties.</p>
+      <p><strong>Supplier categories:</strong> catering &amp; food vans, photography &amp; videography,
+      photobooths, DJs, musicians &amp; entertainment, makeup, transport, stationery, gifts, chair covers,
+      LED dance floors, illuminated letters, amusement rides and more. Categories are centrally managed
+      for consistency.</p>
+
+    </div>
+
+    <!-- RIGHT COLUMN -->
+    <div class="col">
+
+      <h2 class="alt">How It Works</h2>
+      <div class="grid3">
+        <div class="card">
+          <h3>Customers</h3>
+          <p><span class="step">1.</span> Create an event<br>
+          <span class="step">2.</span> Browse &amp; search suppliers<br>
+          <span class="step">3.</span> Get instant quotes<br>
+          <span class="step">4.</span> Build an event basket<br>
+          <span class="step">5.</span> Check out &amp; pay deposit<br>
+          <span class="step">6.</span> Message, pay balance, review</p>
+        </div>
+        <div class="card">
+          <h3>Suppliers</h3>
+          <p><span class="step">1.</span> Create a service<br>
+          <span class="step">2.</span> Configure pricing rules<br>
+          <span class="step">3.</span> Set coverage &amp; travel<br>
+          <span class="step">4.</span> Add optional extras<br>
+          <span class="step">5.</span> Set auto-quote rules<br>
+          <span class="step">6.</span> Accept &amp; fulfil bookings</p>
+        </div>
+      </div>
+
+      <h2 class="alt">Smart Tools for Suppliers</h2>
+      <ul>
+        <li><strong>Quote automation</strong> — auto-accept bookings under a set value, within lead time,
+        within travel radius and matching allowed event types.</li>
+        <li><strong>Coverage areas</strong> — base location, radius and travel fees control where you appear
+        and what you charge.</li>
+        <li><strong>Analytics &amp; earnings</strong> — track quotes generated, accepted/declined, upcoming
+        bookings and payouts.</li>
+        <li><strong>Optional extras</strong> &amp; <strong>package tiers</strong> to upsell cleanly.</li>
+      </ul>
+
+      <h2 class="alt">Payments &amp; Booking</h2>
+      <p>Customers secure a complete, multi-vendor booking with a <strong>15% deposit</strong> at checkout,
+      with the balance payable in full or by installments. Payments run through <strong>Stripe</strong>
+      (optional — the platform works without it). Post-booking <strong>messaging</strong> keeps
+      vendor–customer communication on-platform, with moderation built in.</p>
+
+      <h2 class="amber">Our Principles</h2>
+      <ul>
+        <li><strong>Transparency</strong> — clear pricing, clear coverage, clear bookings.</li>
+        <li><strong>Efficiency</strong> — suppliers spend less time quoting and filtering.</li>
+        <li><strong>Fair exposure</strong> — visibility rotates fairly; the marketplace is never pay-to-win.</li>
+        <li><strong>Distinct journeys</strong> — customer and supplier experiences stay separate by design.</li>
+      </ul>
+
+      <div class="kpi">
+        <div><b>1</b><span>platform, many vendors</span></div>
+        <div><b>15%</b><span>deposit to book</span></div>
+        <div><b>6</b><span>pricing models</span></div>
+        <div><b>0</b><span>quote chasing</span></div>
+      </div>
+
+    </div>
+  </div>
+
+  <footer>
+    <span><strong>PartyPlanner</strong> — discover, quote &amp; book event services in one place.</span>
+    <span>Information pack · Confidential</span>
+  </footer>
+
+</div>
+</body>
+</html>
