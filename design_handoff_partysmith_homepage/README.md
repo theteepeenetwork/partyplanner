@@ -134,6 +134,7 @@ This replaces the `.navbar-brand` text logo in `header.php` and the `<h5>For You
 brand block in `footer.php`.
 
 **Markup (nav):**
+
 ```html
 <a class="brand" href="/">
   <span class="ps">P<span class="dot">.</span>S<span class="dot">.</span></span>
@@ -142,6 +143,7 @@ brand block in `footer.php`.
 ```
 
 **CSS:**
+
 ```css
 .brand { display: flex; align-items: center; gap: 11px; text-decoration: none; }
 .brand .ps {
@@ -172,6 +174,7 @@ one-colour contexts — keep the same flex-row construction.
 One scrolling page. Sections top → bottom (each maps to an existing `home.php` section):
 
 #### 1. Sitewide nav (`header.php`)
+
 - Sticky, 70px, translucent Warm Ivory + blur, 1px soft bottom border.
 - Left: P.S. brand mark (above). Right: text links **Find Suppliers** (active) ·
   **For Vendors** · **Inspiration**, then **My Account** (text link), then **Start
@@ -180,6 +183,7 @@ One scrolling page. Sections top → bottom (each maps to an existing `home.php`
   from `header.php`; only restyle.)
 
 #### 2. Hero (`.hero-section`)
+
 - Full-bleed background **photo** with a plum-ink gradient scrim
   `linear-gradient(180deg, rgba(42,32,38,.78), rgba(42,32,38,.62) 45%, rgba(42,32,38,.70))`
   so white text stays legible (verified). Asset: `assets/hero.jpg`.
@@ -202,6 +206,7 @@ One scrolling page. Sections top → bottom (each maps to an existing `home.php`
     every supplier", each with a marigold check icon.
 
 #### 3. Trust strip (`.home-trust-strip`)
+
 - **Plum-ink** full-width band, ivory text. 4-up grid (→ 2-up ≤980px).
 - Each item: 42px rounded icon tile, `rgba(224,169,79,.16)` bg + **marigold** icon; bold
   ivory title + 62%-ivory subtext. Same four items/copy as current `home.php`
@@ -209,6 +214,7 @@ One scrolling page. Sections top → bottom (each maps to an existing `home.php`
   occasion). Icons: `fa-calendar-plus`, `fa-layer-group`, `fa-comments`, `fa-calendar-days`.
 
 #### 4. How it works (`.how-it-works`)
+
 - Centered header: eyebrow "How it works" (coral), heading "Everything in one organised
   place", lead. 4 step cards (→ 2-up ≤980px).
 - Card: white, 1px `--line`, radius 16, `--shadow-soft`, 28×24 padding. Inside: 52px
@@ -218,6 +224,7 @@ One scrolling page. Sections top → bottom (each maps to an existing `home.php`
   `fa-clipboard-list`).
 
 #### 5. Featured suppliers (`.section-surface-alt` band)
+
 - Alt surface (`--paper-2`). Header row: left = eyebrow "Featured suppliers" + heading "A
   glimpse of who you can find" + lead; right = **Browse all suppliers** coral button.
 - 3-up card grid (→ 2-up ≤980px → 1-up ≤680px). **Supplier card** (`.service-card`):
@@ -232,6 +239,7 @@ One scrolling page. Sections top → bottom (each maps to an existing `home.php`
   - **Keep real `$services` data** — the three cards in the mock are illustrative only.
 
 #### 6. Categories (`.category-card-container`)
+
 - Centered header: eyebrow "Explore services", heading "Everything you need for your
   event", lead. Grid 4-up (→ 2-up). Tiles use existing `$homeCategoryTiles` images.
 - Tile: aspect ~3/3.4, radius 16, image `object-fit:cover` (hover 1.06), bottom
@@ -241,6 +249,7 @@ One scrolling page. Sections top → bottom (each maps to an existing `home.php`
   transport, hero` (the last reused as "Planning & support").
 
 #### 7. Vendor CTA (`.vendor-cta-section`)
+
 - **Plum-ink** rounded block (radius 24), 2-col (copy | photo; stacks ≤980px, photo on top).
 - Copy side: eyebrow "For suppliers" (**marigold**), heading "Are you an event supplier?"
   (ivory), lead (72% ivory), then **Become a vendor** (coral) + **Learn how it works**
@@ -248,12 +257,14 @@ One scrolling page. Sections top → bottom (each maps to an existing `home.php`
 - Media side: `assets/flowers.jpg` (or any supplier photo), full-cover.
 
 #### 8. Final CTA (`.home-final-cta`)
+
 - **Coral gradient** band `linear-gradient(135deg, #D8503C, #BE4030)`, white, centered.
 - Script line (Mr Dafoe, 95% ivory): "P.S. you're going to love this." Heading "Ready to
   start planning?" lead, then **Create your event** (light button) + **Browse suppliers**
   (ghost-light) buttons.
 
 #### 9. Footer (`footer.php`)
+
 - Plum-ink. 4-col grid (2fr/1fr/1fr/1fr → 2-up ≤980px → 1-up ≤680px):
   - Brand col: P.S. mark + "Partysmith", about paragraph (60% ivory), then a **marigold
     script** "P.S. leave the planning to us."
@@ -313,6 +324,7 @@ already have these in production):
 - `assets/` — the 8 images above.
 
 ### Target files to edit in the real app
+
 - `app/Views/header.php` — fonts, `theme-color`, `.navbar-brand` → P.S. mark.
 - `app/Views/footer.php` — brand block → P.S. mark + script line.
 - `app/Views/home.php` — markup already matches; minimal/no structural change.

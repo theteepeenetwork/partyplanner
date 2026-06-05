@@ -1,5 +1,5 @@
 <?= $this->include('header') ?>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
 <link rel="stylesheet" href="/assets/css/service-view.css">
 <style>body { background: #F6F1EB; }</style>
 
