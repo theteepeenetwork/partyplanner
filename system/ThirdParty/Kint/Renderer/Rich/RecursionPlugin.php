@@ -25,50 +25,14 @@ declare(strict_types=1);
  * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
  */
 
-namespace Kint\Parser;
+namespace Kint\Renderer\Rich;
 
-use Kint\Zval\Representation\SplFileInfoRepresentation;
 use Kint\Zval\Value;
-use SplFileInfo;
 
-class FsPathPlugin extends AbstractPlugin
+class RecursionPlugin extends AbstractPlugin implements ValuePluginInterface
 {
-    public static $blacklist = ['/', '.'];
-
-    public function getTypes(): array
+    public function renderValue(Value $o): string
     {
-        return ['string'];
-    }
-
-    public function getTriggers(): int
-    {
-        return Parser::TRIGGER_SUCCESS;
-    }
-
-    public function parse(&$var, Value &$o, int $trigger): void
-    {
-        if (\strlen($var) > 2048) {
-            return;
-        }
-
-        if (!\preg_match('/[\\/\\'.DIRECTORY_SEPARATOR.']/', $var)) {
-            return;
-        }
-
-        if (\preg_match('/[?<>"*|]/', $var)) {
-            return;
-        }
-
-        if (!@\file_exists($var)) {
-            return;
-        }
-
-        if (\in_array($var, self::$blacklist, true)) {
-            return;
-        }
-
-        $r = new SplFileInfoRepresentation(new SplFileInfo($var));
-        $r->hints[] = 'fspath';
-        $o->addRepresentation($r, 0);
+        return '<dl>'.$this->renderLockedHeader($o, '<var>Recursion</var>').'</dl>';
     }
 }

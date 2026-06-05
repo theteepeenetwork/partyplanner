@@ -104,7 +104,19 @@ class Toolbar
                     if (is_string($value)) {
                         $varData[esc($key)] = esc($value);
                     } else {
-                        $varData[esc($key)] = $this->renderKintDump($value);
+                        $oldKintMode       = Kint::$mode_default;
+                        $oldKintCalledFrom = Kint::$display_called_from;
+
+                        Kint::$mode_default        = Kint::MODE_RICH;
+                        Kint::$display_called_from = false;
+
+                        $kint = @Kint::dump($value);
+                        $kint = substr($kint, strpos($kint, '</style>') + 8);
+
+                        Kint::$mode_default        = $oldKintMode;
+                        Kint::$display_called_from = $oldKintCalledFrom;
+
+                        $varData[esc($key)] = $kint;
                     }
                 }
             }
@@ -406,7 +418,12 @@ class Toolbar
                 return;
             }
 
-            $kintScript = $this->renderKintStyles();
+            $oldKintMode        = Kint::$mode_default;
+            Kint::$mode_default = Kint::MODE_RICH;
+            $kintScript         = @Kint::dump('');
+            Kint::$mode_default = $oldKintMode;
+            $kintScript         = substr($kintScript, 0, strpos($kintScript, '</style>') + 8);
+            $kintScript         = ($kintScript === '0') ? '' : $kintScript;
 
             $script = PHP_EOL
                 . '<script ' . csp_script_nonce() . ' id="debugbar_loader" '
@@ -530,61 +547,5 @@ class Toolbar
         }
 
         return $output;
-    }
-
-    /**
-     * @return string Kint rich styles block, or empty when Kint is missing/broken.
-     */
-    private function renderKintStyles(): string
-    {
-        $kint = $this->safeKintDump('');
-
-        if ($kint === '') {
-            return '';
-        }
-
-        $styleEnd = strpos($kint, '</style>');
-
-        return $styleEnd !== false ? substr($kint, 0, $styleEnd + 8) : '';
-    }
-
-    /**
-     * Dump a value with Kint when available; never throw (broken/mismatched Kint installs).
-     */
-    private function renderKintDump(mixed $value): string
-    {
-        $kint = $this->safeKintDump($value);
-
-        if ($kint === '') {
-            return '<em>Kint unavailable — run <code>composer install</code> from the project root.</em>';
-        }
-
-        $pos = strpos($kint, '</style>');
-
-        return $pos !== false ? substr($kint, $pos + 8) : $kint;
-    }
-
-    private function safeKintDump(mixed $value): string
-    {
-        if (! class_exists(Kint::class) || ! class_exists(\Kint\Zval\InstanceValue::class)) {
-            return '';
-        }
-
-        try {
-            $oldKintMode       = Kint::$mode_default;
-            $oldKintCalledFrom = Kint::$display_called_from;
-
-            Kint::$mode_default        = Kint::MODE_RICH;
-            Kint::$display_called_from = false;
-
-            $output = Kint::dump($value);
-
-            Kint::$mode_default        = $oldKintMode;
-            Kint::$display_called_from = $oldKintCalledFrom;
-
-            return $output;
-        } catch (\Throwable) {
-            return '';
-        }
     }
 }
