@@ -87,6 +87,10 @@ $routes->post('/service/duplicate/(:num)', 'Service_Controller::duplicateService
 $routes->post('/service/delete-image/(:any)', 'Service_Controller::deleteImage/$1');
 
 
+// Partysmith adaptive "List your service" onboarding (single-page builder).
+$routes->get('/service/list', 'Service_Controller::listService');
+$routes->post('/service/publish-listing', 'Service_Controller::publishListing');
+
 $routes->match(['GET', 'POST'], '/service/create', 'Service_Controller::step1');
 $routes->match(['GET', 'POST'], '/service/step1', 'Service_Controller::step1');
 $routes->match(['GET', 'POST'], '/service/service_create_step2', 'Service_Controller::step2');
