@@ -73,6 +73,12 @@ class Profile extends BaseController
             return redirect()->to('/profile')->with('error', 'This area is only available to vendor accounts.');
         }
 
+        // Heal a stale/missing session role so session-role-gated /service/* links
+        // (add a service, edit, deactivate…) work without re-logging in.
+        if (session()->get('role') !== $user['role']) {
+            session()->set('role', $user['role']);
+        }
+
         return null;
     }
 

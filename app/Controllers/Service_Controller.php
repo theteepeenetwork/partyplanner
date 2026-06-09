@@ -574,9 +574,9 @@ class Service_Controller extends BaseController
 
     public function step1()
     {
-        // Check if the user is authorized
-        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
-            return redirect()->to('/')->with('error', 'You are not authorized to add services.');
+        // Check if the user is authorized (DB-authoritative; heals a stale session role)
+        if ($redirect = $this->ensureVendor()) {
+            return $redirect;
         }
 
         // Load categories for dropdowns
@@ -1144,8 +1144,8 @@ class Service_Controller extends BaseController
     public function step4()
     {
         // Check if the user is authorized
-        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
-            return redirect()->to('/')->with('error', 'You are not authorized to add services.');
+        if ($redirect = $this->ensureVendor()) {
+            return $redirect;
         }
         /*if (!$this->validateSessionData('step3_data')) {
             return redirect()->to('/service/step3')->with('error', 'Please complete Step 3 before proceeding.');
@@ -1256,8 +1256,8 @@ class Service_Controller extends BaseController
     public function step5()
     {
         // Check if the user is authorized
-        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
-            return redirect()->to('/')->with('error', 'You are not authorized to add services.');
+        if ($redirect = $this->ensureVendor()) {
+            return $redirect;
         }
 
         if (!$this->validateSessionData('step4_data')) {
@@ -1334,8 +1334,8 @@ class Service_Controller extends BaseController
     public function step6()
     {
         // Check if the user is authorized
-        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
-            return redirect()->to('/')->with('error', 'You are not authorized to add services.');
+        if ($redirect = $this->ensureVendor()) {
+            return $redirect;
         }
         if (!$this->validateSessionData('step5_data')) {
             return redirect()->to('/service/step5')->with('error', 'Please complete Step 5 before proceeding.');
@@ -1371,8 +1371,8 @@ class Service_Controller extends BaseController
     public function review()
     {
         // Check if the user is authorized
-        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
-            return redirect()->to('/')->with('error', 'You are not authorized to add services.');
+        if ($redirect = $this->ensureVendor()) {
+            return $redirect;
         }
 
         if (!$this->validateSessionData('step1_data', 'step2_data', 'step3_data', 'step4_data', 'step5_data', 'step6_data')) {
@@ -1418,8 +1418,8 @@ class Service_Controller extends BaseController
     }
     public function saveService()
     {
-        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
-            return redirect()->to('/')->with('error', 'Unauthorized access.');
+        if ($redirect = $this->ensureVendor()) {
+            return $redirect;
         }
 
         $db = \Config\Database::connect();
@@ -1883,6 +1883,42 @@ class Service_Controller extends BaseController
 
 
     /**
+     * Vendor-only gate that trusts the database role and heals a stale or
+     * missing session role (mirrors BaseController::requireCustomerAccount,
+     * which does the same for customers). Returns a redirect to send back, or
+     * null when the signed-in user is a vendor.
+     *
+     * Without this, a vendor whose session is missing `role` (e.g. an older
+     * session) can load DB-role-gated pages like /profile/services but gets
+     * bounced to "/" from every session-role-gated /service/* link.
+     */
+    private function ensureVendor()
+    {
+        if (!session()->has('user_id')) {
+            return redirect()->to('/login')->with('error', 'Please log in to continue.');
+        }
+
+        $user = (new UserModel())->find((int) session()->get('user_id'));
+        if (!$user) {
+            return redirect()->to('/')->with('error', 'User not found.');
+        }
+
+        $role = strtolower(trim((string) ($user['role'] ?? '')));
+        if ($role === 'admin') {
+            return redirect()->to('/admin');
+        }
+        if ($role !== 'vendor') {
+            return redirect()->to('/')->with('error', 'You are not authorized to add services.');
+        }
+
+        if (session()->get('role') !== $user['role']) {
+            session()->set('role', $user['role']); // heal a stale/missing session role
+        }
+
+        return null;
+    }
+
+    /**
      * Partysmith adaptive "List your service" onboarding (single-page builder).
      *
      * A supplier-type-aware alternative to the step-by-step wizard. The view is
@@ -1892,8 +1928,8 @@ class Service_Controller extends BaseController
      */
     public function listService()
     {
-        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
-            return redirect()->to('/')->with('error', 'You are not authorized to add services.');
+        if ($redirect = $this->ensureVendor()) {
+            return $redirect;
         }
 
         return view('service_create/list_your_service');
@@ -1908,7 +1944,7 @@ class Service_Controller extends BaseController
      */
     public function publishListing()
     {
-        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
+        if ($this->ensureVendor() !== null) {
             return $this->response->setStatusCode(403)->setJSON([
                 'success'  => false,
                 'error'    => 'You must be signed in as a vendor to publish a listing.',
@@ -2551,8 +2587,8 @@ class Service_Controller extends BaseController
     }
     public function update($id = null)
     {
-        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
-            return redirect()->to('/')->with('error', 'You are not authorized to edit services.');
+        if ($redirect = $this->ensureVendor()) {
+            return $redirect;
         }
 
         $serviceModel = new ServiceModel();
