@@ -1882,6 +1882,322 @@ class Service_Controller extends BaseController
 
 
 
+    /**
+     * Partysmith adaptive "List your service" onboarding (single-page builder).
+     *
+     * A supplier-type-aware alternative to the step-by-step wizard. The view is
+     * a self-contained SPA (assets/js/onboarding.js); it POSTs the assembled
+     * listing to publishListing() below. This is additive — the classic
+     * /service/create wizard is untouched.
+     */
+    public function listService()
+    {
+        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
+            return redirect()->to('/')->with('error', 'You are not authorized to add services.');
+        }
+
+        return view('service_create/list_your_service');
+    }
+
+    /**
+     * Persist a listing built in the adaptive onboarding flow.
+     *
+     * Receives the front-end state as JSON (in the `payload` POST field) and
+     * maps it onto the existing service schema/models, mirroring the insert
+     * shapes used by saveService(). Returns JSON for the SPA to act on.
+     */
+    public function publishListing()
+    {
+        if (!session()->has('user_id') || session()->get('role') !== 'vendor') {
+            return $this->response->setStatusCode(403)->setJSON([
+                'success'  => false,
+                'error'    => 'You must be signed in as a vendor to publish a listing.',
+                'csrfHash' => csrf_hash(),
+            ]);
+        }
+
+        $payload = json_decode((string) $this->request->getPost('payload'), true);
+        if (!is_array($payload)) {
+            return $this->response->setStatusCode(400)->setJSON([
+                'success'  => false,
+                'error'    => 'We could not read your listing. Please try again.',
+                'csrfHash' => csrf_hash(),
+            ]);
+        }
+
+        $title     = trim((string) ($payload['title'] ?? ''));
+        $shortDesc = trim((string) ($payload['shortDesc'] ?? ''));
+        $fullDesc  = trim((string) ($payload['fullDesc'] ?? ''));
+        $location  = trim((string) ($payload['location'] ?? ''));
+        $typeId    = (string) ($payload['typeId'] ?? '');
+        $pricing   = (string) ($payload['pricing'] ?? '');
+
+        if ($title === '' || $shortDesc === '' || $location === '') {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success'  => false,
+                'error'    => 'Please add a title, a short description and where you are based before publishing.',
+                'csrfHash' => csrf_hash(),
+            ]);
+        }
+
+        // Resolve a top-level category from the chosen supplier type (best match by name).
+        $categoryId = $this->resolveCategoryForType($typeId);
+        if ($categoryId === null) {
+            return $this->response->setStatusCode(422)->setJSON([
+                'success'  => false,
+                'error'    => 'No service categories are set up yet — please contact support.',
+                'csrfHash' => csrf_hash(),
+            ]);
+        }
+
+        // Map the plain-language pricing model onto event type + structured pricing type.
+        $eventType   = ($pricing === 'pitch') ? 'public' : 'private';
+        $pricingType = [
+            'packages' => 'tiered_packages_pricing',
+            'fixed'    => 'tiered_packages_pricing',
+            'guest'    => 'guest_based_pricing',
+            'duration' => 'custom_duration_pricing',
+            'quantity' => 'quantity_based_pricing',
+            'quote'    => 'custom_quote',
+        ][$pricing] ?? 'custom_quote';
+
+        $reqs       = is_array($payload['reqs'] ?? null) ? $payload['reqs'] : [];
+        $startPrice = $this->toNumber($payload['startPrice'] ?? '');
+        $setupMap   = ['30min' => 30, '1hr' => 60, '2hr' => 150, 'halfday' => 240, 'fullday' => 480, 'multiday' => 1440];
+        $indoor     = in_array($payload['indoorOutdoor'] ?? 'both', ['indoor', 'outdoor', 'both'], true)
+            ? $payload['indoorOutdoor'] : 'both';
+        $footW = trim((string) ($payload['footW'] ?? ''));
+        $footD = trim((string) ($payload['footD'] ?? ''));
+        $space = ($footW !== '' && $footD !== '') ? ($footW . 'm x ' . $footD . 'm') : null;
+
+        $db = \Config\Database::connect();
+        $db->transBegin();
+
+        try {
+            /* ---- services row (incl. capacity / logistics / requirements) ---- */
+            $serviceModel = new ServiceModel();
+            $serviceInsert = [
+                'vendor_id'               => session('user_id'),
+                'title'                   => $title,
+                'short_description'       => $shortDesc,
+                'description'             => $fullDesc !== '' ? $fullDesc : $shortDesc,
+                'category_id'             => $categoryId,
+                'min_capacity'            => ((int) ($payload['capMin'] ?? 0)) ?: null,
+                'max_capacity'            => ((int) ($payload['capMax'] ?? 0)) ?: null,
+                'setup_minutes'           => $setupMap[$payload['setupTime'] ?? ''] ?? null,
+                'min_notice_days'         => (($payload['leadTime'] ?? '') !== '') ? (int) $payload['leadTime'] : null,
+                'space_required'          => $space,
+                'indoor_outdoor'          => $indoor,
+                'power_required'          => in_array('power', $reqs, true) ? 1 : 0,
+                'water_required'          => in_array('water', $reqs, true) ? 1 : 0,
+                'vehicle_access_required' => in_array('vehicle', $reqs, true) ? 1 : 0,
+                'equipment_provided'      => in_array('own_equip', $reqs, true) ? 1 : 0,
+            ];
+            if ($startPrice !== null && $startPrice > 0) {
+                $serviceInsert['price'] = $startPrice;
+            }
+
+            $serviceId = $serviceModel->insert($serviceInsert);
+            if (!$serviceId) {
+                throw new \Exception('Could not create the service record.');
+            }
+
+            /* ---- tags ---- */
+            $tags = is_array($payload['tags'] ?? null) ? $payload['tags'] : [];
+            if ($tags) {
+                $tagsModel        = new TagsModel();
+                $serviceTagsModel = new ServiceTagsModel();
+                foreach ($tags as $tagName) {
+                    $tagName = trim((string) $tagName);
+                    if ($tagName === '') {
+                        continue;
+                    }
+                    $existing = $tagsModel->where('name', $tagName)->first();
+                    $tagId    = $existing ? $existing['id'] : $tagsModel->insert(['name' => $tagName]);
+                    if ($tagId) {
+                        $serviceTagsModel->insert(['service_id' => $serviceId, 'tag_id' => $tagId]);
+                    }
+                }
+            }
+
+            /* ---- event type + private pricing row ---- */
+            $serviceEventTypeModel = new ServiceEventTypeModel();
+            if (!$serviceEventTypeModel->insert(['service_id' => $serviceId, 'event_type' => $eventType])) {
+                throw new \Exception('Could not save the event type.');
+            }
+
+            $privateEventPricingId = null;
+            if ($eventType === 'private') {
+                $servicePrivatePricingModel = new ServicePrivatePricingModel();
+                $privateEventPricingId = $servicePrivatePricingModel->insert([
+                    'service_id'   => $serviceId,
+                    'pricing_type' => $pricingType,
+                ]);
+                if (!$privateEventPricingId) {
+                    throw new \Exception('Could not save the pricing type.');
+                }
+            }
+
+            /* ---- structured pricing rows ---- */
+            if ($eventType === 'public') {
+                // Event pitch fee → public event pricing.
+                if ($startPrice !== null && $startPrice > 0) {
+                    $maxAttendance = ((int) ($payload['capMax'] ?? 0)) ?: 1000;
+                    $commission    = $this->toNumber($payload['pctTakings'] ?? '');
+                    $ok = $db->table('services_public_event_pricing')->insert([
+                        'service_id'            => $serviceId,
+                        'commission_percentage' => $commission,
+                        'min_attendance'        => 1,
+                        'max_attendance'        => $maxAttendance,
+                        'max_pitch_fee'         => $startPrice,
+                    ]);
+                    if (!$ok) {
+                        throw new \Exception('Could not save pitch pricing.');
+                    }
+                }
+            } elseif ($pricingType === 'tiered_packages_pricing') {
+                $tieredModel = new ServiceTieredPackagesPricingModel();
+                $rows = [];
+                if ($pricing === 'packages' && is_array($payload['tiers'] ?? null)) {
+                    foreach ($payload['tiers'] as $tier) {
+                        $name  = trim((string) ($tier['name'] ?? ''));
+                        $price = $this->toNumber($tier['price'] ?? '');
+                        if ($name === '' || $price === null || $price <= 0) {
+                            continue;
+                        }
+                        $rows[] = ['name' => $name, 'desc' => $name . ' package', 'price' => $price];
+                    }
+                }
+                if (!$rows && $startPrice !== null && $startPrice > 0) {
+                    // "One flat price" → a single package.
+                    $rows[] = ['name' => 'Standard', 'desc' => 'Flat-rate booking', 'price' => $startPrice];
+                }
+                foreach ($rows as $r) {
+                    $tieredModel->insert([
+                        'service_id'               => $serviceId,
+                        'private_event_pricing_id' => $privateEventPricingId,
+                        'package_name'             => $r['name'],
+                        'package_description'      => $r['desc'],
+                        'package_price'            => $r['price'],
+                    ]);
+                }
+            } elseif ($pricingType === 'guest_based_pricing' && $startPrice !== null && $startPrice > 0) {
+                $minGuest = max(1, (int) ($payload['minGuests'] ?? 0) ?: 1);
+                $maxCap   = (int) ($payload['capMax'] ?? 0);
+                $maxGuest = $maxCap > $minGuest ? $maxCap : max($minGuest, 500);
+                (new ServiceGuestBasedPricingModel())->insert([
+                    'service_id'               => $serviceId,
+                    'private_event_pricing_id' => $privateEventPricingId,
+                    'min_guest'                => $minGuest,
+                    'max_guest'                => $maxGuest,
+                    'guest_price'              => $startPrice,
+                ]);
+            } elseif ($pricingType === 'custom_duration_pricing' && $startPrice !== null && $startPrice > 0) {
+                $unit = ($payload['durationUnit'] ?? 'hour') === 'day' ? 'day' : 'hour';
+                (new ServiceCustomDurationPricingModel())->insert([
+                    'service_id'               => $serviceId,
+                    'private_event_pricing_id' => $privateEventPricingId,
+                    'duration_type'            => $unit,
+                    'duration'                 => max(1, (int) ($payload['minDuration'] ?? 1)),
+                    'price'                    => $startPrice,
+                ]);
+            } elseif ($pricingType === 'quantity_based_pricing' && $startPrice !== null && $startPrice > 0) {
+                (new ServiceQuantityPricingModel())->insert([
+                    'service_id'               => $serviceId,
+                    'private_event_pricing_id' => $privateEventPricingId,
+                    'unit_price'               => $startPrice,
+                    'min_quantity'             => max(1, (int) ($payload['minQty'] ?? 1)),
+                    'max_quantity'             => null,
+                    'unit_label'               => trim((string) ($payload['unitLabel'] ?? '')) ?: 'items',
+                ]);
+            }
+            // 'custom_quote' intentionally inserts no pricing rows (price on request).
+
+            /* ---- coverage / location ---- */
+            $nationwide = !empty($payload['nationwide']);
+            (new ServiceLocationModel())->insert([
+                'service_id'           => $serviceId,
+                'fulfillment_type'     => 'in_person',
+                'service_location'     => $location,
+                'no_travel_limit'      => $nationwide ? 1 : 0,
+                'all_travel_included'  => 0,
+                'free_coverage_radius' => $nationwide ? null : (((int) ($payload['freeRadius'] ?? 0)) ?: null),
+                'paid_coverage_radius' => $nationwide ? null : (((int) ($payload['radius'] ?? 0)) ?: null),
+                'travel_fee_per_km'    => $nationwide ? null : $this->toNumber($payload['travelFee'] ?? ''),
+            ]);
+
+            $db->transCommit();
+
+            return $this->response->setJSON([
+                'success'  => true,
+                'service_id' => $serviceId,
+                'viewUrl'  => base_url('service/view/' . $serviceId),
+                'csrfHash' => csrf_hash(),
+            ]);
+        } catch (\Throwable $e) {
+            if ($db->transStatus() !== false) {
+                $db->transRollback();
+            }
+
+            return $this->response->setStatusCode(500)->setJSON([
+                'success'  => false,
+                'error'    => 'Sorry — we could not publish your listing: ' . $e->getMessage(),
+                'csrfHash' => csrf_hash(),
+            ]);
+        }
+    }
+
+    /**
+     * Best-effort map from an onboarding supplier-type id to a top-level
+     * category id (matched by keyword against category names), falling back
+     * to the first available root category.
+     */
+    private function resolveCategoryForType(string $typeId): ?int
+    {
+        $keywords = [
+            'dj' => 'entertainment', 'band' => 'entertainment', 'magician' => 'entertainment',
+            'dancefloor' => 'entertainment', 'av' => 'entertainment', 'inflatable' => 'entertainment',
+            'workshop' => 'entertainment',
+            'caterer' => 'catering', 'foodtruck' => 'catering', 'bar' => 'catering',
+            'photographer' => 'photo', 'videographer' => 'photo', 'booth' => 'photo',
+            'florist' => 'flower', 'hire' => 'flower',
+            'marquee' => 'venue',
+            'transport' => 'transport',
+            'planner' => 'planning', 'security' => 'planning',
+        ];
+
+        $categoryModel = new CategoryModel();
+        $roots = $categoryModel->getRootCategories();
+        if (!$roots) {
+            return null;
+        }
+
+        $keyword = $keywords[$typeId] ?? '';
+        if ($keyword !== '') {
+            foreach ($roots as $root) {
+                if (stripos((string) ($root['name'] ?? ''), $keyword) !== false) {
+                    return (int) $root['id'];
+                }
+            }
+        }
+
+        return (int) $roots[0]['id'];
+    }
+
+    /**
+     * Parse a user-entered money/number string (e.g. "2,500" or "3.50") to a
+     * float, or null when blank/invalid.
+     */
+    private function toNumber($value): ?float
+    {
+        $clean = preg_replace('/[^0-9.]/', '', str_replace(',', '', (string) $value));
+        if ($clean === '' || !is_numeric($clean)) {
+            return null;
+        }
+
+        return (float) $clean;
+    }
+
     public function success()
     {
         $userModel = new UserModel();
