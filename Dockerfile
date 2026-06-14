@@ -32,4 +32,4 @@ RUN sed -ri -e 's!Listen 80!Listen ${PORT}!' /etc/apache2/ports.conf \
  && sed -ri -e 's!:80>!:${PORT}>!' /etc/apache2/sites-available/*.conf
 ENV PORT=8080
 EXPOSE 8080
-CMD ["apache2-foreground"]
+CMD php spark serve --host 0.0.0.0 --port $PORT
