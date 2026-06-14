@@ -32,4 +32,4 @@ RUN sed -ri -e 's!Listen 80!Listen ${PORT}!' /etc/apache2/ports.conf \
  && sed -ri -e 's!:80>!:${PORT}>!' /etc/apache2/sites-available/*.conf
 ENV PORT=8080
 EXPOSE 8080
-CMD env | grep -E ^database.default > .env; env | grep -E ^app.baseURL >> .env; echo CI_ENVIRONMENT=production >> .env; php spark serve --host 0.0.0.0 --port $PORT
+CMD echo CI_ENVIRONMENT=production > .env; echo app.baseURL=$BASE_URL >> .env; echo database.default.hostname=$DB_HOST >> .env; echo database.default.database=$DB_NAME >> .env; echo database.default.username=$DB_USER >> .env; echo database.default.password=$DB_PASS >> .env; echo database.default.port=$DB_PORT >> .env; echo database.default.DBDriver=MySQLi >> .env; php spark serve --host 0.0.0.0 --port $PORT
