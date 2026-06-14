@@ -2,7 +2,7 @@ FROM php:8.2-apache
 
 # System libraries + PHP extensions required by CodeIgniter 4
 RUN apt-get update && apt-get install -y \
-    libicu-dev libzip-dev zip unzip git libpng-dev libjpeg-dev libfreetype6-dev \
+    libicu-dev libonig-dev libzip-dev zip unzip git libpng-dev libjpeg-dev libfreetype6-dev \
  && docker-php-ext-configure gd --with-freetype --with-jpeg \
  && docker-php-ext-install intl mysqli pdo_mysql mbstring gd zip \
  && rm -rf /var/lib/apt/lists/*
