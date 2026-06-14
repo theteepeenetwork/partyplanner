@@ -12,7 +12,7 @@ COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Apache: enable URL rewriting and point docroot at CI4's public/ folder
 RUN a2enmod rewrite
-RUN a2dismod mpm_event mpm_worker 2>/dev/null; sed -ri /LoadModule.mpm_/d /etc/apache2/conf-enabled/*.conf /etc/apache2/apache2.conf 2>/dev/null; a2enmod mpm_prefork; grep -rn LoadModule.mpm /etc/apache2/ | grep -v mods-available || true
+RUN a2dismod mpm_event mpm_worker 2>/dev/null; a2enmod mpm_prefork; echo ==ENABLED==; ls /etc/apache2/mods-enabled/; echo ==STATIC==; apache2ctl -l 2>&1; echo ==DONE==
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
 RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-available/*.conf \
  && sed -ri -e 's!/var/www/!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/apache2.conf /etc/apache2/conf-available/*.conf
