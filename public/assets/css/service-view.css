@@ -5,26 +5,26 @@
    ============================================================ */
 
 .sv {
-  --page:           #F6F1EB;
+  --page:           #F6F3EC;
   --elevated:       #ffffff;
-  --warm:           #F5EFE6;
-  --warm-2:         #EFE6D9;
-  --ink:            #221B18;
-  --ink-soft:       #3A312D;
-  --muted:          #5F5853;
-  --line:           #E4D9C9;
-  --line-soft:      #EDE5D8;
-  --accent:         #B66A4D;
-  --accent-dark:    #9E573D;
-  --accent-tint:    #F3E4DB;
-  --gold:           #C4956A;
+  --warm:           #EFEADD;
+  --warm-2:         #ECE2D2;
+  --ink:            #19241D;
+  --ink-soft:       #243029;
+  --muted:          #5C6760;
+  --line:           #DDE3D7;
+  --line-soft:      #ECE2D2;
+  --accent:         #1C4A36;
+  --accent-dark:    #143729;
+  --accent-tint:    #E7F0E9;
+  --gold:           #B98C2A;
   --shadow-soft:    0 8px 30px rgba(34,27,24,.08);
   --shadow-lift:    0 16px 44px rgba(34,27,24,.14);
   --radius-card:    16px;
   --radius-btn:     12px;
-  --font-sans:      'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-nav:       'DM Sans', system-ui, sans-serif;
-  --font-display:   'Fraunces', Georgia, 'Times New Roman', serif;
+  --font-sans:      'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-nav:       'Hanken Grotesk', system-ui, sans-serif;
+  --font-display:   'Newsreader', Georgia, 'Times New Roman', serif;
 
   font-family: var(--font-sans);
   color: var(--ink);
@@ -146,7 +146,7 @@
 .sv-pkg:hover { border-color: var(--gold); }
 .sv-pkg.is-active {
   border-color: var(--accent); background: #FFFBF8;
-  box-shadow: 0 0 0 3px rgba(182,106,77,.12);
+  box-shadow: 0 0 0 3px rgba(28,74,54,.12);
 }
 .sv-pkg-radio {
   width: 22px; height: 22px; border-radius: 50%; border: 2px solid var(--line);
@@ -226,7 +226,7 @@
 .sv-host-ava-initials {
   width: 86px; height: 86px; flex: 0 0 auto; border-radius: 16px;
   display: grid; place-items: center;
-  background: linear-gradient(150deg, #b66a4d 0%, #7d4332 100%);
+  background: linear-gradient(150deg, #1C4A36 0%, #0F2A1E 100%);
   color: #fff; font-weight: 700; font-size: 1.8rem; font-family: var(--font-display);
 }
 .sv-host-id { flex: 1; min-width: 0; padding-top: 2px; }

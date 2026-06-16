@@ -29,10 +29,10 @@ function bsCatImg(string $name): string {
 }
 function bsEventTheme(string $type): array {
     return match ($type) {
-        'Wedding'       => ['icon' => 'fa-heart',        'color' => '#B66A4D'],
-        'Corporate Event', 'Conference' => ['icon' => 'fa-briefcase',    'color' => '#6E7E5B'],
-        'Birthday'      => ['icon' => 'fa-cake-candles', 'color' => '#7A5A78'],
-        default         => ['icon' => 'fa-calendar-day', 'color' => '#B66A4D'],
+        'Wedding'       => ['icon' => 'fa-heart',        'color' => '#1C4A36'],
+        'Corporate Event', 'Conference' => ['icon' => 'fa-briefcase',    'color' => '#236E4E'],
+        'Birthday'      => ['icon' => 'fa-cake-candles', 'color' => '#B98C2A'],
+        default         => ['icon' => 'fa-calendar-day', 'color' => '#1C4A36'],
     };
 }
 $activeEventId   = (int) ($activeEvent['id'] ?? 0);

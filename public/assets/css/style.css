@@ -15,41 +15,58 @@
     left: 0;
 }
 
-/* ==================== Design tokens — Partysmith "Coral & Marigold" ==================== */
+/* ==================== Design tokens — Partysmith deep-green / gold ==================== */
 :root {
     /* Brand palette */
-    --coral: #D8503C;          /* primary accent */
-    --coral-deep: #BE4030;     /* button hover / emphasis links */
-    --marigold: #E0A94F;       /* secondary accent */
-    --wax: #C0473E;            /* the "P.S." script note on light */
-    --ink: #2A2026;            /* Plum Ink — text + dark grounds */
-    --paper: #F6F1E9;          /* Warm Ivory — page background */
-    --paper-2: #F1EADD;        /* alt surface / pills / icon tiles */
+    --green: #1C4A36;          /* primary brand */
+    --green-deep: #143729;     /* dark grounds, primary-button hover */
+    --green-bright: #236E4E;   /* links, focus, hovers */
+    --green-darkest: #0F2A1E;  /* footer ground */
+    --gold: #B98C2A;           /* eyebrows, star ratings, hairline accents */
+    --gold-bright: #E2B860;    /* gold buttons, eyebrows/stats on dark, monogram dots */
+    --paper: #F6F3EC;          /* page background (warm ivory) */
+    --paper-2: #EFEADD;        /* alt section surface */
+    --cream: #FBF8F1;          /* text/icons on dark grounds */
+    --ink: #19241D;            /* primary text */
+    --ink-soft: rgba(25, 36, 29, 0.64);
+    --ink-faint: rgba(25, 36, 29, 0.44);
+    --line: rgba(25, 36, 29, 0.13);
+    --line-soft: rgba(25, 36, 29, 0.07);
+    --line-gold: rgba(226, 184, 96, 0.30);
 
     /* Legacy token names remapped onto the new palette so every page rebrands */
-    --primary-blue-dark: #2A2026;
-    --primary-blue-medium: #F6F1E9;
-    --primary-blue-light: #ECE2D2;
-    --accent-orange: #D8503C;
-    --dark-blue: #2A2026;
-    --surface-page: #F6F1E9;
+    --primary-blue-dark: #19241D;
+    --primary-blue-medium: #F6F3EC;
+    --primary-blue-light: #EFEADD;
+    --accent-orange: #1C4A36;
+    --dark-blue: #19241D;
+    --surface-page: #F6F3EC;
     --surface-elevated: #ffffff;
-    --surface-warm: #F1EADD;
-    --surface-warm-card: linear-gradient(180deg, #FFFFFF 0%, #F1EADD 100%);
-    --text-muted-custom: rgba(42, 32, 38, 0.62);
+    --surface-warm: #EFEADD;
+    --surface-warm-card: linear-gradient(180deg, #FFFFFF 0%, #EFEADD 100%);
+    --text-muted-custom: rgba(25, 36, 29, 0.64);
     --font-sans: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --font-display: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --font-script: 'Mr Dafoe', cursive;
-    --site-header-height: 70px;
-    --shadow-soft: 0 10px 30px rgba(42, 32, 38, 0.08);
-    --shadow-premium: 0 18px 44px rgba(42, 32, 38, 0.16);
-    --shadow-lift: 0 18px 44px rgba(42, 32, 38, 0.16);
-    --radius-card: 16px;
+    --font-display: 'Newsreader', Georgia, 'Times New Roman', serif;
+    --font-script: 'Caveat', cursive;
+    --site-header-height: 78px;
+    --shadow-soft: 0 16px 44px rgba(13, 30, 20, 0.07);
+    --shadow-premium: 0 34px 80px rgba(13, 30, 20, 0.15);
+    --shadow-lift: 0 34px 80px rgba(13, 30, 20, 0.15);
+    --radius-card: 22px;
     --radius-button: 100px;
     --section-spacing-y: 4.5rem;
     --section-spacing-y-lg: 7.5rem;
-    --bs-primary: #D8503C;
-    --bs-primary-rgb: 216, 80, 60;
+    --bs-primary: #1C4A36;
+    --bs-primary-rgb: 28, 74, 54;
+
+    /* Design shorthands shared by home.css + site.css */
+    --sans: 'Hanken Grotesk', system-ui, -apple-system, sans-serif;
+    --serif: 'Newsreader', Georgia, 'Times New Roman', serif;
+    --script: 'Caveat', cursive;
+    --shade-rgb: 10, 22, 15;
+    --r-btn: 100px;
+    --r-card: 22px;
+    --r-img: 20px;
 }
 
 * {
@@ -106,7 +123,7 @@ main.container {
     font-family: var(--font-sans);
 }
 
-/* P.S. brand mark — coral monogram tile + "Partysmith" wordmark */
+/* P.S. brand mark — green monogram tile (gold dots) + "Partysmith" wordmark */
 .navbar-brand.brand,
 .brand {
     display: flex;
@@ -118,11 +135,11 @@ main.container {
 }
 
 .brand .ps {
-    width: 40px;
-    height: 40px;
-    border-radius: 11px;
-    background: var(--coral);
-    color: var(--paper);
+    width: 42px;
+    height: 42px;
+    border-radius: 12px;
+    background: var(--green);
+    color: var(--cream);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -133,9 +150,9 @@ main.container {
     line-height: 1;
 }
 
-/* The two periods are plum-ink for the two-tone "P.S." read */
+/* The two periods are gold for the two-tone "P.S." read */
 .brand .ps .dot {
-    color: var(--ink);
+    color: var(--gold-bright);
 }
 
 .brand .name {
@@ -164,6 +181,10 @@ main.container {
     color: var(--ink);
 }
 
+.navbar-nav .nav-link.active {
+    color: var(--green);
+}
+
 /* Align dropdown menu to the right */
 .navbar-nav .dropdown-menu {
     text-align: right;
@@ -173,21 +194,21 @@ main.container {
 /* Navbar CTA (Start planning) — styled sitewide so the button is identical
    on every page, not just the homepage. */
 .btn-nav-cta {
-    background: var(--coral);
+    background: transparent;
     border: none;
-    color: #fff;
+    box-shadow: inset 0 0 0 1.6px var(--green);
+    color: var(--green);
     font-weight: 600;
     border-radius: var(--radius-button);
-    padding: 0.6rem 1.35rem;
-    transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
+    padding: 0.6rem 1.4rem;
+    transition: background-color 0.15s ease, transform 0.15s ease, color 0.15s ease;
 }
 
 .btn-nav-cta:hover,
 .btn-nav-cta:focus {
-    background: var(--coral-deep);
-    color: #fff;
+    background: var(--green);
+    color: var(--cream);
     transform: translateY(-1px);
-    box-shadow: var(--shadow-soft);
 }
 
 /* Gradient Button (Plan Event) */
@@ -207,20 +228,19 @@ main.container {
 }
 
 .btn-nav-cta {
-    background: var(--coral);
-    border: none;
-    color: #FFFDFC;
+    box-shadow: inset 0 0 0 1.6px var(--green);
+    color: var(--green);
     font-weight: 600;
     border-radius: var(--radius-button);
-    padding: 0.6rem 1.35rem;
+    padding: 0.6rem 1.4rem;
     font-family: var(--font-sans);
-    transition: background 0.15s ease;
+    transition: background 0.15s ease, color 0.15s ease;
 }
 
 .btn-nav-cta:hover,
 .btn-nav-cta:focus {
-    background: var(--coral-deep);
-    color: #FFFDFC;
+    background: var(--green);
+    color: var(--cream);
 }
 
 .navbar-toggler {
@@ -717,8 +737,8 @@ a.category-card-link:focus-visible .category-card-image {
 
 /* ==================== Footer ==================== */
 .site-footer {
-    background-color: var(--dark-blue);
-    color: var(--primary-blue-light);
+    background-color: var(--green-darkest);
+    color: var(--cream);
     width: 100%;
     flex-shrink: 0;
     margin-top: auto;
@@ -742,11 +762,11 @@ a.category-card-link:focus-visible .category-card-image {
 }
 
 .footer-brand .ps {
-    width: 38px;
-    height: 38px;
-    border-radius: 10px;
-    background: var(--coral);
-    color: var(--paper);
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: var(--green);
+    color: var(--cream);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -758,22 +778,128 @@ a.category-card-link:focus-visible .category-card-image {
 }
 
 .footer-brand .ps .dot {
-    color: var(--ink);
+    color: var(--gold-bright);
 }
 
 .footer-brand .name {
     font-weight: 600;
     font-size: 1.2rem;
     letter-spacing: -0.02em;
-    color: #fff;
+    color: var(--cream);
 }
 
 .footer-script {
     font-family: var(--font-script);
-    color: var(--marigold);
-    font-size: 1.5rem;
+    color: var(--gold-bright);
+    font-size: 1.7rem;
     line-height: 1;
     margin-top: 0.9rem;
+}
+
+/* Design 4-column footer */
+.site-footer .foot-grid {
+    display: grid;
+    grid-template-columns: 2.2fr 1fr 1fr 1fr;
+    gap: 40px;
+    padding-bottom: 12px;
+}
+
+.site-footer .foot-about {
+    font-size: 14px;
+    color: rgba(251, 248, 241, 0.6);
+    line-height: 1.6;
+    max-width: 38ch;
+    margin: 0 0 18px;
+}
+
+.site-footer .foot-contact {
+    font-size: 14px;
+    color: rgba(251, 248, 241, 0.82);
+    margin: 0;
+}
+
+.site-footer .foot-contact b {
+    color: var(--cream);
+    font-weight: 600;
+}
+
+.site-footer .foot-col h5 {
+    margin: 0 0 16px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--gold-bright);
+}
+
+.site-footer .foot-links {
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 11px;
+}
+
+.site-footer .foot-links a {
+    text-decoration: none;
+    font-size: 14.5px;
+    color: rgba(251, 248, 241, 0.72);
+    transition: color 0.15s ease;
+}
+
+.site-footer .foot-links a:hover {
+    color: var(--cream);
+}
+
+.site-footer .foot-bottom {
+    border-top: 1px solid rgba(251, 248, 241, 0.12);
+    margin-top: 32px;
+    padding: 22px 0 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+}
+
+.site-footer .foot-bottom p {
+    margin: 0;
+    font-size: 13px;
+    color: rgba(251, 248, 241, 0.52);
+}
+
+.site-footer .foot-legal {
+    display: flex;
+    gap: 22px;
+    flex-wrap: wrap;
+}
+
+.site-footer .foot-legal a {
+    font-size: 13px;
+    color: rgba(251, 248, 241, 0.6);
+    text-decoration: none;
+}
+
+.site-footer .foot-legal a:hover {
+    color: var(--gold-bright);
+}
+
+@media (max-width: 992px) {
+    .site-footer .foot-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 30px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .site-footer .foot-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .site-footer .foot-bottom {
+        flex-direction: column;
+        align-items: flex-start;
+    }
 }
 
 .site-footer-muted {
@@ -1355,8 +1481,8 @@ a.category-card-link:focus-visible .category-card-image {
 
 .btn-primary:hover,
 .btn-primary:focus {
-    background-color: var(--coral-deep);
-    border-color: var(--coral-deep);
+    background-color: var(--green-deep);
+    border-color: var(--green-deep);
 }
 
 .text-primary {
