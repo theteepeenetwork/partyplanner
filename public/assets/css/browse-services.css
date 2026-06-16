@@ -1,12 +1,12 @@
-/* ===== For Your Events — Browse Services (Direction A) ===== */
+/* ===== Partysmith — Browse Suppliers ===== */
 :root {
-  --pp-dark: #3A312D;
-  --pp-ink: #221B18;
-  --pp-terracotta: #B66A4D;
-  --pp-terracotta-deep: #9E573D;
-  --pp-cream: #F6F1EB;
-  --pp-warm: #F5EFE6;
-  --pp-sand: #EDE5D8;
+  --pp-dark: #19241D;
+  --pp-ink: #19241D;
+  --pp-terracotta: #1C4A36;
+  --pp-terracotta-deep: #143729;
+  --pp-cream: #F6F3EC;
+  --pp-warm: #EFEADD;
+  --pp-sand: #ECE2D2;
   --pp-white: #ffffff;
   --pp-muted: #6F665F;
   --pp-line: rgba(58,49,45,.12);
@@ -17,8 +17,8 @@
   --pp-r-card: 16px;
   --pp-r-btn: 11px;
   --pp-r-pill: 999px;
-  --pp-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --pp-display: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --pp-sans: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --pp-display: 'Newsreader', Georgia, 'Times New Roman', serif;
   --pp-mono: 'Spline Sans Mono', ui-monospace, monospace;
 }
 
@@ -52,7 +52,7 @@
   background: #fff; border: 1.5px solid var(--pp-line); border-radius: var(--pp-r-pill);
   padding: 0 6px 0 16px; height: 48px; transition: border-color .18s, box-shadow .18s;
 }
-.pp-search:focus-within { border-color: var(--pp-terracotta); box-shadow: 0 0 0 4px rgba(182,106,77,.13); }
+.pp-search:focus-within { border-color: var(--pp-terracotta); box-shadow: 0 0 0 4px rgba(28,74,54,.13); }
 .pp-search i { color: var(--pp-muted); font-size: 15px; }
 .pp-search input { flex: 1; border: none; outline: none; background: transparent; font-family: var(--pp-sans); font-size: 15px; color: var(--pp-ink); min-width: 0; }
 .pp-search input::placeholder { color: #A89E95; }
@@ -118,7 +118,7 @@
 .pp-price small { font-weight: 600; color: var(--pp-muted); font-size: 12px; }
 .pp-add {
   background: var(--pp-warm); color: var(--pp-terracotta-deep);
-  border: 1.5px solid rgba(182,106,77,.35); border-radius: 10px;
+  border: 1.5px solid rgba(28,74,54,.35); border-radius: 10px;
   padding: 8px 13px; font-weight: 700; font-size: 13px; cursor: pointer;
   display: inline-flex; align-items: center; gap: 6px; transition: all .15s;
   font-family: var(--pp-sans);
@@ -177,16 +177,16 @@
   transition: all .2s ease; display: flex; flex-direction: column;
   background: rgba(255,255,255,.55); border: 1.5px solid var(--pp-line);
 }
-.ppa-pick:hover { background: rgba(255,255,255,.8); border-color: rgba(182,106,77,.4); }
+.ppa-pick:hover { background: rgba(255,255,255,.8); border-color: rgba(28,74,54,.4); }
 .ppa-pick.active {
   background: #fff; border-color: var(--pp-terracotta);
-  box-shadow: 0 0 0 3px rgba(182,106,77,.16), var(--pp-shadow-lift);
+  box-shadow: 0 0 0 3px rgba(28,74,54,.16), var(--pp-shadow-lift);
 }
 .ppa-pick-top { display: flex; gap: 13px; align-items: center; }
 .ppa-icon { width: 44px; height: 44px; border-radius: 13px; flex: none; display: grid; place-items: center; font-size: 17px; transition: all .2s; }
 .ppa-text { flex: 1; min-width: 0; }
 .ppa-type { font-size: 10px; font-weight: 800; letter-spacing: .1em; text-transform: uppercase; color: var(--pp-muted); }
-.ppa-badge { font-size: 10.5px; font-weight: 800; color: var(--pp-terracotta-deep); background: rgba(182,106,77,.14); padding: 1px 7px; border-radius: 999px; margin-left: 6px; }
+.ppa-badge { font-size: 10.5px; font-weight: 800; color: var(--pp-terracotta-deep); background: rgba(28,74,54,.14); padding: 1px 7px; border-radius: 999px; margin-left: 6px; }
 .ppa-title { font-family: var(--pp-display); font-weight: 600; font-size: 16.5px; line-height: 1.2; color: var(--pp-ink); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-top: 1px; }
 .ppa-meta { font-size: 12.5px; color: var(--pp-muted); margin-top: 2px; display: flex; align-items: center; gap: 10px; white-space: nowrap; overflow: hidden; }
 .ppa-meta i { font-size: 10.5px; margin-right: 3px; opacity: .7; }
@@ -212,7 +212,7 @@
   background: transparent; transition: all .15s;
   text-decoration: none; font-family: var(--pp-sans);
 }
-.ppa-new-tile:hover { background: rgba(182,106,77,.05); border-color: var(--pp-terracotta); color: var(--pp-terracotta-deep); }
+.ppa-new-tile:hover { background: rgba(28,74,54,.05); border-color: var(--pp-terracotta); color: var(--pp-terracotta-deep); }
 
 /* picker grid */
 .ppa-picker-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; align-items: start; }

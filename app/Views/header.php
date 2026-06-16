@@ -5,7 +5,7 @@
     <meta charset="UTF-8">
     <?= csrf_meta() ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#2A2026">
+    <meta name="theme-color" content="#143729">
     <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <?php
     $ogTitle       = $pageTitle ?? 'Partysmith';
@@ -31,11 +31,11 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- Hanken Grotesk powers the entire Partysmith UI; Mr Dafoe is the "P.S." script voice. -->
+    <!-- Hanken Grotesk (UI/body) + Newsreader (serif headings) + Caveat (the "P.S." script voice). -->
     <!-- Fonts load async (media swap) so a slow/unreachable Google Fonts never blocks render. -->
-    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Mr+Dafoe&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;1,16..72,400;1,16..72,500&family=Caveat:wght@600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript>
-        <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Mr+Dafoe&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;1,16..72,400;1,16..72,500&family=Caveat:wght@600&display=swap" rel="stylesheet">
     </noscript>
 
     <!-- Bootstrap CSS -->
@@ -47,6 +47,10 @@
     <?php if (! empty($isHomePage)): ?>
     <link rel="stylesheet" href="/assets/css/home.css">
     <?php endif; ?>
+
+    <!-- Partysmith front-of-house interactions (occasion tabs, FAQ accordion, filter
+         pills, toggles, favourites). Harmless on pages without those elements. -->
+    <script src="/assets/js/partysmith.js" defer></script>
 
     <!-- Slick Carousel CSS (pages with carousels) -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/slick-carousel/slick/slick.css">
