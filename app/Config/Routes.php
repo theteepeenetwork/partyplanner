@@ -177,6 +177,7 @@ $routes->get('how-it-works', 'PublicPage::howItWorks');
 $routes->get('contact', 'PublicPage::contact');
 $routes->get('vendor-info', 'PublicPage::vendorInfo');
 $routes->get('faq', 'PublicPage::faq');
+$routes->get('sitemap', 'PublicPage::sitemap');
 $routes->get('page/(:segment)', 'PublicPage::show/$1');
 
 // Admin backend
