@@ -15,30 +15,41 @@
     left: 0;
 }
 
-/* ==================== Design tokens ==================== */
+/* ==================== Design tokens — Partysmith "Coral & Marigold" ==================== */
 :root {
-    --primary-blue-dark: #3A312D;
-    --primary-blue-medium: #FFFDFC;
-    --primary-blue-light: #EDE5D8;
-    --accent-orange: #B66A4D;
-    --dark-blue: #221B18;
-    --surface-page: #F6F1EB;
+    /* Brand palette */
+    --coral: #D8503C;          /* primary accent */
+    --coral-deep: #BE4030;     /* button hover / emphasis links */
+    --marigold: #E0A94F;       /* secondary accent */
+    --wax: #C0473E;            /* the "P.S." script note on light */
+    --ink: #2A2026;            /* Plum Ink — text + dark grounds */
+    --paper: #F6F1E9;          /* Warm Ivory — page background */
+    --paper-2: #F1EADD;        /* alt surface / pills / icon tiles */
+
+    /* Legacy token names remapped onto the new palette so every page rebrands */
+    --primary-blue-dark: #2A2026;
+    --primary-blue-medium: #F6F1E9;
+    --primary-blue-light: #ECE2D2;
+    --accent-orange: #D8503C;
+    --dark-blue: #2A2026;
+    --surface-page: #F6F1E9;
     --surface-elevated: #ffffff;
-    --surface-warm: #F5EFE6;
-    --surface-warm-card: linear-gradient(180deg, #FFFDFC 0%, #F5EDE0 100%);
-    --text-muted-custom: #5F5853;
-    --font-sans: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
-    --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
-    --site-header-height: 72px;
-    --shadow-soft: 0 8px 30px rgba(34, 27, 24, 0.08);
-    --shadow-premium: 0 18px 48px rgba(34, 27, 24, 0.12);
-    --shadow-lift: 0 12px 36px rgba(34, 27, 24, 0.14);
+    --surface-warm: #F1EADD;
+    --surface-warm-card: linear-gradient(180deg, #FFFFFF 0%, #F1EADD 100%);
+    --text-muted-custom: rgba(42, 32, 38, 0.62);
+    --font-sans: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-display: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-script: 'Mr Dafoe', cursive;
+    --site-header-height: 70px;
+    --shadow-soft: 0 10px 30px rgba(42, 32, 38, 0.08);
+    --shadow-premium: 0 18px 44px rgba(42, 32, 38, 0.16);
+    --shadow-lift: 0 18px 44px rgba(42, 32, 38, 0.16);
     --radius-card: 16px;
-    --radius-button: 12px;
+    --radius-button: 100px;
     --section-spacing-y: 4.5rem;
     --section-spacing-y-lg: 7.5rem;
-    --bs-primary: #B66A4D;
-    --bs-primary-rgb: 182, 106, 77;
+    --bs-primary: #D8503C;
+    --bs-primary-rgb: 216, 80, 60;
 }
 
 * {
@@ -95,60 +106,62 @@ main.container {
     font-family: var(--font-sans);
 }
 
-.navbar-brand {
-    font-size: 1.5rem;
-    /* Adjust overall size */
-    font-weight: bold;
-    color: var(--dark-blue);
-    text-align: center;
-    line-height: 1.2;
-    /* Adjust spacing between lines */
-    transition: color 0.3s ease;
-    display: block;
-    /* Ensure it can handle multiple lines */
+/* P.S. brand mark — coral monogram tile + "Partysmith" wordmark */
+.navbar-brand.brand,
+.brand {
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 0;
+    text-decoration: none;
+    color: var(--ink);
 }
 
-.logo-line {
-    display: block;
-    /* Stack the lines */
-    width: 100%;
-    /* Ensure both lines align */
-    text-transform: uppercase;
-    letter-spacing: 0.05rem;
+.brand .ps {
+    width: 40px;
+    height: 40px;
+    border-radius: 11px;
+    background: var(--coral);
+    color: var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    font-weight: 700;
+    font-size: 21px;
+    letter-spacing: -0.04em;
+    line-height: 1;
 }
 
-.logo-line:first-child {
-    font-size: 1.6rem;
-    /* Slightly larger for emphasis */
+/* The two periods are plum-ink for the two-tone "P.S." read */
+.brand .ps .dot {
+    color: var(--ink);
 }
 
-.logo-line:nth-child(2) {
-    font-size: 1.5rem;
+.brand .name {
+    font-weight: 600;
+    font-size: 20px;
+    letter-spacing: -0.025em;
+    color: var(--ink);
 }
 
-.navbar-brand:hover {
-    color: var(--accent-orange);
-}
-
-.logo-accent {
-    color: var(--accent-orange);
-}
-
-.logo-line--muted {
-    color: var(--text-muted-custom);
+.navbar-brand.brand:hover .name {
+    color: var(--ink);
 }
 
 /* Navbar Left Links */
 .navbar-nav .nav-link {
-    color: var(--dark-blue);
-    font-size: 1rem;
+    color: var(--text-muted-custom);
+    font-size: 0.9375rem;
+    font-weight: 500;
     margin-right: 1rem;
-    transition: color 0.3s ease;
+    transition: color 0.15s ease;
     text-align: right;
 }
 
-.navbar-nav .nav-link:hover {
-    color: var(--accent-orange);
+.navbar-nav .nav-link:hover,
+.navbar-nav .nav-link:focus {
+    color: var(--ink);
 }
 
 /* Align dropdown menu to the right */
@@ -160,18 +173,18 @@ main.container {
 /* Navbar CTA (Start planning) — styled sitewide so the button is identical
    on every page, not just the homepage. */
 .btn-nav-cta {
-    background: var(--accent-orange);
+    background: var(--coral);
     border: none;
     color: #fff;
     font-weight: 600;
-    border-radius: 10px;
-    padding: 0.5rem 1.2rem;
-    transition: background-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
+    border-radius: var(--radius-button);
+    padding: 0.6rem 1.35rem;
+    transition: background-color 0.15s ease, transform 0.15s ease, box-shadow 0.15s ease;
 }
 
 .btn-nav-cta:hover,
 .btn-nav-cta:focus {
-    background: var(--dark-blue);
+    background: var(--coral-deep);
     color: #fff;
     transform: translateY(-1px);
     box-shadow: var(--shadow-soft);
@@ -194,19 +207,19 @@ main.container {
 }
 
 .btn-nav-cta {
-    background: var(--accent-orange);
+    background: var(--coral);
     border: none;
     color: #FFFDFC;
     font-weight: 600;
-    border-radius: 10px;
-    padding: 0.5rem 1.2rem;
+    border-radius: var(--radius-button);
+    padding: 0.6rem 1.35rem;
     font-family: var(--font-sans);
-    transition: background 0.25s ease;
+    transition: background 0.15s ease;
 }
 
 .btn-nav-cta:hover,
 .btn-nav-cta:focus {
-    background: #9E573D;
+    background: var(--coral-deep);
     color: #FFFDFC;
 }
 
@@ -717,6 +730,50 @@ a.category-card-link:focus-visible .category-card-image {
     font-size: 1rem;
     font-weight: 600;
     margin-bottom: 0.75rem;
+}
+
+/* Footer P.S. brand mark */
+.footer-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+    margin-bottom: 1rem;
+    text-decoration: none;
+}
+
+.footer-brand .ps {
+    width: 38px;
+    height: 38px;
+    border-radius: 10px;
+    background: var(--coral);
+    color: var(--paper);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex: none;
+    font-weight: 700;
+    font-size: 20px;
+    letter-spacing: -0.04em;
+    line-height: 1;
+}
+
+.footer-brand .ps .dot {
+    color: var(--ink);
+}
+
+.footer-brand .name {
+    font-weight: 600;
+    font-size: 1.2rem;
+    letter-spacing: -0.02em;
+    color: #fff;
+}
+
+.footer-script {
+    font-family: var(--font-script);
+    color: var(--marigold);
+    font-size: 1.5rem;
+    line-height: 1;
+    margin-top: 0.9rem;
 }
 
 .site-footer-muted {
@@ -1298,8 +1355,8 @@ a.category-card-link:focus-visible .category-card-image {
 
 .btn-primary:hover,
 .btn-primary:focus {
-    background-color: #9E573D;
-    border-color: #9E573D;
+    background-color: var(--coral-deep);
+    border-color: var(--coral-deep);
 }
 
 .text-primary {

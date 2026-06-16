@@ -31,7 +31,7 @@ $ppSaveExitUrl = (session()->get('role') === 'vendor') ? '/profile/services' : '
 <div class="pp-wizard">
     <aside class="pp-rail" aria-label="Create a service progress">
         <div class="pp-rail-head">
-            <div class="pp-rail-eyebrow">For Your Events</div>
+            <div class="pp-rail-eyebrow">Partysmith</div>
             <div class="pp-rail-title">Create a service</div>
         </div>
 
