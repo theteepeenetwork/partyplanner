@@ -25,8 +25,8 @@ class CmsPageDefaults
             'about' => [
                 'title'            => 'About us',
                 'content'          => '<p>We connect people planning celebrations with trusted event suppliers.</p>',
-                'meta_title'       => 'About — For Your Events',
-                'meta_description' => 'Learn about the For Your Events marketplace.',
+                'meta_title'       => 'About — Partysmith',
+                'meta_description' => 'Learn about the Partysmith marketplace.',
                 'status'           => 'published',
             ],
             'how-it-works' => [
@@ -43,14 +43,14 @@ class CmsPageDefaults
                     . '<li><strong>Use your calendar</strong> to see upcoming work tied to customer events.</li></ol>'
                     . '<p class="mt-3 mb-0 text-muted">Administrators can refine this text under <strong>Admin → Pages</strong>.</p>',
                 'meta_title'       => 'How it works',
-                'meta_description' => 'How the For Your Events marketplace works for customers and vendors.',
+                'meta_description' => 'How the Partysmith marketplace works for customers and vendors.',
                 'status'           => 'published',
             ],
             'contact' => [
                 'title'            => 'Contact',
                 'content'          => '<p>Email us at <strong>support@example.com</strong> (replace with your live support address).</p>',
                 'meta_title'       => 'Contact',
-                'meta_description' => 'Contact For Your Events.',
+                'meta_description' => 'Contact Partysmith.',
                 'status'           => 'published',
             ],
             'vendor-info' => [
@@ -65,7 +65,7 @@ class CmsPageDefaults
                 'content'          => '<h5>How do I book a service?</h5><p>Add services to your event basket, send booking requests, and complete payment when suppliers confirm.</p>'
                     . '<h5 class="mt-4">How do I message a vendor?</h5><p>Messaging opens once you have an eligible booking for that service.</p>',
                 'meta_title'       => 'FAQ',
-                'meta_description' => 'Common questions about For Your Events.',
+                'meta_description' => 'Common questions about Partysmith.',
                 'status'           => 'published',
             ],
         ];

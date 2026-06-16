@@ -5,9 +5,10 @@
     <meta charset="UTF-8">
     <?= csrf_meta() ?>
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#3A312D">
+    <meta name="theme-color" content="#2A2026">
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml">
     <?php
-    $ogTitle       = $pageTitle ?? 'For Your Events';
+    $ogTitle       = $pageTitle ?? 'Partysmith';
     $ogDescription = $metaDescription ?? 'A UK marketplace to discover event services, request quotes and manage bookings.';
     $ogImage       = $ogImage ?? base_url('assets/images/hero-event-planning.jpg');
     ?>
@@ -30,16 +31,11 @@
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <!-- DM Sans powers the sitewide navbar, so it must load on every page. -->
+    <!-- Hanken Grotesk powers the entire Partysmith UI; Mr Dafoe is the "P.S." script voice. -->
     <!-- Fonts load async (media swap) so a slow/unreachable Google Fonts never blocks render. -->
-    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <?php if (! empty($isHomePage)): ?>
-    <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <?php else: ?>
-    <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <?php endif; ?>
+    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Mr+Dafoe&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
     <noscript>
-        <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Spline+Sans+Mono:wght@400;600&display=swap" rel="stylesheet">
+        <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Mr+Dafoe&display=swap" rel="stylesheet">
     </noscript>
 
     <!-- Bootstrap CSS -->
@@ -83,9 +79,9 @@
     <header>
         <nav class="navbar navbar-expand-lg fixed-top shadow-sm">
             <div class="container">
-                <a class="navbar-brand text-uppercase logo" href="/">
-                    <span class="logo-line">For <span class="logo-accent">Your</span></span>
-                    <span class="logo-line logo-line--muted">Events</span>
+                <a class="navbar-brand brand" href="/">
+                    <span class="ps">P<span class="dot">.</span>S<span class="dot">.</span></span>
+                    <span class="name">Partysmith</span>
                 </a>
 
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav"

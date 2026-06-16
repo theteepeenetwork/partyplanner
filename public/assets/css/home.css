@@ -1,47 +1,53 @@
-/* Homepage — warm premium editorial marketplace */
+/* Homepage — Partysmith "Coral & Marigold" */
 
 :root {
-    --colour-espresso: #3A312D;
-    --colour-dark-brown: #221B18;
-    --colour-ivory: #F6F1EB;
-    --colour-warm-white: #FFFDFC;
-    --colour-terracotta: #B66A4D;
-    --colour-terracotta-dark: #9E573D;
-    --colour-olive: #4B5A46;
-    --colour-champagne: #D7C1A3;
-    --colour-heading: #2E2724;
-    --colour-body: #5F5853;
-    --colour-muted: #8A817A;
-    --colour-border: rgba(58, 49, 45, 0.10);
-    --shadow-soft: 0 16px 40px rgba(34, 27, 24, 0.08);
-    --shadow-hover: 0 22px 55px rgba(34, 27, 24, 0.13);
-    --font-display-home: 'Playfair Display', Georgia, 'Times New Roman', serif;
-    --font-body-home: 'Manrope', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --ps-paper: #F6F1E9;        /* Warm Ivory */
+    --ps-paper-2: #F1EADD;      /* sand panel / pills / icon tiles */
+    --ps-paper-3: #ECE2D2;
+    --ps-ink: #2A2026;          /* Plum Ink */
+    --ps-ink-soft: rgba(42, 32, 38, 0.62);
+    --ps-ink-faint: rgba(42, 32, 38, 0.40);
+    --ps-coral: #D8503C;        /* primary accent */
+    --ps-coral-deep: #BE4030;
+    --ps-marigold: #E0A94F;     /* secondary accent */
+    --ps-wax: #C0473E;
+    --ps-line: rgba(42, 32, 38, 0.13);
+    --ps-line-soft: rgba(42, 32, 38, 0.07);
+    --ps-white: #FFFFFF;
+
+    /* Ivory tints for text/borders on the plum-ink grounds */
+    --ps-on-dark: #F6F1E9;
+    --ps-on-dark-soft: rgba(246, 241, 233, 0.72);
+    --ps-on-dark-faint: rgba(246, 241, 233, 0.6);
+
+    --shadow-soft: 0 10px 30px rgba(42, 32, 38, 0.08);
+    --shadow-hover: 0 18px 44px rgba(42, 32, 38, 0.16);
+    --font-display-home: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-body-home: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --font-script-home: 'Mr Dafoe', cursive;
     --home-section-y: clamp(3.75rem, 7vw, 6rem);
 }
 
 /* Typography on homepage */
 body.home-page-body {
     font-family: var(--font-body-home);
-    color: var(--colour-body);
+    color: var(--ps-ink-soft);
 }
 
 body.home-page-body .section-heading,
-body.home-page-body,
+body.home-page-body .hero-headline,
 body.home-page-body .card-title,
-body.home-page-body,
 body.home-page-body .service-card-title,
 body.home-page-body .inspiration-card-title,
-body.home-page-body .trust-value-card h3 {
+body.home-page-body .trust-value-card h3,
+body.home-page-body .cta-heading {
     font-family: var(--font-display-home);
-    color: var(--colour-heading);
+    color: var(--ps-ink);
+    letter-spacing: -0.025em;
 }
 
-/* The navbar CTA is styled sitewide in style.css (.btn-nav-cta) so it stays
-   identical on every page; no homepage-specific override here. */
-
 .home-marketplace {
-    background: var(--colour-ivory);
+    background: var(--ps-paper);
 }
 
 .home-marketplace .home-section {
@@ -49,7 +55,7 @@ body.home-page-body .trust-value-card h3 {
     padding-bottom: var(--home-section-y);
 }
 
-/* Hero */
+/* ---------------- Hero ---------------- */
 .home-marketplace .hero-section {
     margin-top: calc(-1 * var(--site-header-height));
     padding-top: var(--site-header-height);
@@ -63,7 +69,12 @@ body.home-page-body .trust-value-card h3 {
 }
 
 .home-marketplace .hero-overlay {
-    background: rgba(34, 27, 24, 0.55);
+    background: linear-gradient(
+        180deg,
+        rgba(42, 32, 38, 0.78) 0%,
+        rgba(42, 32, 38, 0.62) 45%,
+        rgba(42, 32, 38, 0.70) 100%
+    );
 }
 
 .home-marketplace .hero-copy {
@@ -74,108 +85,100 @@ body.home-page-body .trust-value-card h3 {
 .home-marketplace .hero-eyebrow {
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    font-size: 0.68rem;
-    font-weight: 600;
-    color: var(--colour-champagne);
-    margin-bottom: 0.85rem;
+    font-size: 0.8125rem;
+    font-weight: 700;
+    color: var(--ps-marigold);
+    margin-bottom: 1.1rem;
 }
 
 .home-marketplace .hero-headline {
-    font-size: clamp(2.15rem, 5.8vw, 3.5rem);
-    font-weight: 600;
-    line-height: 1.1;
-    color: var(--colour-ivory);
+    font-size: clamp(2.15rem, 5.6vw, 3.75rem);
+    font-weight: 700;
+    line-height: 1.04;
+    color: var(--ps-on-dark);
     margin-bottom: 1.1rem;
 }
 
 .home-marketplace .hero-sublead {
     font-size: clamp(1.02rem, 2.2vw, 1.18rem);
-    line-height: 1.65;
-    color: var(--colour-champagne);
+    line-height: 1.6;
+    color: rgba(246, 241, 233, 0.82);
     max-width: 36rem;
-    margin: 0 auto 1.75rem;
+    margin: 0 auto 0.9rem;
 }
 
-.home-marketplace .hero-cta-group {
-    gap: 0.75rem;
-    margin-bottom: 1.65rem;
+.home-marketplace .hero-script {
+    font-family: var(--font-script-home);
+    color: var(--ps-marigold);
+    font-size: clamp(1.65rem, 4vw, 2.4rem);
+    line-height: 0.9;
+    margin: 0 auto 1.9rem;
 }
 
+/* Buttons */
 .home-marketplace .btn-home-primary {
-    background: var(--colour-terracotta);
-    border: 1px solid var(--colour-terracotta);
-    color: var(--colour-warm-white);
+    background: var(--ps-coral);
+    border: 1px solid var(--ps-coral);
+    color: var(--ps-white);
     font-weight: 600;
-    border-radius: 10px;
+    border-radius: 100px;
     padding: 0.72rem 1.65rem;
     font-family: var(--font-body-home);
-    transition: background 0.25s ease, transform 0.2s ease;
+    transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .home-marketplace .btn-home-primary:hover,
 .home-marketplace .btn-home-primary:focus {
-    background: var(--colour-terracotta-dark);
-    border-color: var(--colour-terracotta-dark);
-    color: var(--colour-warm-white);
+    background: var(--ps-coral-deep);
+    border-color: var(--ps-coral-deep);
+    color: var(--ps-white);
     transform: translateY(-1px);
 }
 
-.home-marketplace .btn-home-outline-light {
-    border: 2px solid rgba(255, 253, 252, 0.88);
-    color: var(--colour-warm-white);
-    font-weight: 600;
-    border-radius: 10px;
-    padding: 0.68rem 1.5rem;
-    background: transparent;
-    font-family: var(--font-body-home);
-}
-
-.home-marketplace .btn-home-outline-light:hover,
-.home-marketplace .btn-home-outline-light:focus {
-    background: rgba(255, 253, 252, 0.1);
-    color: var(--colour-warm-white);
-    border-color: var(--colour-warm-white);
-}
-
 .home-marketplace .btn-home-secondary {
-    color: var(--colour-olive);
-    border: 1px solid rgba(75, 90, 70, 0.35);
+    color: var(--ps-ink);
+    border: 1.5px solid var(--ps-line);
     background: transparent;
     font-weight: 600;
-    border-radius: 10px;
-    padding: 0.55rem 1.35rem;
+    border-radius: 100px;
+    padding: 0.66rem 1.5rem;
     font-family: var(--font-body-home);
+    transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
 .home-marketplace .btn-home-secondary:hover {
-    background: rgba(75, 90, 70, 0.08);
-    color: var(--colour-olive);
-    border-color: var(--colour-olive);
+    background: transparent;
+    color: var(--ps-ink);
+    border-color: var(--ps-ink);
+    transform: translateY(-1px);
 }
 
 .home-marketplace .btn-home-ghost-light {
-    border: 2px solid rgba(255, 253, 252, 0.5);
-    color: var(--colour-warm-white);
+    border: 1.5px solid rgba(246, 241, 233, 0.4);
+    color: var(--ps-on-dark);
     background: transparent;
     font-weight: 600;
-    border-radius: 10px;
-    padding: 0.68rem 1.45rem;
+    border-radius: 100px;
+    padding: 0.68rem 1.5rem;
+    transition: border-color 0.15s ease, transform 0.15s ease;
 }
 
 .home-marketplace .btn-home-ghost-light:hover {
-    background: rgba(255, 253, 252, 0.1);
-    color: var(--colour-warm-white);
+    background: transparent;
+    border-color: var(--ps-on-dark);
+    color: var(--ps-on-dark);
+    transform: translateY(-1px);
 }
 
 /* Hero event-search card */
 .home-marketplace .hero-event-search {
-    max-width: 46rem;
+    max-width: 45rem;
     margin: 0 auto;
-    background: var(--colour-warm-white);
-    border-radius: 18px;
+    background: var(--ps-paper);
+    border-radius: 20px;
     box-shadow: var(--shadow-hover);
-    border: 1px solid var(--colour-border);
-    padding: 1rem 1rem 1.1rem;
+    border: none;
+    padding: 1rem;
     text-align: left;
 }
 
@@ -183,7 +186,7 @@ body.home-page-body .trust-value-card h3 {
 .home-marketplace .hero-occasions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.4rem;
+    gap: 0.5rem;
     border: 0;
     padding: 0;
     margin: 0 0 0.9rem;
@@ -200,30 +203,30 @@ body.home-page-body .trust-value-card h3 {
 .home-marketplace .hero-occasion-pill {
     display: inline-flex;
     align-items: center;
-    padding: 0.42rem 0.95rem;
-    border-radius: 999px;
-    font-size: 0.85rem;
+    padding: 0.5rem 1rem;
+    border-radius: 100px;
+    font-size: 0.875rem;
     font-weight: 600;
-    color: var(--colour-body);
-    background: rgba(215, 193, 163, 0.22);
+    color: var(--ps-ink-soft);
+    background: var(--ps-paper-2);
     border: 1px solid transparent;
     cursor: pointer;
-    transition: background 0.2s ease, color 0.2s ease, border-color 0.2s ease;
+    transition: background 0.15s ease, color 0.15s ease;
     font-family: var(--font-body-home);
 }
 
 .home-marketplace .hero-occasion-pill:hover {
-    background: rgba(215, 193, 163, 0.4);
+    color: var(--ps-ink);
 }
 
 .home-marketplace .hero-occasion-input:checked + .hero-occasion-pill {
-    background: var(--colour-olive);
-    color: var(--colour-warm-white);
-    border-color: var(--colour-olive);
+    background: var(--ps-coral);
+    color: var(--ps-white);
+    border-color: var(--ps-coral);
 }
 
 .home-marketplace .hero-occasion-input:focus-visible + .hero-occasion-pill {
-    outline: 2px solid var(--colour-terracotta);
+    outline: 2px solid var(--ps-coral);
     outline-offset: 2px;
 }
 
@@ -235,81 +238,89 @@ body.home-page-body .trust-value-card h3 {
     align-items: end;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 681px) {
     .home-marketplace .hero-search-fields {
-        grid-template-columns: repeat(3, 1fr) auto;
-        gap: 0.5rem;
+        grid-template-columns: 1fr 1fr 1.2fr auto;
+        gap: 0.625rem;
     }
 }
 
 .home-marketplace .hero-field {
     display: flex;
     flex-direction: column;
-    gap: 0.25rem;
+    gap: 0.3rem;
     min-width: 0;
 }
 
 .home-marketplace .hero-field-label {
-    font-size: 0.68rem;
+    font-size: 0.6875rem;
     font-weight: 700;
-    letter-spacing: 0.1em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--colour-muted);
+    color: var(--ps-ink-faint);
+    padding-left: 4px;
     font-family: var(--font-body-home);
 }
 
 .home-marketplace .hero-field-input {
     width: 100%;
-    border: 1px solid var(--colour-border);
-    border-radius: 10px;
-    padding: 0.6rem 0.8rem;
+    border: 1.5px solid var(--ps-line);
+    border-radius: 12px;
+    padding: 0.68rem 0.8rem;
     font-size: 0.95rem;
     font-family: var(--font-body-home);
-    color: var(--colour-heading);
-    background: var(--colour-warm-white);
+    color: var(--ps-ink);
+    background: var(--ps-white);
+    appearance: none;
 }
 
 .home-marketplace .hero-field-input:focus {
     outline: none;
-    border-color: var(--colour-olive);
-    box-shadow: 0 0 0 3px rgba(75, 90, 70, 0.15);
+    border-color: var(--ps-coral);
+    box-shadow: 0 0 0 3px rgba(216, 80, 60, 0.14);
 }
 
 .home-marketplace .hero-search-submit {
     width: 100%;
     padding: 0.65rem 1.6rem;
     white-space: nowrap;
+    justify-content: center;
 }
 
-@media (min-width: 768px) {
+@media (min-width: 681px) {
     .home-marketplace .hero-search-submit {
         width: auto;
-        height: calc(2.5rem + 2px);
+        height: 46px;
     }
 }
 
 .home-marketplace .hero-reassurance {
-    margin: 1.15rem auto 0;
-    font-size: 0.82rem;
-    color: rgba(255, 253, 252, 0.82);
+    margin: 1.4rem auto 0;
+    font-size: 0.875rem;
+    color: rgba(246, 241, 233, 0.78);
     letter-spacing: 0.01em;
 }
 
-/* Trust strip */
+.home-marketplace .hero-reassurance i {
+    color: var(--ps-marigold);
+    margin-right: 0.3rem;
+}
+
+/* ---------------- Trust strip — plum-ink band ---------------- */
 .home-marketplace .home-trust-strip {
-    background: var(--colour-ivory);
-    padding: 1.5rem 0 0.5rem;
+    background: var(--ps-ink);
+    color: var(--ps-on-dark);
+    padding: clamp(28px, 3.4vw, 40px) 0;
 }
 
 .home-marketplace .home-trust-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
-    gap: 0.85rem;
+    gap: 1.4rem;
     list-style: none;
-    margin: 0;
+    margin: 0 auto;
     padding: 0;
-    max-width: 1040px;
-    margin-inline: auto;
+    max-width: 1120px;
 }
 
 @media (min-width: 768px) {
@@ -321,197 +332,166 @@ body.home-page-body .trust-value-card h3 {
 .home-marketplace .home-trust-item {
     display: flex;
     align-items: flex-start;
-    gap: 0.7rem;
-    padding: 1rem 1.05rem;
-    background: var(--colour-warm-white);
-    border-radius: 12px;
-    box-shadow: var(--shadow-soft);
-    border: 1px solid var(--colour-border);
+    gap: 0.875rem;
+    padding: 0;
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+    border-radius: 0;
     font-size: 0.875rem;
-    font-weight: 500;
-    color: var(--colour-heading);
-    line-height: 1.35;
+    font-weight: 400;
+    color: var(--ps-on-dark);
+    line-height: 1.45;
 }
 
 .home-marketplace .home-trust-icon {
     flex-shrink: 0;
-    width: 2.1rem;
-    height: 2.1rem;
+    width: 42px;
+    height: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    background: rgba(215, 193, 163, 0.35);
-    color: var(--colour-olive);
-    font-size: 0.85rem;
+    border-radius: 11px;
+    background: rgba(224, 169, 79, 0.16);
+    color: var(--ps-marigold);
+    font-size: 1.0625rem;
 }
 
-/* Section typography */
-.home-marketplace .section-eyebrow {
-    color: var(--colour-olive);
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    font-size: 0.7rem;
+.home-marketplace .home-trust-title {
+    display: block;
     font-weight: 600;
+    font-size: 0.96rem;
+    color: var(--ps-on-dark);
+    margin-bottom: 2px;
+}
+
+.home-marketplace .home-trust-text {
+    display: block;
+    font-weight: 400;
+    color: rgba(246, 241, 233, 0.62);
+    font-size: 0.84rem;
+}
+
+/* ---------------- Section typography ---------------- */
+.home-marketplace .section-eyebrow {
+    color: var(--ps-coral);
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    font-size: 0.78rem;
+    font-weight: 700;
     font-family: var(--font-body-home);
 }
 
 .home-marketplace .section-heading {
-    font-size: clamp(1.9rem, 3.8vw, 2.55rem);
-    font-weight: 600;
-    line-height: 1.15;
+    font-size: clamp(1.9rem, 3.6vw, 2.625rem);
+    font-weight: 700;
+    line-height: 1.06;
     margin-bottom: 0.65rem;
 }
 
 .home-marketplace .section-lead {
-    color: var(--colour-body);
+    color: var(--ps-ink-soft);
     font-size: 1.05rem;
-    line-height: 1.65;
+    line-height: 1.6;
     max-width: 40rem;
 }
 
 .home-marketplace .section-surface {
-    background: var(--colour-ivory);
+    background: var(--ps-paper);
 }
 
 .home-marketplace .section-surface-alt {
-    background: linear-gradient(180deg, var(--colour-warm-white) 0%, var(--colour-ivory) 100%);
+    background: var(--ps-paper-2);
 }
 
-/* Categories — 4 col desktop, 2 col mobile */
-.home-marketplace .category-card-container {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 1rem;
-    max-width: 1120px;
-    padding: 0 1.25rem;
-}
-
-@media (min-width: 992px) {
-    .home-marketplace .category-card-container {
-        grid-template-columns: repeat(4, 1fr);
-        gap: 1.15rem;
-    }
-}
-
-.home-marketplace .category-card {
-    border-radius: 14px;
-    box-shadow: var(--shadow-soft);
-    border: none;
-}
-
-.home-marketplace .category-card-gradient {
-    background: linear-gradient(
-        180deg,
-        rgba(34, 27, 24, 0) 28%,
-        rgba(34, 27, 24, 0.45) 68%,
-        rgba(34, 27, 24, 0.82) 100%
-    );
-}
-
-.home-marketplace .category-card-category {
-    font-size: 1rem;
-    font-weight: 600;
-    padding: 1.1rem 1rem;
-    color: var(--colour-warm-white);
-}
-
-/* How it works */
+/* ---------------- How it works ---------------- */
 .home-marketplace .how-it-works {
-    background: var(--colour-warm-white);
+    background: var(--ps-paper);
 }
 
 .home-marketplace .how-it-works-steps {
     display: grid;
     grid-template-columns: 1fr;
     gap: 1.15rem;
-    max-width: 1080px;
-    margin: 0 auto;
+    max-width: 1120px;
+    margin: 2.5rem auto 0;
 }
 
 @media (min-width: 768px) {
     .home-marketplace .how-it-works-steps {
         grid-template-columns: repeat(4, 1fr);
-        gap: 1rem;
+        gap: 1.5rem;
     }
 }
 
 .home-marketplace .how-it-works-card {
-    background: var(--colour-warm-white);
-    border: 1px solid var(--colour-border);
-    border-radius: 14px;
-    padding: 1.85rem 1.35rem 1.6rem;
+    background: var(--ps-white);
+    border: 1px solid var(--ps-line);
+    border-radius: 16px;
+    padding: 1.75rem 1.5rem;
     box-shadow: var(--shadow-soft);
-    text-align: center;
+    text-align: left;
     position: relative;
 }
 
-.home-marketplace .how-it-works-card::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 1.25rem;
-    right: 1.25rem;
-    height: 2px;
-    background: linear-gradient(90deg, transparent, var(--colour-champagne), transparent);
-    border-radius: 2px;
-}
-
 .home-marketplace .how-it-works-card .icon-wrapper {
-    width: 68px;
-    height: 68px;
-    background: rgba(215, 193, 163, 0.28);
-    margin-bottom: 0.5rem;
+    width: 52px;
+    height: 52px;
+    border-radius: 14px;
+    background: var(--ps-paper-2);
+    margin: 0 0 1.1rem;
 }
 
 .home-marketplace .how-it-works-card .icon-wrapper i {
-    color: var(--colour-olive);
-    font-size: 1.25rem;
+    color: var(--ps-coral);
+    font-size: 1.3rem;
 }
 
 .home-marketplace .how-it-works-card .step-number {
     display: block;
-    font-size: 0.68rem;
+    font-size: 0.72rem;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.12em;
     text-transform: uppercase;
-    color: var(--colour-champagne);
-    margin-bottom: 0.4rem;
+    color: var(--ps-marigold);
+    margin-bottom: 0.35rem;
     font-family: var(--font-body-home);
 }
 
 .home-marketplace .how-it-works-card .card-title {
-    font-size: 1.08rem;
-    margin-bottom: 0.45rem;
+    font-size: 1.1875rem;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
 }
 
 .home-marketplace .how-it-works-card .card-description {
     font-size: 0.9rem;
-    color: var(--colour-body);
+    color: var(--ps-ink-soft);
     margin-top: 0;
-    line-height: 1.55;
+    line-height: 1.5;
 }
 
-/* Service cards */
+/* ---------------- Featured suppliers ---------------- */
 .home-marketplace .service-card-container {
     max-width: 1120px;
-    gap: 1.35rem;
+    gap: 1.5rem;
     padding: 0 1.25rem;
 }
 
 .home-marketplace .service-card {
     display: flex;
     flex-direction: column;
-    background: var(--colour-warm-white);
-    border-radius: 14px;
+    background: var(--ps-white);
+    border-radius: 16px;
     overflow: hidden;
     box-shadow: var(--shadow-soft);
-    border: 1px solid var(--colour-border);
-    transition: box-shadow 0.3s ease, transform 0.3s ease;
+    border: 1px solid var(--ps-line);
+    transition: box-shadow 0.2s ease, transform 0.2s ease;
 }
 
 .home-marketplace .service-card:hover {
     box-shadow: var(--shadow-hover);
-    transform: translateY(-4px);
+    transform: translateY(-5px);
 }
 
 .home-marketplace .service-card-media {
@@ -527,66 +507,80 @@ body.home-page-body .trust-value-card h3 {
     height: 100%;
     object-fit: cover;
     display: block;
+    transition: transform 0.5s ease;
+}
+
+.home-marketplace .service-card:hover .service-card-image {
+    transform: scale(1.05);
 }
 
 .home-marketplace .service-card-verified {
-    background: var(--colour-warm-white);
-    color: var(--colour-olive);
-    font-size: 0.7rem;
+    background: rgba(42, 32, 38, 0.78);
+    color: var(--ps-white);
+    font-size: 0.72rem;
+    font-weight: 600;
+    border-radius: 100px;
+    backdrop-filter: blur(4px);
+}
+
+.home-marketplace .service-card-verified i {
+    color: var(--ps-marigold);
 }
 
 .home-marketplace .service-card-content {
-    padding: 1.2rem 1.25rem 0.5rem;
+    padding: 1rem 1.15rem 0.5rem;
     flex: 1;
 }
 
 .home-marketplace .service-card-category {
     display: inline-block;
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.08em;
+    font-size: 0.6875rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
     text-transform: uppercase;
-    color: var(--colour-olive);
+    color: var(--ps-coral);
     margin-bottom: 0.4rem;
     font-family: var(--font-body-home);
 }
 
 .home-marketplace .service-card-title {
-    font-size: 1.12rem;
-    margin-bottom: 0.5rem;
-    line-height: 1.3;
+    font-size: 1.125rem;
+    font-weight: 600;
+    margin-bottom: 0.65rem;
+    line-height: 1.2;
 }
 
 .home-marketplace .service-card-title a:hover {
-    color: var(--colour-terracotta);
+    color: var(--ps-coral-deep);
 }
 
 .home-marketplace .service-card-meta {
     display: flex;
     flex-wrap: wrap;
     justify-content: space-between;
+    align-items: center;
     gap: 0.35rem;
     font-size: 0.85rem;
-    margin-bottom: 0.6rem;
+    margin-bottom: 0.75rem;
 }
 
 .home-marketplace .service-card-location {
-    color: var(--colour-muted);
+    color: var(--ps-ink-soft);
 }
 
 .home-marketplace .service-card-location i {
-    color: var(--colour-olive);
+    color: var(--ps-coral);
 }
 
 .home-marketplace .service-card-price,
 .home-marketplace .service-card-quote {
-    font-weight: 600;
-    color: var(--colour-terracotta);
+    font-weight: 700;
+    color: var(--ps-ink);
 }
 
 .home-marketplace .service-card-description {
-    font-size: 0.88rem;
-    color: var(--colour-body);
+    font-size: 0.875rem;
+    color: var(--ps-ink-soft);
     line-height: 1.5;
     display: -webkit-box;
     -webkit-line-clamp: 2;
@@ -596,27 +590,87 @@ body.home-page-body .trust-value-card h3 {
 }
 
 .home-marketplace .service-card-footer {
-    padding: 0.5rem 1.25rem 1.2rem;
+    padding: 0.75rem 1.15rem 1.1rem;
+    border-top: 1px solid var(--ps-line-soft);
+    margin-top: 0.25rem;
 }
 
 .home-marketplace .service-card-cta {
     display: inline-flex;
     align-items: center;
-    gap: 0.4rem;
-    font-size: 0.875rem;
+    gap: 0.45rem;
+    font-size: 0.9rem;
     font-weight: 600;
-    color: var(--colour-terracotta);
+    color: var(--ps-coral-deep);
     text-decoration: none;
     font-family: var(--font-body-home);
 }
 
-.home-marketplace .service-card-cta:hover {
-    color: var(--colour-terracotta-dark);
+.home-marketplace .service-card-cta i {
+    transition: transform 0.15s ease;
 }
 
-/* Vendor CTA — olive/espresso */
+.home-marketplace .service-card-cta:hover i {
+    transform: translateX(3px);
+}
+
+/* ---------------- Categories ---------------- */
+.home-marketplace .category-card-container {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+    max-width: 1120px;
+    padding: 0 1.25rem;
+}
+
+@media (min-width: 992px) {
+    .home-marketplace .category-card-container {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 1.25rem;
+    }
+}
+
+.home-marketplace .category-card {
+    border-radius: 16px;
+    box-shadow: var(--shadow-soft);
+    border: none;
+}
+
+.home-marketplace .category-card-media {
+    aspect-ratio: 3 / 3.4;
+}
+
+.home-marketplace .category-card-image {
+    transition: transform 0.5s ease;
+}
+
+.home-marketplace a.category-card-link:hover .category-card-image,
+.home-marketplace a.category-card-link:focus-visible .category-card-image {
+    transform: scale(1.06);
+}
+
+.home-marketplace .category-card-gradient {
+    background: linear-gradient(
+        180deg,
+        transparent 38%,
+        rgba(42, 32, 38, 0.82) 100%
+    );
+}
+
+.home-marketplace .category-card-category {
+    font-size: 1.0625rem;
+    font-weight: 600;
+    padding: 1.1rem 1rem;
+    color: var(--ps-white);
+    letter-spacing: -0.01em;
+}
+
+.home-marketplace a.category-card-link:focus-visible {
+    outline: 2px solid var(--ps-coral);
+}
+
+/* ---------------- Vendor CTA — plum-ink block ---------------- */
 .home-marketplace .vendor-cta-section {
-    background: var(--colour-ivory);
+    background: var(--ps-paper-2);
 }
 
 .home-marketplace .vendor-cta-grid {
@@ -624,48 +678,54 @@ body.home-page-body .trust-value-card h3 {
     grid-template-columns: 1fr;
     max-width: 1120px;
     margin: 0 auto;
-    border-radius: 16px;
+    border-radius: 24px;
     overflow: hidden;
     box-shadow: var(--shadow-soft);
+    background: var(--ps-ink);
 }
 
 @media (min-width: 992px) {
     .home-marketplace .vendor-cta-grid {
-        grid-template-columns: 1fr 1fr;
+        grid-template-columns: 1.05fr 0.95fr;
     }
 }
 
 .home-marketplace .vendor-cta-copy {
-    padding: clamp(2rem, 5vw, 3.25rem);
-    background: var(--colour-olive);
-    color: var(--colour-warm-white);
+    padding: clamp(2.1rem, 4.5vw, 3.75rem);
+    background: var(--ps-ink);
+    color: var(--ps-on-dark);
     display: flex;
     flex-direction: column;
     justify-content: center;
 }
 
 .home-marketplace .vendor-cta-copy .section-eyebrow {
-    color: var(--colour-champagne);
+    color: var(--ps-marigold);
 }
 
 .home-marketplace .vendor-cta-copy .section-heading {
-    color: var(--colour-warm-white);
+    color: var(--ps-on-dark);
 }
 
 .home-marketplace .vendor-cta-copy .section-lead {
-    color: rgba(255, 253, 252, 0.88);
+    color: var(--ps-on-dark-soft);
     max-width: none;
 }
 
 .home-marketplace .vendor-cta-copy .btn-home-secondary {
-    border-color: rgba(255, 253, 252, 0.45);
-    color: var(--colour-warm-white);
+    border-color: rgba(246, 241, 233, 0.4);
+    color: var(--ps-on-dark);
 }
 
 .home-marketplace .vendor-cta-copy .btn-home-secondary:hover {
-    background: rgba(255, 253, 252, 0.12);
-    border-color: var(--colour-warm-white);
-    color: var(--colour-warm-white);
+    background: transparent;
+    border-color: var(--ps-on-dark);
+    color: var(--ps-on-dark);
+}
+
+.home-marketplace .vendor-cta-media {
+    position: relative;
+    min-height: 18rem;
 }
 
 .home-marketplace .vendor-cta-media img {
@@ -682,201 +742,101 @@ body.home-page-body .trust-value-card h3 {
     }
 }
 
-/* Trust / why use us */
-.home-marketplace .trust-value-section {
-    background: var(--colour-ivory);
-}
-
-.home-marketplace .trust-value-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1.15rem;
-    max-width: 1000px;
-    margin: 2rem auto 0;
-}
-
-@media (min-width: 768px) {
-    .home-marketplace .trust-value-grid {
-        grid-template-columns: repeat(3, 1fr);
-    }
-}
-
-.home-marketplace .trust-value-card {
-    background: var(--colour-warm-white);
-    border-radius: 14px;
-    padding: 1.65rem 1.4rem;
-    text-align: left;
-    border: 1px solid var(--colour-border);
-    box-shadow: var(--shadow-soft);
-    border-top: 3px solid var(--colour-champagne);
-}
-
-.home-marketplace .trust-value-card h3 {
-    font-size: 1.15rem;
-    margin-bottom: 0.55rem;
-}
-
-.home-marketplace .trust-value-card p {
-    font-size: 0.92rem;
-    color: var(--colour-body);
-    margin: 0;
-    line-height: 1.55;
-}
-
-/* Inspiration */
-.home-marketplace .inspiration-section {
-    background: var(--colour-warm-white);
-}
-
-.home-marketplace .inspiration-grid {
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 1rem;
-    max-width: 1040px;
-    margin: 2rem auto 0;
-}
-
-@media (min-width: 576px) {
-    .home-marketplace .inspiration-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-
-@media (min-width: 992px) {
-    .home-marketplace .inspiration-grid {
-        grid-template-columns: repeat(4, 1fr);
-    }
-}
-
-.home-marketplace .inspiration-card {
-    display: flex;
-    flex-direction: column;
-    text-decoration: none;
-    color: inherit;
-    background: var(--colour-ivory);
-    border-radius: 14px;
-    padding: 1.35rem 1.2rem;
-    border: 1px solid var(--colour-border);
-    transition: box-shadow 0.25s ease, transform 0.25s ease;
-    min-height: 100%;
-}
-
-.home-marketplace .inspiration-card:hover {
-    box-shadow: var(--shadow-hover);
-    transform: translateY(-3px);
-    color: inherit;
-}
-
-.home-marketplace .inspiration-card-icon {
-    width: 2.5rem;
-    height: 2.5rem;
-    border-radius: 50%;
-    background: rgba(215, 193, 163, 0.4);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: var(--colour-olive);
-    margin-bottom: 0.85rem;
-    font-size: 0.95rem;
-}
-
-.home-marketplace .inspiration-card-title {
-    font-size: 1.05rem;
-    font-weight: 600;
-    margin-bottom: 0.35rem;
-    line-height: 1.3;
-}
-
-.home-marketplace .inspiration-card-text {
-    font-size: 0.85rem;
-    color: var(--colour-muted);
-    margin: 0;
-    line-height: 1.45;
-}
-
-/* Final CTA */
+/* ---------------- Final CTA — coral gradient ---------------- */
 .home-marketplace .home-final-cta {
-    background: var(--colour-espresso);
+    background: linear-gradient(135deg, var(--ps-coral) 0%, var(--ps-coral-deep) 100%);
     padding-top: clamp(3.5rem, 6vw, 5rem);
     padding-bottom: clamp(3.5rem, 6vw, 5rem);
 }
 
+.home-marketplace .home-final-cta .final-script {
+    font-family: var(--font-script-home);
+    font-size: clamp(1.75rem, 4vw, 2.625rem);
+    color: rgba(246, 241, 233, 0.95);
+    line-height: 0.9;
+    margin-bottom: 0.4rem;
+}
+
 .home-marketplace .home-final-cta .cta-heading {
-    color: var(--colour-warm-white);
+    color: var(--ps-white);
     font-family: var(--font-display-home);
-    font-size: clamp(1.85rem, 3.5vw, 2.45rem);
+    font-size: clamp(1.9rem, 3.6vw, 2.625rem);
+    font-weight: 700;
 }
 
 .home-marketplace .home-final-cta .cta-lead {
-    color: rgba(255, 253, 252, 0.85);
+    color: rgba(255, 255, 255, 0.86);
     max-width: 36rem;
     margin-inline: auto;
 }
 
 .home-marketplace .home-final-cta .btn-light {
-    background: var(--colour-warm-white);
-    color: var(--colour-heading);
+    background: var(--ps-paper);
+    color: var(--ps-ink);
     border: none;
     font-weight: 600;
-    border-radius: 10px;
+    border-radius: 100px;
+    transition: background 0.15s ease, transform 0.15s ease;
 }
 
 .home-marketplace .home-final-cta .btn-light:hover {
-    background: var(--colour-champagne);
-    color: var(--colour-heading);
+    background: var(--ps-white);
+    color: var(--ps-ink);
+    transform: translateY(-1px);
 }
 
-/* Homepage footer */
+/* ---------------- Homepage footer (plum ink) ---------------- */
 body.home-page-body .site-footer--home {
-    background: var(--colour-espresso);
-    color: rgba(255, 253, 252, 0.88);
+    background: var(--ps-ink);
+    color: rgba(246, 241, 233, 0.88);
     margin-top: 0;
 }
 
 body.home-page-body .site-footer--home h5 {
-    color: var(--colour-warm-white);
-    font-family: var(--font-display-home);
-    font-weight: 600;
+    color: rgba(246, 241, 233, 0.5);
+    font-family: var(--font-body-home);
+    font-weight: 700;
+    font-size: 0.75rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
 }
 
 body.home-page-body .site-footer--home .site-footer-muted {
-    color: var(--colour-champagne);
+    color: rgba(246, 241, 233, 0.6);
+}
+
+body.home-page-body .site-footer--home .footer-brand .name {
+    color: var(--ps-on-dark);
+}
+
+body.home-page-body .site-footer--home .footer-script {
+    color: var(--ps-marigold);
 }
 
 body.home-page-body .site-footer--home .site-footer-links a,
 body.home-page-body .site-footer--home .site-footer-link {
-    color: rgba(255, 253, 252, 0.88);
+    color: rgba(246, 241, 233, 0.78);
 }
 
 body.home-page-body .site-footer--home .site-footer-links a:hover,
 body.home-page-body .site-footer--home .site-footer-link:hover {
-    color: var(--colour-warm-white);
+    color: var(--ps-marigold);
 }
 
 body.home-page-body .site-footer--home .site-footer-social-link {
-    background: rgba(255, 253, 252, 0.08);
-    color: var(--colour-warm-white);
+    background: rgba(246, 241, 233, 0.08);
+    color: var(--ps-on-dark);
 }
 
 body.home-page-body .site-footer--home .site-footer-social-link:hover {
-    background: var(--colour-terracotta);
+    background: var(--ps-coral);
 }
 
 body.home-page-body .site-footer--home .site-footer-bottom {
-    border-top: 1px solid rgba(255, 253, 252, 0.1);
-    color: var(--colour-champagne);
-}
-
-body.home-page-body .site-footer--home .btn-outline-light {
-    border-color: rgba(255, 253, 252, 0.45);
-    color: var(--colour-warm-white);
-}
-
-body.home-page-body .site-footer--home .btn-outline-light:hover {
-    background: var(--colour-terracotta);
-    border-color: var(--colour-terracotta);
+    border-top: 1px solid rgba(246, 241, 233, 0.12);
+    color: rgba(246, 241, 233, 0.5);
 }
 
 body.home-page-body .site-footer--home .site-footer-divider {
-    border-top-color: rgba(255, 253, 252, 0.1);
+    border-top-color: rgba(246, 241, 233, 0.12);
 }
