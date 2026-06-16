@@ -1,7 +1,4 @@
 <?php
-$pageTitle       = 'Site map — Partysmith';
-$metaDescription = 'Every page on Partysmith in one place — public and marketing, accounts, customer planning, supplier tools and admin.';
-
 /*
  * Real-route map of the prototype "Partysmith Site Map" hub. Each card points at a
  * live route in the app (not the prototype HTML filenames). Pages that need a record

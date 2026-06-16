@@ -6,7 +6,7 @@ class Register extends BaseController
 {
     public function index()
     {
-        return view('register'); // Load the registration view
+        return view('register', ['pageTitle' => 'Create your account — Partysmith']);
     }
 
     public function create()
@@ -58,7 +58,7 @@ class Register extends BaseController
 
     public function vendor()
     {
-        return view('register_vendor');
+        return view('register_vendor', ['pageTitle' => 'List your business — Partysmith']);
     }
 
     public function createVendor()

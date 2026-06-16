@@ -420,30 +420,82 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
         </section>
         <?php endif; ?>
 
-        <!-- Recent reviews (service-specific written comments) -->
+        <!-- Reviews (service-specific written comments + rating summary) -->
         <?php if (!empty($service_reviews)): ?>
-        <section style="margin-top:40px">
-          <h2 class="sv-section-label">Recent reviews</h2>
-          <div style="display:flex;flex-direction:column;gap:14px">
-            <?php foreach ($service_reviews as $rv): ?>
-              <div class="sv-review">
-                <div class="sv-stars"><?= view('partials/sv_stars', ['rating' => (int) $rv['rating']]) ?></div>
-                <?php if (!empty($rv['title'])): ?>
-                  <div style="font-weight:700;margin:8px 0 4px"><?= esc($rv['title']) ?></div>
-                <?php endif; ?>
-                <p class="sv-review-quote">"<?= esc($rv['comment']) ?>"</p>
-                <div class="sv-review-by">
-                  <b><?= esc($rv['customer_name'] ?? 'Verified customer') ?></b>
-                  <?php
-                  $context = $rv['event_type'] ?? ($rv['event_title'] ?? '');
-                  if (!empty($context)):
-                  ?>
-                    · <?= esc($context) ?>
-                  <?php endif; ?>
-                </div>
+        <?php
+        /* Render a 1–5 star string for the design markup (filled ★ / empty ☆). */
+        $starString = static function (float $rating): string {
+            $filled = (int) round($rating);
+            $filled = max(0, min(5, $filled));
+            return str_repeat('★', $filled) . str_repeat('☆', 5 - $filled);
+        };
+
+        /* Distribution + average from the loaded service reviews (model returns up to 6). */
+        $revDist  = [5 => 0, 4 => 0, 3 => 0, 2 => 0, 1 => 0];
+        $revSum   = 0;
+        $revTotal = 0;
+        foreach ($service_reviews as $rv) {
+            $r = (int) ($rv['rating'] ?? 0);
+            if ($r >= 1 && $r <= 5) {
+                $revDist[$r]++;
+                $revSum += $r;
+                $revTotal++;
+            }
+        }
+        /* Prefer the vendor-wide rating for the headline figure when available. */
+        $revAvg   = (!empty($vendor_rating) && $vendor_rating['count'] > 0)
+            ? (float) $vendor_rating['avg']
+            : ($revTotal > 0 ? $revSum / $revTotal : 0);
+        $revCount = (!empty($vendor_rating) && $vendor_rating['count'] > 0)
+            ? (int) $vendor_rating['count']
+            : $revTotal;
+        ?>
+        <section style="margin-top:40px" class="ps-app">
+          <h2 class="sv-section-label">Reviews</h2>
+
+          <div class="rev-summary">
+            <div class="rev-score">
+              <div class="big"><?= esc(number_format($revAvg, 1)) ?></div>
+              <div class="stars"><?= $starString($revAvg) ?></div>
+              <div class="cnt"><?= $revCount ?> review<?= $revCount === 1 ? '' : 's' ?></div>
+            </div>
+            <div class="rev-bars">
+              <?php for ($s = 5; $s >= 1; $s--):
+                  $pct = $revTotal > 0 ? round(($revDist[$s] / $revTotal) * 100) : 0;
+              ?>
+              <div class="rev-bar">
+                <span class="lab"><?= $s ?> star</span>
+                <span class="track"><span class="fill" style="width:<?= $pct ?>%"></span></span>
+                <span><?= $revDist[$s] ?></span>
               </div>
-            <?php endforeach; ?>
+              <?php endfor; ?>
+            </div>
           </div>
+
+          <?php foreach ($service_reviews as $rv):
+            $rvName    = trim((string) ($rv['customer_name'] ?? '')) ?: 'Verified customer';
+            $rvInitial = strtoupper(substr($rvName, 0, 1));
+            $rvContext = $rv['event_type'] ?? ($rv['event_title'] ?? '');
+            $rvDate    = !empty($rv['created_at']) ? date('M Y', strtotime((string) $rv['created_at'])) : '';
+            $rvMeta    = trim(implode(' · ', array_filter([$rvContext, $rvDate])));
+          ?>
+          <div class="review">
+            <div class="review-head">
+              <span class="rev-av"><?= esc($rvInitial) ?></span>
+              <div class="rev-who">
+                <b><?= esc($rvName) ?></b>
+                <?php if ($rvMeta !== ''): ?><span><?= esc($rvMeta) ?></span><?php endif; ?>
+              </div>
+              <span class="rstars"><?= $starString((float) ($rv['rating'] ?? 0)) ?></span>
+            </div>
+            <?php if (!empty($rv['title'])): ?>
+              <p style="font-weight:600;margin-bottom:6px"><?= esc($rv['title']) ?></p>
+            <?php endif; ?>
+            <?php if (!empty($rv['comment'])): ?>
+              <p><?= nl2br(esc($rv['comment'])) ?></p>
+            <?php endif; ?>
+          </div>
+          <?php endforeach; ?>
         </section>
         <?php endif; ?>
 

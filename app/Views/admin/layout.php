@@ -7,6 +7,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
     <link rel="stylesheet" href="<?= base_url('assets/css/style.css') ?>">
+    <link rel="stylesheet" href="<?= base_url('assets/css/partysmith-app.css') ?>">
     <style>
         body { background: #f4f6f9; min-height: 100vh; }
         .admin-sidebar { min-height: 100vh; background: #1e2a3a; color: #e9ecef; }
@@ -136,7 +137,7 @@
             <a href="<?= site_url('/') ?>"><i class="fas fa-house me-2"></i>Site home</a>
             <a href="<?= site_url('/logout') ?>"><i class="fas fa-right-from-bracket me-2"></i>Logout</a>
         </nav>
-        <div class="col-md-9 col-lg-10 admin-main">
+        <div class="col-md-9 col-lg-10 admin-main ps-app">
             <?php if (session()->getFlashdata('success')): ?>
                 <div class="alert alert-success alert-dismissible fade show" role="alert">
                     <?= esc(session()->getFlashdata('success')) ?>
@@ -154,5 +155,6 @@
     </div>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/js/bootstrap.bundle.min.js"></script>
+<script src="<?= base_url('assets/js/partysmith.js') ?>" defer></script>
 </body>
 </html>

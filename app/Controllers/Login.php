@@ -6,7 +6,7 @@ class Login extends BaseController
 {
     public function index()
     {
-        return view('login'); // Load the login view
+        return view('login', ['pageTitle' => 'Sign in — Partysmith']);
     }
 
     public function attempt()
