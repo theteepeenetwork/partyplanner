@@ -58,6 +58,7 @@ $startPlanningUrl = session()->has('user_id') ? '/event/create' : '/register';
         <div class="foot-bottom">
             <p>&copy; <?= date('Y') ?> Partysmith Ltd &middot; Registered in England &amp; Wales</p>
             <div class="foot-legal">
+                <a href="/sitemap">Site map</a>
                 <a href="/contact">Terms</a>
                 <a href="/contact">Privacy</a>
                 <a href="/contact">Complaints</a>

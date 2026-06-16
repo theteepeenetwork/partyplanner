@@ -35,6 +35,15 @@ class PublicPage extends BaseController
     }
 
     /**
+     * Static site map / hub linking every public, account, customer,
+     * supplier and admin screen. Not CMS-backed — always available.
+     */
+    public function sitemap()
+    {
+        return view('public/sitemap');
+    }
+
+    /**
      * Render a published CMS page by slug, or 404 if missing / draft.
      */
     public function show(string $slug)
