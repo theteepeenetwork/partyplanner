@@ -44,6 +44,8 @@
 
     <link rel="stylesheet" href="/assets/css/style.css">
     <link rel="stylesheet" href="/assets/css/dashboard.css">
+    <!-- Partysmith design system, scoped under .ps-app (inert on pages without that wrapper) -->
+    <link rel="stylesheet" href="/assets/css/partysmith-app.css">
     <?php if (! empty($isHomePage)): ?>
     <link rel="stylesheet" href="/assets/css/home.css">
     <?php endif; ?>

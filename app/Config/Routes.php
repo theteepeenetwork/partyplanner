@@ -175,6 +175,7 @@ $routes->get('calendarData/(:num)/(:num)', 'BookingController::calendarData/$1/$
 $routes->get('about', 'PublicPage::about');
 $routes->get('how-it-works', 'PublicPage::howItWorks');
 $routes->get('contact', 'PublicPage::contact');
+$routes->post('contact', 'PublicPage::submitContact');
 $routes->get('vendor-info', 'PublicPage::vendorInfo');
 $routes->get('faq', 'PublicPage::faq');
 $routes->get('sitemap', 'PublicPage::sitemap');

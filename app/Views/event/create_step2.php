@@ -1,74 +1,88 @@
 <?= $this->include('header') ?>
 
-<main class="page-main">
-<div class="dashboard-wrapper">
-    <div class="container" style="max-width: 700px;">
-        <h3 class="mb-2">Create Your Event</h3>
-        <p class="text-muted mb-4">Where is your event taking place?</p>
+<div class="ps-app">
+<main data-screen-label="Plan an event">
+    <section class="page-head">
+        <div class="container">
+            <div class="breadcrumb"><a href="/">Home</a><span class="sep">/</span><a href="/event/create/step1">Plan an event</a><span class="sep">/</span><span class="cur">Location</span></div>
+            <p class="eyebrow">Start planning</p>
+            <h1>Where is your event?</h1>
+            <p class="ph-lead">Tell us the location so we can match you with vetted suppliers who cover the area.</p>
+        </div>
+    </section>
 
-        <?php $currentStep = 2; ?>
-        <?= $this->include('event/_progress') ?>
+    <div class="container">
+        <div class="flow-wrap">
+            <?php $this->setData(['currentStep' => 2]); ?>
+            <?= $this->include('event/_progress') ?>
 
-        <div class="dash-card">
-            <h5><i class="fas fa-map-marker-alt text-primary me-2"></i>Location Details</h5>
+            <div class="flow-card">
+                <h2>Location details</h2>
+                <p class="flow-sub">Where and what kind of space — venue is optional.</p>
 
-            <form method="post" action="/event/create/step2">
-                <?= csrf_field() ?>
-                <div class="mb-3">
-                    <label for="venue_name" class="form-label">Venue Name <span class="text-muted">(optional)</span></label>
-                    <input type="text" class="form-control" id="venue_name" name="venue_name"
-                           value="<?= esc($old['venue_name'] ?? '') ?>" placeholder="e.g. The Grand Hotel">
-                </div>
+                <form class="form-grid" method="post" action="/event/create/step2">
+                    <?= csrf_field() ?>
 
-                <div class="row">
-                    <div class="col-md-6 mb-3">
-                        <label for="town_city" class="form-label">Town / City</label>
-                        <input type="text" class="form-control" id="town_city" name="town_city"
-                               value="<?= esc($old['town_city'] ?? '') ?>" placeholder="e.g. Durham">
+                    <div class="field-row">
+                        <label for="venue_name">Venue name <span class="opt">— optional</span></label>
+                        <div class="input-icon">
+                            <i class="fas fa-building"></i>
+                            <input class="input" type="text" id="venue_name" name="venue_name"
+                                   value="<?= esc($old['venue_name'] ?? '') ?>" placeholder="e.g. The Grand Hotel">
+                        </div>
                     </div>
-                    <div class="col-md-6 mb-3">
-                        <label for="postcode" class="form-label">Postcode</label>
-                        <input type="text" class="form-control" id="postcode" name="postcode"
-                               value="<?= esc($old['postcode'] ?? '') ?>" placeholder="e.g. DH1 3EL">
+
+                    <div class="form-grid two" style="gap:14px">
+                        <div class="field-row">
+                            <label for="town_city">Town / City</label>
+                            <div class="input-icon">
+                                <i class="fas fa-location-dot"></i>
+                                <input class="input" type="text" id="town_city" name="town_city"
+                                       value="<?= esc($old['town_city'] ?? '') ?>" placeholder="e.g. Durham">
+                            </div>
+                        </div>
+                        <div class="field-row">
+                            <label for="postcode">Postcode</label>
+                            <input class="input" type="text" id="postcode" name="postcode"
+                                   value="<?= esc($old['postcode'] ?? '') ?>" placeholder="e.g. DH1 3EL">
+                        </div>
                     </div>
-                </div>
 
-                <?php if (($eventSetting ?? 'private') === 'public'): ?>
-                <div class="mb-3">
-                    <label for="organiser_pitch_fee" class="form-label">Organiser pitch / stand fee (£)</label>
-                    <input type="number" class="form-control" id="organiser_pitch_fee" name="organiser_pitch_fee"
-                           value="<?= esc($old['organiser_pitch_fee'] ?? '') ?>" min="0" step="0.01" placeholder="e.g. 150.00">
-                    <div class="form-text">If the organiser has quoted a pitch or stand fee, enter it here for an accurate total. Leave blank to estimate using each vendor’s maximum pitch for your expected attendance.</div>
-                </div>
-                <?php endif; ?>
+                    <?php if (($eventSetting ?? 'private') === 'public'): ?>
+                    <div class="field-row">
+                        <label for="organiser_pitch_fee">Organiser pitch / stand fee (£)</label>
+                        <input class="input" type="number" id="organiser_pitch_fee" name="organiser_pitch_fee"
+                               value="<?= esc($old['organiser_pitch_fee'] ?? '') ?>" min="0" step="0.01" placeholder="e.g. 150.00">
+                        <span class="field-hint">If the organiser has quoted a pitch or stand fee, enter it here for an accurate total. Leave blank to estimate using each vendor's maximum pitch for your expected attendance.</span>
+                    </div>
+                    <?php endif; ?>
 
-                <div class="mb-3">
-                    <label class="form-label">Indoor / Outdoor</label>
-                    <div class="d-flex gap-3">
+                    <div class="field-row">
+                        <label>Indoor / Outdoor</label>
                         <?php $io = $old['indoor_outdoor'] ?? ''; ?>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="indoor_outdoor" id="indoor" value="indoor" <?= $io === 'indoor' ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="indoor">Indoor</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="indoor_outdoor" id="outdoor" value="outdoor" <?= $io === 'outdoor' ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="outdoor">Outdoor</label>
-                        </div>
-                        <div class="form-check">
-                            <input class="form-check-input" type="radio" name="indoor_outdoor" id="both" value="both" <?= $io === 'both' ? 'checked' : '' ?>>
-                            <label class="form-check-label" for="both">Both</label>
-                        </div>
+                        <label class="check-line">
+                            <input type="radio" name="indoor_outdoor" id="indoor" value="indoor" <?= $io === 'indoor' ? 'checked' : '' ?>>
+                            <span>Indoor</span>
+                        </label>
+                        <label class="check-line">
+                            <input type="radio" name="indoor_outdoor" id="outdoor" value="outdoor" <?= $io === 'outdoor' ? 'checked' : '' ?>>
+                            <span>Outdoor</span>
+                        </label>
+                        <label class="check-line">
+                            <input type="radio" name="indoor_outdoor" id="both" value="both" <?= $io === 'both' ? 'checked' : '' ?>>
+                            <span>Both</span>
+                        </label>
                     </div>
-                </div>
 
-                <div class="d-flex justify-content-between">
-                    <a href="/event/create/step1" class="btn btn-outline-secondary"><i class="fas fa-arrow-left me-1"></i>Back</a>
-                    <button type="submit" class="btn btn-primary">Next: Preferences <i class="fas fa-arrow-right ms-1"></i></button>
-                </div>
-            </form>
+                    <div class="flow-actions">
+                        <a href="/event/create/step1" class="btn btn-ghost btn-lg"><i class="fas fa-arrow-left"></i> Back</a>
+                        <button type="submit" class="btn btn-primary btn-lg">Next: Preferences <i class="fas fa-arrow-right"></i></button>
+                    </div>
+                </form>
+            </div>
         </div>
     </div>
-</div>
 </main>
+</div>
 
 <?= $this->include('footer') ?>

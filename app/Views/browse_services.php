@@ -44,7 +44,57 @@ $csrfToken       = csrf_hash();
 $csrfName        = csrf_token();
 ?>
 
+<div class="ps-app">
 <main class="pp-page" id="pp-page">
+
+    <!-- ╔══════════════════════════════════════════════════════════╗ -->
+    <!-- ║  PAGE HEAD — design-aligned band (breadcrumb + search)  ║ -->
+    <!-- ╚══════════════════════════════════════════════════════════╝ -->
+    <?php
+    $headCatName = 'All suppliers';
+    if (!empty($selectedCategory)) {
+        foreach ($rootCategories as $rc) {
+            if ((string)$rc['id'] === (string)$selectedCategory) { $headCatName = $rc['name']; break; }
+        }
+    }
+    ?>
+    <header class="page-head">
+        <div class="container">
+            <nav class="breadcrumb" aria-label="Breadcrumb">
+                <a href="/">Home</a><span class="sep">/</span>
+                <a href="/browse-services">Suppliers</a><span class="sep">/</span>
+                <span class="cur"><?= esc($headCatName) ?></span>
+            </nav>
+            <p class="eyebrow">Browse suppliers</p>
+            <h1><?= $headCatName === 'All suppliers' ? 'Find vetted suppliers for your event' : esc($headCatName) ?></h1>
+            <p class="ph-sub">Vetted, insured suppliers — each one reviewed before joining Partysmith. Pick your event below to add services straight to its basket.</p>
+
+            <form class="browse-search" action="/browse-services" method="get" aria-label="Refine search">
+                <?php if ($activeEventId): ?><input type="hidden" name="event_id" value="<?= $activeEventId ?>"><?php endif; ?>
+                <input type="hidden" name="sort" value="<?= esc($selectedSort ?? 'newest') ?>">
+                <div class="field">
+                    <label for="b-cat">Category</label>
+                    <div class="control"><i class="fas fa-layer-group"></i>
+                        <select id="b-cat" name="category" aria-label="Category">
+                            <option value="">All categories</option>
+                            <?php foreach ($rootCategories as $rc): ?>
+                                <option value="<?= (int)$rc['id'] ?>" <?= ((string)($selectedCategory ?? '')) === (string)$rc['id'] ? 'selected' : '' ?>><?= esc($rc['name']) ?></option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                </div>
+                <div class="field">
+                    <label for="b-loc">Location</label>
+                    <div class="control"><i class="fas fa-location-dot"></i><input id="b-loc" type="text" name="location" value="<?= esc($selectedLocation ?? '') ?>" placeholder="Town or city" /></div>
+                </div>
+                <div class="field">
+                    <label for="b-date">Date</label>
+                    <div class="control"><i class="fas fa-calendar"></i><input id="b-date" type="text" name="date" value="<?= esc($selectedDate ?? '') ?>" placeholder="If you have one" onfocus="this.type='date'" onblur="if(!this.value)this.type='text'" /></div>
+                </div>
+                <button type="submit" class="btn btn-primary btn-lg"><i class="fas fa-magnifying-glass"></i> Search</button>
+            </form>
+        </div>
+    </header>
 
     <!-- ╔══════════════════════════════════════════════════════════╗ -->
     <!-- ║  STEP 1 — event picker hero                             ║ -->
@@ -326,6 +376,7 @@ $csrfName        = csrf_token();
     </div>
 
 </main>
+</div><!-- /.ps-app -->
 
 <!-- Toast -->
 <div class="pp-toast" id="pp-toast"><i class="fa-solid fa-circle-check"></i><span id="pp-toast-msg"></span></div>

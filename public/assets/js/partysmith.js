@@ -72,5 +72,38 @@
       b.addEventListener('click', function (e) { e.preventDefault(); b.classList.toggle('on'); });
     });
 
+    /* Generic tab panels (dashboards, admin): a [data-tabs] scope containing
+       .tabnav buttons[data-panel] and .tabpanel[data-panel] sections. */
+    document.querySelectorAll('[data-tabs]').forEach(function (scope) {
+      var btns = scope.querySelectorAll('.tabnav [data-panel]');
+      btns.forEach(function (b) {
+        b.addEventListener('click', function () {
+          var key = b.getAttribute('data-panel');
+          btns.forEach(function (x) { x.classList.toggle('on', x === b); });
+          scope.querySelectorAll('.tabpanel').forEach(function (p) {
+            p.classList.toggle('show', p.getAttribute('data-panel') === key);
+          });
+        });
+      });
+    });
+
+    /* Settings sub-nav: .settings-nav a[href="#section"] reveal .settings-section. */
+    var setNav = document.querySelectorAll('.settings-nav a[data-section]');
+    if (setNav.length) {
+      var showSection = function (key) {
+        setNav.forEach(function (a) { a.classList.toggle('on', a.getAttribute('data-section') === key); });
+        document.querySelectorAll('.settings-section[data-section]').forEach(function (s) {
+          s.style.display = s.getAttribute('data-section') === key ? '' : 'none';
+        });
+      };
+      setNav.forEach(function (a) {
+        a.addEventListener('click', function (e) {
+          e.preventDefault();
+          showSection(a.getAttribute('data-section'));
+        });
+      });
+      showSection(setNav[0].getAttribute('data-section'));
+    }
+
   });
 })();
