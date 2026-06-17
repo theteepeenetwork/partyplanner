@@ -28,8 +28,8 @@
   <noscript>
     <div style="max-width:560px;margin:80px auto;padding:0 24px;text-align:center">
       <h1 style="letter-spacing:-0.025em">List your service</h1>
-      <p style="color:rgba(42,32,38,0.62)">This guided listing builder needs JavaScript.
-      You can still use the <a href="<?= base_url('service/create') ?>">step-by-step form</a> instead.</p>
+      <p style="color:rgba(42,32,38,0.62)">This guided listing builder needs JavaScript enabled.
+      Please turn on JavaScript and reload, or <a href="<?= base_url('profile') ?>">return to your dashboard</a>.</p>
     </div>
   </noscript>
 </div>

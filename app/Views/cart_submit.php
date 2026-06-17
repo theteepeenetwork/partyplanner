@@ -68,10 +68,12 @@
     <?php endif; ?>
 </main>
 
-<!-- Load Stripe.js -->
+<!-- Load Stripe.js (only when Stripe is configured) -->
+<?php $stripePublishableKey = getenv('STRIPE_PUBLISHABLE_KEY') ?: ''; ?>
+<?php if ($stripePublishableKey !== '' && !empty($client_secret)): ?>
 <script src="https://js.stripe.com/v3/"></script>
 <script>
-    const stripe = Stripe('<?= getenv("STRIPE_PUBLISHABLE_KEY") ?>');
+    const stripe = Stripe(<?= json_encode($stripePublishableKey) ?>);
     const elements = stripe.elements();
     const cardElement = elements.create('card');
     cardElement.mount('#card-element');
@@ -82,7 +84,7 @@
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
-        const { error, paymentIntent } = await stripe.confirmCardPayment("<?= $client_secret ?>", {
+        const { error, paymentIntent } = await stripe.confirmCardPayment(<?= json_encode($client_secret) ?>, {
             payment_method: {
                 card: cardElement,
                 billing_details: {
@@ -99,3 +101,4 @@
         }
     });
 </script>
+<?php endif; ?>

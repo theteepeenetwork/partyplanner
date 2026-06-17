@@ -71,7 +71,7 @@
                 <i class="fa-solid fa-inbox fa-3x mb-3 d-block fye-faint"></i>
                 <h5 style="font-family:var(--fye-display)">No requests yet</h5>
                 <p class="fye-muted mb-4" style="font-size:13.5px">When customers request your services, they'll appear here.</p>
-                <a href="/service/create" class="fye-btn primary"><i class="fa-solid fa-plus"></i> Add a service</a>
+                <a href="/service/list" class="fye-btn primary"><i class="fa-solid fa-plus"></i> Add a service</a>
             </div>
         <?php endif; ?>
     </div>

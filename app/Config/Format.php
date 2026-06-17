@@ -64,6 +64,17 @@ class Format extends BaseConfig
     ];
 
     /**
+     * --------------------------------------------------------------------------
+     * JSON encode depth
+     * --------------------------------------------------------------------------
+     *
+     * The maximum depth passed to json_encode() by the JSONFormatter.
+     * Required since CodeIgniter 4.6; without it JSON responses (including
+     * JSON-formatted error pages) throw "Undefined property".
+     */
+    public int $jsonEncodeDepth = 512;
+
+    /**
      * A Factory method to return the appropriate formatter for the given mime type.
      *
      * @return FormatterInterface

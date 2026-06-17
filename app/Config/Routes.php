@@ -44,6 +44,7 @@ $routes->get('/profile/request/(:num)', 'Profile::vendorRequestDetail/$1');
 $routes->get('/profile/earnings', 'Profile::vendorEarnings');
 $routes->get('/profile/calendar', 'Profile::vendorCalendar');
 $routes->get('/profile/calendar-data', 'Profile::calendarData');
+$routes->post('/profile/calendar/toggle-block', 'Profile::toggleBlockDate');
 $routes->match(['GET', 'POST'], '/profile/host-profile', 'Profile::hostProfile');
 
 // Customer tabs
@@ -66,7 +67,7 @@ $routes->get('/review/create/(:num)', 'ReviewController::create/$1');
 $routes->post('/review/store', 'ReviewController::store');
 
 // Public vendor profile
-$routes->get('vendor/(:num)', 'VendorProfileController::show/$1');
+$routes->get('vendor/(:num)', 'Service_Controller::vendorProfile/$1');
 
 
 // Browse Services (public)
@@ -79,7 +80,6 @@ $routes->get('service/search', 'Service_Controller::search');
 
 // Service Routes
 $routes->get('service/view/(:num)', 'Service_Controller::view/$1');
-$routes->get('vendor/(:num)', 'Service_Controller::vendorProfile/$1');
 $routes->get('/service', 'Service_Controller::index');
 $routes->post('/service/remove-optional-extra', 'Service_Controller::removeOptionalExtra');
 $routes->post('/service/duplicate/(:num)', 'Service_Controller::duplicateService/$1');
@@ -87,24 +87,11 @@ $routes->post('/service/duplicate/(:num)', 'Service_Controller::duplicateService
 $routes->post('/service/delete-image/(:any)', 'Service_Controller::deleteImage/$1');
 
 
-// Partysmith adaptive "List your service" onboarding (single-page builder).
+// Partysmith adaptive "List your service" onboarding — the single, canonical
+// service-creation flow (single-page builder). The legacy step1–6 wizard was
+// removed in the Phase 3 cleanup; /service/list is the only creation path.
 $routes->get('/service/list', 'Service_Controller::listService');
 $routes->post('/service/publish-listing', 'Service_Controller::publishListing');
-
-$routes->match(['GET', 'POST'], '/service/create', 'Service_Controller::step1');
-$routes->match(['GET', 'POST'], '/service/step1', 'Service_Controller::step1');
-$routes->match(['GET', 'POST'], '/service/service_create_step2', 'Service_Controller::step2');
-$routes->match(['GET', 'POST'], '/service/step2', 'Service_Controller::step2');
-$routes->match(['GET', 'POST'], '/service/step3', 'Service_Controller::step3');
-$routes->match(['GET', 'POST'], '/service/step4', 'Service_Controller::step4');
-$routes->match(['GET', 'POST'], '/service/step5', 'Service_Controller::step5');
-$routes->match(['GET', 'POST'], '/service/step6', 'Service_Controller::step6');
-$routes->match(['GET', 'POST'], '/service/review', 'Service_Controller::review');
-$routes->match(['GET', 'POST'], '/service/saveService', 'Service_Controller::saveService');
-
-
-
-$routes->get('/service/success', 'Service_Controller::success');
 
 $routes->match(['GET', 'POST'], '/service/edit/(:num)', 'Service_Controller::update/$1');
 $routes->post('/service/update/(:num)', 'Service_Controller::update/$1');

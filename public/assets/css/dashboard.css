@@ -5,7 +5,7 @@
 }
 
 .dashboard-tabs .nav-link {
-    color: var(--primary-blue-dark);
+    color: var(--ink);
     font-weight: 500;
     border: none;
     padding: 0.75rem 1.25rem;
@@ -14,14 +14,14 @@
 }
 
 .dashboard-tabs .nav-link:hover {
-    color: var(--accent-orange);
-    border-bottom-color: var(--accent-orange);
+    color: var(--green);
+    border-bottom-color: var(--green);
     background: transparent;
 }
 
 .dashboard-tabs .nav-link.active {
-    color: var(--accent-orange);
-    border-bottom-color: var(--accent-orange);
+    color: var(--green);
+    border-bottom-color: var(--green);
     background: transparent;
     font-weight: 600;
 }
@@ -43,7 +43,7 @@
 
 .dash-card h5,
 .dash-card h4 {
-    color: var(--primary-blue-dark);
+    color: var(--ink);
     font-weight: 600;
     margin-bottom: 1rem;
 }
@@ -78,7 +78,7 @@
 .stat-card .stat-value {
     font-size: 1.75rem;
     font-weight: 700;
-    color: var(--primary-blue-dark);
+    color: var(--ink);
     line-height: 1.2;
 }
 
@@ -157,7 +157,7 @@
     font-weight: 600;
     font-size: 0.9rem;
     margin-bottom: 0.15rem;
-    color: var(--primary-blue-dark);
+    color: var(--ink);
 }
 
 .attention-card .attention-content .attention-desc {
@@ -224,7 +224,7 @@
 .booking-preview-details .booking-event-name {
     font-weight: 600;
     font-size: 0.9rem;
-    color: var(--primary-blue-dark);
+    color: var(--ink);
 }
 
 .booking-preview-details .booking-meta {
@@ -242,14 +242,14 @@
     border-radius: 12px;
     border: 1px solid #eee;
     text-decoration: none;
-    color: var(--primary-blue-dark);
+    color: var(--ink);
     transition: all 0.2s ease;
     text-align: center;
 }
 
 .quick-action-btn:hover {
-    border-color: var(--accent-orange);
-    color: var(--accent-orange);
+    border-color: var(--green);
+    color: var(--green);
     transform: translateY(-2px);
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
 }
@@ -306,7 +306,7 @@
 
 .checklist-label {
     font-size: 0.85rem;
-    color: var(--primary-blue-dark);
+    color: var(--ink);
     flex: 1;
 }
 
@@ -333,7 +333,7 @@
 
 .activity-text {
     font-size: 0.85rem;
-    color: var(--primary-blue-dark);
+    color: var(--ink);
     flex: 1;
 }
 
@@ -362,7 +362,7 @@
 .event-overview-card .event-title {
     font-size: 1.1rem;
     font-weight: 700;
-    color: var(--primary-blue-dark);
+    color: var(--ink);
 }
 
 .event-overview-card .event-meta {
@@ -438,7 +438,7 @@
 .message-sender {
     font-weight: 600;
     font-size: 0.85rem;
-    color: var(--primary-blue-dark);
+    color: var(--ink);
 }
 
 .message-snippet {

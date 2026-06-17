@@ -46,5 +46,5 @@
                 <p>You don't have any inactive services yet.</p>
             <?php endif; ?>
 
-            <a href="/service/create" class="btn btn-primary mb-3">Add New Service</a>
+            <a href="/service/list" class="btn btn-primary mb-3">Add New Service</a>
         </div>

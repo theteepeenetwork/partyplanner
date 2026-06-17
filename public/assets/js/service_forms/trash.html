@@ -1,8 +1,0 @@
-<div class="input-group mb-2">
-    <span class="input-group-text">From</span>
-    <?= $min_guest = !empty(session('step3_data')['min_guest']) ? esc(session('step3_data')['min_guest']) : old('min_guest'); =?>
-    <?= echo($min_guest); ?>
-    <input type="number" class="form-control" name="min_guest[]" placeholder="Min Guests"
-        value="${guest.min_guest || '<?= $min_guest ?>'}" min="0" required>
-</div>
-</div

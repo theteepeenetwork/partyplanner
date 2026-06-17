@@ -76,7 +76,7 @@
 .review-stars label { color: #d8cdbb; cursor: pointer; transition: color .15s ease; line-height: 1; }
 .review-stars input:checked ~ label,
 .review-stars label:hover,
-.review-stars label:hover ~ label { color: #C4956A; }
+.review-stars label:hover ~ label { color: #B98C2A; }
 </style>
 
 <?= $this->include('footer') ?>

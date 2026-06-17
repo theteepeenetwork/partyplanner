@@ -9,10 +9,10 @@
 
     :root {
         --pp-green-dark: #2D4A3E;
-        --pp-green-darker: #1A2E27;
+        --pp-green-darker: #143729;
         --pp-green-light: #E8F0EC;
         --pp-green-tint: #F1F6F2;
-        --pp-terracotta: #C4956A;
+        --pp-terracotta: #B98C2A;
         --pp-terracotta-deep: #A9794E;
         --pp-terracotta-tint: #F6ECE0;
         --pp-cream: #FAF7F2;

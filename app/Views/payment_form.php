@@ -7,16 +7,18 @@
     <button id="submit-payment" class="btn btn-primary">Submit Payment</button>
 </form>
 
+<?php $stripePublishableKey = getenv('STRIPE_PUBLISHABLE_KEY') ?: ''; ?>
+<?php if ($stripePublishableKey !== '' && !empty($client_secret)): ?>
 <script src="https://js.stripe.com/v3/"></script>
 
 <script>
-    const stripe = Stripe('<?= getenv("STRIPE_PUBLISHABLE_KEY") ?>');
+    const stripe = Stripe(<?= json_encode($stripePublishableKey) ?>);
     const elements = stripe.elements();
     const cardElement = elements.create('card');
     cardElement.mount('#card-element');
 
     const form = document.getElementById('payment-form');
-    const clientSecret = '<?= $client_secret ?>'; // Use the client_secret from server
+    const clientSecret = <?= json_encode($client_secret) ?>; // Use the client_secret from server
 
     form.addEventListener('submit', async (event) => {
         event.preventDefault();
@@ -38,3 +40,6 @@
         }
     });
 </script>
+<?php else: ?>
+<p class="text-muted" style="margin-top:16px;">Online card payment is currently unavailable. Please contact support to complete your payment.</p>
+<?php endif; ?>

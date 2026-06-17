@@ -161,7 +161,7 @@ These files are intentionally separate. Do not merge them unless explicitly inst
 
 ## Gotchas
 
-* Event checkout uses a Letw5% deposit.
+* Event checkout uses a 15% deposit.
 * Legacy cart uses a 10% deposit.
 * Stripe is optional and the application must function without Stripe keys.
 * `CI_ENVIRONMENT=cloud` disables the debug toolbar.
