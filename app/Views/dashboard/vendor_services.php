@@ -10,7 +10,7 @@
                 <h1 class="fye-page-title">My services</h1>
                 <p class="fye-page-sub">The listings customers can request. Complete listings convert more enquiries.</p>
             </div>
-            <a href="/service/list" class="fye-btn primary"><i class="fa-solid fa-plus"></i> Add a service</a>
+            <a href="/service/create" class="fye-btn primary"><i class="fa-solid fa-plus"></i> Add a service</a>
         </div>
 
         <?php if (!empty($services)): ?>
@@ -61,7 +61,7 @@
                 <i class="fa-solid fa-concierge-bell fa-3x mb-3 d-block fye-faint"></i>
                 <h5 style="font-family:var(--fye-display)">No services yet</h5>
                 <p class="fye-muted mb-4" style="font-size:13.5px">Create your first listing to start receiving enquiries from customers.</p>
-                <a href="/service/list" class="fye-btn primary"><i class="fa-solid fa-plus"></i> Add your first service</a>
+                <a href="/service/create" class="fye-btn primary"><i class="fa-solid fa-plus"></i> Add your first service</a>
             </div>
         <?php endif; ?>
     </div>

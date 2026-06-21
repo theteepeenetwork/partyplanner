@@ -87,11 +87,18 @@ $routes->post('/service/duplicate/(:num)', 'Service_Controller::duplicateService
 $routes->post('/service/delete-image/(:any)', 'Service_Controller::deleteImage/$1');
 
 
-// Partysmith adaptive "List your service" onboarding — the single, canonical
-// service-creation flow (single-page builder). The legacy step1–6 wizard was
-// removed in the Phase 3 cleanup; /service/list is the only creation path.
-$routes->get('/service/list', 'Service_Controller::listService');
-$routes->post('/service/publish-listing', 'Service_Controller::publishListing');
+// Multi-step service-creation wizard (step1–6 → review → saveService → success).
+$routes->match(['GET', 'POST'], '/service/create', 'Service_Controller::step1');
+$routes->match(['GET', 'POST'], '/service/step1', 'Service_Controller::step1');
+$routes->match(['GET', 'POST'], '/service/service_create_step2', 'Service_Controller::step2');
+$routes->match(['GET', 'POST'], '/service/step2', 'Service_Controller::step2');
+$routes->match(['GET', 'POST'], '/service/step3', 'Service_Controller::step3');
+$routes->match(['GET', 'POST'], '/service/step4', 'Service_Controller::step4');
+$routes->match(['GET', 'POST'], '/service/step5', 'Service_Controller::step5');
+$routes->match(['GET', 'POST'], '/service/step6', 'Service_Controller::step6');
+$routes->match(['GET', 'POST'], '/service/review', 'Service_Controller::review');
+$routes->match(['GET', 'POST'], '/service/saveService', 'Service_Controller::saveService');
+$routes->get('/service/success', 'Service_Controller::success');
 
 $routes->match(['GET', 'POST'], '/service/edit/(:num)', 'Service_Controller::update/$1');
 $routes->post('/service/update/(:num)', 'Service_Controller::update/$1');

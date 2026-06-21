@@ -113,7 +113,7 @@
                         <?php endforeach; ?>
                     <?php else: ?>
                         <div class="text-center py-4" style="color:var(--fye-ink-3);font-size:13.5px">
-                            <a href="/service/list" class="fye-btn primary sm"><i class="fa-solid fa-plus"></i> Add your first service</a>
+                            <a href="/service/create" class="fye-btn primary sm"><i class="fa-solid fa-plus"></i> Add your first service</a>
                         </div>
                     <?php endif; ?>
                 </div>
@@ -211,7 +211,7 @@
                 <div class="cc-rblock">
                     <h3>Quick actions</h3>
                     <div class="cc-quick">
-                        <a href="/service/list"><i class="fa-solid fa-plus"></i>Add service</a>
+                        <a href="/service/create"><i class="fa-solid fa-plus"></i>Add service</a>
                         <a href="/profile/calendar"><i class="fa-solid fa-calendar-day"></i>Availability</a>
                         <a href="/profile/messages"><i class="fa-solid fa-comments"></i>Messages</a>
                         <a href="/profile/quote-analytics"><i class="fa-solid fa-chart-line"></i>Analytics</a>

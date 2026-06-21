@@ -59,5 +59,5 @@
 <?php endif; ?>
 
 
-<a href="/service/list" class="btn btn-primary mb-3">Add New Service</a>
+<a href="/service/create" class="btn btn-primary mb-3">Add New Service</a>
 </div>
