@@ -75,7 +75,7 @@
 /* ---- service card ---- */
 .pp-card {
   background: #fff; border-radius: var(--pp-r-card); overflow: hidden;
-  border: 1px solid var(--pp-line-soft); box-shadow: var(--pp-shadow-soft);
+  border: none; box-shadow: var(--pp-shadow-soft);
   display: flex; flex-direction: column; transition: transform .28s ease, box-shadow .28s ease; position: relative;
 }
 .pp-card:hover { transform: translateY(-5px); box-shadow: var(--pp-shadow-lift); }

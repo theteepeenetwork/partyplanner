@@ -70,7 +70,7 @@ $cap = '';
 if (!empty($service['min_capacity']) && !empty($service['max_capacity'])) {
     $cap = (int) $service['min_capacity'] . '–' . (int) $service['max_capacity'] . ' guests';
 } elseif (!empty($service['max_capacity'])) {
-    $cap = 'Up to ' . (int) $service['max_capacity'] . ' guests';
+    $cap = '1–' . (int) $service['max_capacity'] . ' guests';
 } elseif (!empty($service['min_capacity'])) {
     $cap = 'From ' . (int) $service['min_capacity'] . ' guests';
 }
@@ -496,6 +496,14 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
             <?php endif; ?>
           </div>
           <?php endforeach; ?>
+        </section>
+        <?php else: ?>
+        <!-- Reviews placeholder — keeps the section in place before a service has reviews -->
+        <section style="margin-top:40px">
+          <h2 class="sv-section-label">Reviews</h2>
+          <p class="sv-body" style="font-size:14px;color:var(--ink-soft,#6b6b6b)">
+            No reviews yet. Be the first to book and share how it went.
+          </p>
         </section>
         <?php endif; ?>
 
