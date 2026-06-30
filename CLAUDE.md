@@ -27,7 +27,7 @@ mysql --default-character-set=utf8mb4 event_marketplace < database_service_requi
 **Key tables:**
 
 | Table | Purpose |
-|---|---|
+| --- | --- |
 | `users` | All accounts; `role` enum: `customer`, `vendor`, `admin` |
 | `services` | Vendor service listings |
 | `events` | Customer events (guests, date, location) |
@@ -60,7 +60,7 @@ database.app.password =
 All passwords: `password`
 
 | Role | Email |
-|---|---|
+| --- | --- |
 | Customer | `customer1@c.com` |
 | Customer | `customer2@c.com` |
 | Vendor | `vendor1@v.com` |
@@ -182,7 +182,7 @@ See:
 
 ## Workflow Expectations
 
-* Do not commit, push, or open PRs unless I explicitly ask.
+* Committing and pushing to the designated working branch is allowed. Open PRs as drafts.
 * Before any git write action, explain what will change.
 * Prefer batching related shell commands into one script or one chained command.
 * Use existing project scripts before writing one-off Bash.
