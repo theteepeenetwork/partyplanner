@@ -204,3 +204,36 @@ Use the project seeder to create:
 * structured pricing rows
 
 Do not rely on manually created accounts or incomplete seed data.
+
+---
+
+# Web Team — operating protocol
+
+
+This project runs a **human-orchestrated** agent team. You (the lead session) are the Orchestrator: you pick what to work on, scope it, and delegate. Three subagents live in `.claude/agents/`: `ux-auditor`, `builder`, `verifier`.
+
+## The loop (follow on any improvement task)
+1. Read `partysmith-findings.md` (grounded state, money-risk ranked), then `partysmith-backlog.md` (the epics). Work top-down, respecting the dependency order: **Admin → Vendor onboarding → Customer booking → Stripe → Interactions.**
+2. To find work → delegate to **ux-auditor**; it appends prioritised findings to `BACKLOG.md`.
+3. To build an approved, scoped task → write acceptance criteria, then delegate to **builder**.
+4. To confirm done → delegate to **verifier**. Only the verifier marks a task complete. On FAIL it returns a specific gap → back to the builder.
+
+## Definition of Done ("task completed" benchmark)
+Done only when the verifier confirms: every objective gate passes (php-cs-fixer clean · `composer test` green with no regressions · no console errors · a11y AA and Perf ≥ 90 on touched surfaces) AND the quality rubric clears (mean ≥ 4.0, no dimension < 3). Stop on the exit conditions (5 cycles, < 0.3 rubric gain, or no net change) and escalate.
+
+## Human-gated — never let the team act autonomously here
+- Anything touching pricing, deposits, the quote pipeline, or Stripe — you approve before build and review the diff before ship.
+- Net-new features — the team proposes; you choose.
+
+## Current priorities (from partysmith-findings.md)
+1. **F1** — consolidate the deposit path (EventController 15% vs legacy cart 10%); retire/redirect the legacy cart. *[your decision first]*
+2. **F2** — delete the orphaned £15 `PaymentController::createPaymentIntent` stub route.
+3. **F3** — `VendorQuoteAutomation` branch tests (7/8 outcomes untested) + replace the string-matched travel guard with a structured code.
+4. **F4** — confirm the sandbox Stripe end-to-end path; add refund/cancel webhook events once the refund policy is set.
+5. **F5** — fill `EventQuoteBuilder` coverage.
+
+## House rules (enforced by auditor + verifier)
+No visible card borders · fixed explicit guest ranges, never "up to" · service-detail short/long description beneath customisation options with a reviews placeholder · script accent (Mr Dafoe vs Caveat) unresolved — flag, don't pick.
+
+## Invoking the agents
+Claude Code auto-delegates by the `description` field, or call explicitly, e.g. *"Use the ux-auditor on the vendor wizard"* → review findings → *"Use the builder on F3"* → *"Use the verifier on that change."* Run `/agents` to confirm all three are loaded.
