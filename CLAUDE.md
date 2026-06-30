@@ -13,15 +13,13 @@
 
 **Name:** `event_marketplace`
 
-**First-time setup** — import in this exact order (later files `ALTER` tables created by earlier ones):
+**First-time setup** — import in this exact order (later files `ALTER` tables created by earlier ones). **All files are required** — the seeders and the service-creation wizard write columns/tables added by every one of them (an un-imported file makes `db:seed` roll back). The runtime is dockerized, so pipe each file into the `mariadb` container:
 
 ```bash
-mysql --default-character-set=utf8mb4 event_marketplace < event_marketplace.sql
-mysql --default-character-set=utf8mb4 event_marketplace < database_update.sql
-mysql --default-character-set=utf8mb4 event_marketplace < database_quote_automation.sql
-mysql --default-character-set=utf8mb4 event_marketplace < database_fulfillment_extras.sql  # optional
-mysql --default-character-set=utf8mb4 event_marketplace < database_quantity_pricing.sql    # optional
-mysql --default-character-set=utf8mb4 event_marketplace < database_service_requirements.sql
+for f in event_marketplace database_update database_quote_automation \
+         database_fulfillment_extras database_quantity_pricing database_service_requirements; do
+  docker exec -i mariadb mariadb --default-character-set=utf8mb4 event_marketplace < "$f.sql"
+done
 ```
 
 **Key tables:**
@@ -46,13 +44,15 @@ mysql --default-character-set=utf8mb4 event_marketplace < database_service_requi
 | `services_locations` | Vendor coverage areas (lat/lng, radius, travel fees) |
 | `chat_rooms` / `chat_messages` | Vendor–customer messaging |
 
-**Credentials** (`.env` defaults match):
+**Credentials** — the app runs in Docker; the DB host is the `mariadb` service, not localhost. The real credentials live in `.env` (already configured locally); the password is **not** blank. Defaults:
 
 ```
-database.app.hostname = eventplanner.test
-database.app.database = event_marketplace
-database.app.username = root
-database.app.password =
+database.default.hostname = mariadb
+database.default.database  = event_marketplace
+database.default.username  = root
+database.default.password  = <set in .env>
+database.default.DBDriver  = MySQLi
+database.default.port      = 3306
 ```
 
 ## Test Accounts & Seed Data
@@ -103,22 +103,22 @@ scripts/safe-git.sh    # git operations wrapper
 ## Development Commands
 
 ```bash
-# The app runs via a virtual host at http://partyplanner.test — no spark serve needed.
-# If spark serve is required for a specific reason:
-# CI_ENVIRONMENT=cloud php spark serve --host partyplanner.test --port 8888
+# The app runs in Docker behind a virtual host at http://partyplanner.home/ — no spark serve needed.
+# There is no host PHP/Composer; run every php/spark/composer command inside the container:
+#   docker exec partyplanner php spark <command>
 
 # Fast validation
-find app -name "*.php" -exec php -l {} \;
+docker exec partyplanner sh -c 'find app -name "*.php" -exec php -l {} \;'
 
 # Run all tests
-php vendor/bin/phpunit --testdox
+docker exec partyplanner php vendor/bin/phpunit --testdox
 
 # Run a single test file
-php vendor/bin/phpunit tests/unit/SomeTest.php
+docker exec partyplanner php vendor/bin/phpunit tests/unit/SomeTest.php
 
 # Scheduled commands
-php spark quote:remind-pending
-php spark quote:expire-stale
+docker exec partyplanner php spark quote:remind-pending
+docker exec partyplanner php spark quote:expire-stale
 ```
 
 ## Architecture
@@ -139,11 +139,14 @@ php spark quote:expire-stale
 
 ## Service Creation
 
-* `service_create_public.php`
-* `service_create_private.php`
-* `service_create_corporate.php`
-
-These files are intentionally separate. Do not merge them unless explicitly instructed.
+* The sole creation path is the multi-step wizard at `/service/create`, driven by
+  `Service_Controller` with step views in `app/Views/service_create/service_create_step{1..6}.php`
+  (plus `service_review.php` and the `wizard_rail`/`wizard_nav` partials).
+* Public, private and corporate are **event-type branches within that one wizard**, not
+  separate controllers/files. They remain conceptually distinct (separate pricing/config) and
+  must not be conflated — e.g. public and private pricing stay separate systems.
+* The old single-page `/service/list` SPA and the legacy `service_create_public/private/corporate.php`
+  files were removed; do not reintroduce them. Do not replace the wizard without explicit instruction.
 
 ## UI Rules
 

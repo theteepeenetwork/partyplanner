@@ -28,11 +28,7 @@ class ExampleServicesSeeder extends Seeder
     private const PASSWORD = 'password';
 
     /** Source directory for test images (repo root) and the public destination. */
-<<<<<<< HEAD
     private const IMAGE_SRC_DIR  = ROOTPATH . 'test-images/';
-=======
-    private const IMAGE_SRC_DIR  = ROOTPATH . 'test images/';
->>>>>>> d081e40f2192146c4c88b6e699042ee412eff106
     private const IMAGE_DEST_DIR = ROOTPATH . 'public/uploads/services/';
 
     /** North East England vendors (cleanup is scoped to these emails). */
@@ -68,6 +64,11 @@ class ExampleServicesSeeder extends Seeder
     {
         $hash = password_hash(self::PASSWORD, PASSWORD_DEFAULT);
 
+        // Wrap the whole reseed in a transaction so a failed insert (e.g. a
+        // missing column from an un-imported migration) rolls back cleanly
+        // rather than leaving a half-seeded data set.
+        $this->db->transStart();
+
         $this->cleanup();
 
         // --- Users ----------------------------------------------------------
@@ -93,7 +94,15 @@ class ExampleServicesSeeder extends Seeder
         $this->insertEvent($customerIds[1], 'Durham 30th Birthday Bash', 'Birthday', 60, '+60 days', 'private', 'Durham');
         $this->insertEvent($customerIds[0], 'Sunderland Summer Food Festival', 'Festival', 2000, '+150 days', 'public', 'Sunderland');
 
+        $this->db->transComplete();
+
         if (is_cli()) {
+            if ($this->db->transStatus() === false) {
+                CLI::error('Example seed rolled back — a query failed (check that all required SQL migrations are imported).');
+
+                return;
+            }
+
             CLI::write(
                 'Example data seeded: ' . count($vendorIds) . ' NE vendors, '
                 . count($customerIds) . ' customers, ' . $count . ' services, 3 events.',
@@ -523,6 +532,23 @@ class ExampleServicesSeeder extends Seeder
                 'base_price' => 0.00,
                 'pricing_type' => 'custom_quote',
                 'travel' => ['fulfillment' => 'in_person', 'all_included' => 1],
+                'corporate' => [
+                    'corporate_invoice_supported' => 1,
+                    'corporate_po_supported'      => 1,
+                    'corporate_payment_terms'     => ['30_days'],
+                    'corporate_accounts_email'    => 'accounts@tyneandwearevents.example.com',
+                    'corporate_vat_registered'    => 1,
+                    'corporate_vat_number'        => 'GB123456789',
+                    'corporate_pli_level'         => '5m',
+                    'corporate_risk_assessment'   => 1,
+                    'corporate_method_statement'  => 1,
+                    'corporate_pat_testing'       => 'yes',
+                    'corporate_dbs'               => 'na',
+                    'corporate_surcharge_type'    => 'percentage',
+                    'corporate_surcharge_value'   => 10.00,
+                    'corporate_invoice_fee'       => 25.00,
+                    'corporate_min_spend'         => 1500.00,
+                ],
                 'extras' => [
                     ['Show caller / event director', 450.00, 'flat', null, 'A dedicated show caller to run the running order.'],
                 ],
@@ -544,9 +570,21 @@ class ExampleServicesSeeder extends Seeder
             array_column(self::VENDORS, 'email'),
             array_column(self::CUSTOMERS, 'email')
         );
+        $usernames = array_merge(
+            array_column(self::VENDORS, 'username'),
+            array_column(self::CUSTOMERS, 'username')
+        );
 
+        // Match on email OR username so a stale account squatting one of our
+        // seeded usernames (with a different email) is reclaimed rather than
+        // tripping the unique-username constraint on re-insert.
         $userIds = array_column(
-            $this->db->table('users')->select('id')->whereIn('email', $emails)->get()->getResultArray(),
+            $this->db->table('users')->select('id')
+                ->groupStart()
+                    ->whereIn('email', $emails)
+                    ->orWhereIn('username', $usernames)
+                ->groupEnd()
+                ->get()->getResultArray(),
             'id'
         );
         if ($userIds === []) {
@@ -568,7 +606,7 @@ class ExampleServicesSeeder extends Seeder
                 'services_optional_extras', 'services_guest_based_pricing',
                 'services_custom_duration_pricing', 'services_tiered_packages_pricing',
                 'services_quantity_pricing', 'services_private_event_pricing',
-                'services_public_event_pricing',
+                'services_public_event_pricing', 'services_corporate_event_pricing',
             ] as $table) {
                 if ($this->db->tableExists($table)) {
                     $this->db->table($table)->whereIn('service_id', $serviceIds)->delete();
@@ -672,6 +710,10 @@ class ExampleServicesSeeder extends Seeder
 
         if (in_array('public', $eventTypes, true) && !empty($svc['public'])) {
             $this->seedPublicPricing($serviceId, $svc['public']);
+        }
+
+        if (in_array('corporate', $eventTypes, true)) {
+            $this->seedCorporatePricing($serviceId, $svc['corporate'] ?? []);
         }
 
         foreach ($svc['extras'] as $extra) {
@@ -786,6 +828,23 @@ class ExampleServicesSeeder extends Seeder
                 'max_pitch_fee'         => $band['fee'],
             ]);
         }
+    }
+
+    /**
+     * Insert the corporate-event configuration row. Mirrors saveService():
+     * the config is stored as a single JSON `pricing_details` blob with
+     * corporate_enabled forced on.
+     *
+     * @param array<string,mixed> $corporate
+     */
+    private function seedCorporatePricing(int $serviceId, array $corporate): void
+    {
+        $payload = array_merge($corporate, ['corporate_enabled' => 1]);
+
+        $this->db->table('services_corporate_event_pricing')->insert([
+            'service_id'      => $serviceId,
+            'pricing_details' => json_encode($payload, JSON_UNESCAPED_UNICODE),
+        ]);
     }
 
     private function addExtra(int $serviceId, string $name, float $price, string $pricingType, ?string $unitLabel, string $description): void
