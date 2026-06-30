@@ -56,7 +56,7 @@ Booking items store the full breakdown as a `quote_breakdown` JSON column so the
 ## Pricing Model Matrix
 
 | Pricing Model | DB Table | Model Class |
-|---|---|---|
+| --- | --- | --- |
 | Guest-based | `service_guest_based_pricing` | `ServiceGuestBasedPricingModel` |
 | Custom duration / time-block | `service_custom_duration_pricing` | `ServiceCustomDurationPricingModel` |
 | Tiered packages | `service_tiered_packages_pricing` | `ServiceTieredPackagesPricingModel` |
@@ -69,7 +69,7 @@ Each service selects exactly one pricing model. The private pricing row acts as 
 ## Payment Flow
 
 | Checkout path | Deposit | Notes |
-|---|---|---|
+| --- | --- | --- |
 | Event checkout (primary) | **15%** of quote total | Uses `StripeCheckoutHelper` |
 | Legacy cart | **10%** of cart total | Older flow, still supported |
 
@@ -87,7 +87,7 @@ Admin functionality lives under the `/admin/` route prefix and is protected by a
 ## CLI Commands (Spark)
 
 | Command | Purpose |
-|---|---|
+| --- | --- |
 | `php spark quote:remind-pending` | Sends reminder notifications for quotes awaiting vendor response |
 | `php spark quote:expire-stale` | Marks old unactioned quotes as expired |
 

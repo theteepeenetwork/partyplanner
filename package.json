@@ -1,0 +1,13 @@
+{
+  "name": "partysmith-e2e",
+  "private": true,
+  "description": "End-to-end browser tests for Partysmith (Playwright). Test tooling only — the application itself has no frontend build step.",
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:e2e:headed": "playwright test --headed",
+    "test:e2e:report": "playwright show-report"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.56.1"
+  }
+}
