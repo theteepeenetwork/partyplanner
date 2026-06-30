@@ -20,7 +20,7 @@ Scale up to the full five-agent autonomous version only if you ever want unatten
 ## Layer A gates — wired (run cheapest-first; stop at first failure)
 
 | # | Gate | Command | Notes |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | 1 | Code style | `vendor/bin/php-cs-fixer fix --dry-run --diff` | The repo uses **php-cs-fixer** + `nexusphp/cs-config` (not phpcs). Cheapest gate. |
 | 2 | Static analysis | *(not installed)* — `composer require --dev phpstan/phpstan` then `vendor/bin/phpstan analyse app/` | **Not yet in the repo.** Highest-value addition: high signal on the Libraries, cheap to run. Add it. |
 | 3 | Unit + integration | `composer test` (= `vendor/bin/phpunit`) | PHPUnit **10.5**; `CIUnitTestCase`; DB-touching tests use `DatabaseTestTrait`. `composer test` is already wired. |
