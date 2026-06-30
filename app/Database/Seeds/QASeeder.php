@@ -42,6 +42,11 @@ class QASeeder extends Seeder
     {
         $hash = password_hash(self::PASSWORD, PASSWORD_DEFAULT);
 
+        // Wrap the whole reseed in a transaction so a failed insert (e.g. a
+        // missing column from an un-imported migration) rolls back cleanly
+        // rather than leaving a half-seeded data set.
+        $this->db->transStart();
+
         $this->cleanup();
 
         // --- Users ----------------------------------------------------------
@@ -95,7 +100,15 @@ class QASeeder extends Seeder
         // demonstrable in the customer dashboard (Customer One, quantity service).
         $this->seedBooking($customerIds[0], $pastEvent1, $quantityServiceId, 200.00, 'confirmed');
 
+        $this->db->transComplete();
+
         if (is_cli()) {
+            if ($this->db->transStatus() === false) {
+                CLI::error('QA seed rolled back — a query failed (check that all required SQL migrations are imported).');
+
+                return;
+            }
+
             CLI::write('QA data seeded: '
                 . count($customerIds) . ' customers, '
                 . count($vendorIds) . ' vendors, 4 services, 4 events, '
@@ -112,9 +125,21 @@ class QASeeder extends Seeder
             array_column(self::CUSTOMERS, 'email'),
             array_column(self::VENDORS, 'email')
         );
+        $usernames = array_merge(
+            array_column(self::CUSTOMERS, 'username'),
+            array_column(self::VENDORS, 'username')
+        );
 
+        // Match on email OR username so a stale account squatting one of our
+        // seeded usernames (with a different email) is reclaimed rather than
+        // tripping the unique-username constraint on re-insert.
         $userIds = array_column(
-            $this->db->table('users')->select('id')->whereIn('email', $emails)->get()->getResultArray(),
+            $this->db->table('users')->select('id')
+                ->groupStart()
+                    ->whereIn('email', $emails)
+                    ->orWhereIn('username', $usernames)
+                ->groupEnd()
+                ->get()->getResultArray(),
             'id'
         );
         if ($userIds === []) {

@@ -44,7 +44,7 @@ $groups = [
         'cards'   => [
             ['Vendor', 'Supplier dashboard', '/profile/services', 'Enquiries, services, bookings and payouts.'],
             ['Vendor', 'Bookings', '/profile/bookings', 'Incoming bookings and your calendar.'],
-            ['Vendor', 'Add a service', '/service/list', 'Create a new listing with inclusions and portfolio.'],
+            ['Vendor', 'Add a service', '/service/create', 'Create a new listing with inclusions and portfolio.'],
             ['Admin', 'Admin overview', '/admin', 'Approvals, suppliers and bookings at HQ.'],
         ],
     ],

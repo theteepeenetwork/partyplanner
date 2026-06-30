@@ -80,12 +80,12 @@
     }
 
     .thumbnail-image:hover {
-        border-color: #C4956A;
+        border-color: #B98C2A;
         transform: translateY(-2px);
     }
 
     .active-thumbnail {
-        border-color: #C4956A;
+        border-color: #B98C2A;
     }
 </style>
 

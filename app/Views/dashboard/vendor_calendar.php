@@ -49,8 +49,7 @@
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p style="font-size:13.5px;color:var(--fye-ink-2)">Select dates to mark yourself unavailable. Customers won't be able to request bookings on these days.</p>
-                <p style="font-size:12.5px;color:var(--fye-ink-3)">Use the calendar to click dates directly, or contact support to bulk-block ranges.</p>
+                <p style="font-size:13.5px;color:var(--fye-ink-2)">Click any date in the calendar to mark yourself unavailable. Customers won't be able to request bookings on blocked days. Click a blocked (purple) date again to unblock it.</p>
             </div>
             <div class="modal-footer border-0">
                 <button type="button" class="fye-btn ghost" data-bs-dismiss="modal">Close</button>
@@ -83,12 +82,40 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     var calendarEl = document.getElementById('vendor-calendar');
+    var csrf = { name: '<?= csrf_token() ?>', hash: '<?= csrf_hash() ?>' };
+
+    function toggleBlock(dateStr) {
+        var body = 'date=' + encodeURIComponent(dateStr)
+            + '&' + encodeURIComponent(csrf.name) + '=' + encodeURIComponent(csrf.hash);
+        return fetch('/profile/calendar/toggle-block', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded', 'X-Requested-With': 'XMLHttpRequest' },
+            body: body
+        }).then(function (r) { return r.json(); }).then(function (d) {
+            if (d && d.csrfHash) csrf.hash = d.csrfHash; // CSRF regenerates per request
+            if (!d || !d.ok) { alert((d && d.error) || 'Could not update that date.'); return; }
+            calendar.refetchEvents();
+        }).catch(function () { alert('Could not update that date. Please try again.'); });
+    }
+
     var calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         headerToolbar: { left: 'prev,next today', center: 'title', right: 'dayGridMonth,listWeek' },
         events: '/profile/calendar-data',
+        dateClick: function (info) {
+            if (confirm('Toggle your availability for ' + info.dateStr + '?\n\nBlocked dates hide you from booking requests on that day.')) {
+                toggleBlock(info.dateStr);
+            }
+        },
         eventClick: function (info) {
             var props = info.event.extendedProps;
+            // Clicking a "Blocked" day event unblocks it; booking events open details.
+            if (props && props.blocked) {
+                if (confirm('Unblock ' + info.event.startStr + '? Customers will be able to request this date again.')) {
+                    toggleBlock(info.event.startStr);
+                }
+                return;
+            }
             document.getElementById('modal-event').textContent     = info.event.title;
             document.getElementById('modal-customer').textContent  = props.customer || '';
             document.getElementById('modal-type').textContent      = props.event_type || '';

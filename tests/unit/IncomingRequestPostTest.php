@@ -20,11 +20,16 @@ final class IncomingRequestPostTest extends CIUnitTestCase
         parent::tearDown();
 
         unset($_SERVER['REQUEST_METHOD']);
+        // CIUnitTestCase resets shared services between tests, but be explicit.
+        service('superglobals')->setServer('REQUEST_METHOD', 'GET');
     }
 
     public function testIsPostWorksWhenRequestMethodIsUppercasePost(): void
     {
-        $_SERVER['REQUEST_METHOD'] = 'POST';
+        // CodeIgniter 4.6+ resolves the request method through the
+        // Superglobals service (snapshotted at bootstrap) rather than reading
+        // $_SERVER live, so the method must be set there.
+        service('superglobals')->setServer('REQUEST_METHOD', 'POST');
 
         $config = new App();
         $uri     = new SiteURI($config, 'http://example.com/admin/pages/edit/about');

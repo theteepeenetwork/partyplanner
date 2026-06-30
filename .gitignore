@@ -131,3 +131,21 @@ nb-configuration.xml
 public/uploads/temp/*
 !public/uploads/temp/index.html
 
+
+# --- Phase 0 triage: keep junk out of the repo ---
+/build/
+design-reference/
+*.zip
+composer [0-9]*.lock
+skills-lock.json
+.agents/
+test-images/
+uploads/temp/*
+!uploads/temp/index.html
+
+# Playwright E2E tooling
+node_modules/
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

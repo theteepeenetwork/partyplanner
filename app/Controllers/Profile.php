@@ -618,9 +618,22 @@ class Profile extends BaseController
 
         $vendorServices = $serviceModel->where('vendor_id', $userId)->findAll();
         $vendorServiceIds = array_column($vendorServices, 'id');
-        if (empty($vendorServiceIds)) return $this->response->setJSON([]);
 
-        $items = $bookingItemModel
+        $calendarEvents = [];
+
+        // Vendor-level blocked (unavailable) dates — rendered so they can be toggled off.
+        $blockedDates = (new \App\Models\UnavailableDateModel())->where('vendor_id', $userId)->findAll();
+        foreach ($blockedDates as $bd) {
+            $calendarEvents[] = [
+                'title'         => 'Blocked',
+                'start'         => $bd['date'],
+                'allDay'        => true,
+                'color'         => '#6f4a6f',
+                'extendedProps' => ['status' => 'Blocked', 'blocked' => true],
+            ];
+        }
+
+        $items = empty($vendorServiceIds) ? [] : $bookingItemModel
             ->select('booking_items.*, events.title as event_title, events.`date` as event_date, events.location, events.event_type, services.title as service_title, users.name as customer_name', false)
             ->join('bookings', 'bookings.id = booking_items.booking_id')
             ->join('events', 'events.id = bookings.event_id')
@@ -630,7 +643,6 @@ class Profile extends BaseController
             ->whereIn('booking_items.status', ['pending', 'accepted', 'confirmed'])
             ->findAll();
 
-        $calendarEvents = [];
         foreach ($items as $item) {
             $color = '#ffc107';
             if ($item['status'] === 'accepted' || $item['status'] === 'confirmed') $color = '#198754';
@@ -649,6 +661,46 @@ class Profile extends BaseController
         }
 
         return $this->response->setJSON($calendarEvents);
+    }
+
+    /**
+     * Toggle a vendor-level blocked (unavailable) date from the calendar.
+     * Inserts the date if free, removes it if already blocked. AJAX/JSON.
+     * Returns the rotated CSRF hash so the SPA-style caller can chain requests.
+     */
+    public function toggleBlockDate()
+    {
+        if (!session()->has('user_id')) {
+            return $this->response->setStatusCode(401)->setJSON(['ok' => false, 'error' => 'Not signed in']);
+        }
+        $user = (new UserModel())->find((int) session()->get('user_id'));
+        if (!$user || ($user['role'] ?? '') !== 'vendor') {
+            return $this->response->setStatusCode(403)->setJSON(['ok' => false, 'error' => 'Vendors only']);
+        }
+
+        $date = trim((string) $this->request->getPost('date'));
+        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+            return $this->response->setStatusCode(400)->setJSON(['ok' => false, 'error' => 'Invalid date', 'csrfHash' => csrf_hash()]);
+        }
+
+        $vendorId = (int) session()->get('user_id');
+        $model    = new \App\Models\UnavailableDateModel();
+        $existing = $model->where('vendor_id', $vendorId)->where('date', $date)->first();
+
+        if ($existing) {
+            $model->where('vendor_id', $vendorId)->where('date', $date)->delete();
+            $blocked = false;
+        } else {
+            $model->insert(['vendor_id' => $vendorId, 'date' => $date]);
+            $blocked = true;
+        }
+
+        return $this->response->setJSON([
+            'ok'       => true,
+            'blocked'  => $blocked,
+            'date'     => $date,
+            'csrfHash' => csrf_hash(),
+        ]);
     }
 
     // =========================================================

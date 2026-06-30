@@ -36,7 +36,7 @@
     }
     .event-option-card.is-selectable:hover,
     .event-option-card.is-selectable:focus-within {
-        border-color: var(--accent-orange, #C4956A);
+        border-color: var(--green, #1C4A36);
         box-shadow: 0 4px 18px rgba(196, 149, 106, 0.18);
         transform: translateY(-2px);
     }
@@ -88,14 +88,14 @@
                          class="adding-service-thumb">
                 <?php else: ?>
                     <div class="adding-service-thumb adding-service-thumb--placeholder">
-                        <i class="fas fa-concierge-bell" style="color:var(--accent-orange,#C4956A);"></i>
+                        <i class="fas fa-concierge-bell" style="color:var(--green, #1C4A36);"></i>
                     </div>
                 <?php endif; ?>
                 <div>
                     <div class="text-muted" style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.08em;font-weight:600;">Adding</div>
-                    <div class="fw-semibold" style="color:var(--dark-blue,#1A2E27);"><?= esc($service['title']) ?></div>
+                    <div class="fw-semibold" style="color:var(--ink, #19241D);"><?= esc($service['title']) ?></div>
                     <?php if (!empty($service['price'])): ?>
-                        <div class="small" style="color:var(--accent-orange,#C4956A);">From £<?= number_format($service['price'], 2) ?></div>
+                        <div class="small" style="color:var(--green, #1C4A36);">From £<?= number_format($service['price'], 2) ?></div>
                     <?php endif; ?>
                 </div>
             </div>
@@ -118,7 +118,7 @@
                             <div class="fw-semibold"><?= esc($event['title']) ?></div>
                             <div class="event-option-meta text-muted">
                                 <?php if (!empty($event['event_type'])): ?>
-                                    <span class="badge" style="background:var(--accent-orange,#C4956A);color:#fff;"><?= esc($event['event_type']) ?></span>
+                                    <span class="badge" style="background:var(--green, #1C4A36);color:#fff;"><?= esc($event['event_type']) ?></span>
                                 <?php endif; ?>
                                 <?php if (!empty($event['guest_count'])): ?>
                                     <span><i class="fas fa-users me-1"></i><?= (int) $event['guest_count'] ?> guests</span>
@@ -131,7 +131,7 @@
                                 <?php endif; ?>
                             </div>
                             <?php if ($serviceAlreadyAdded): ?>
-                                <div class="small text-muted mt-1"><i class="fas fa-check-circle me-1" style="color:var(--accent-orange,#C4956A);"></i>This service is already in this event's basket.</div>
+                                <div class="small text-muted mt-1"><i class="fas fa-check-circle me-1" style="color:var(--green, #1C4A36);"></i>This service is already in this event's basket.</div>
                             <?php else: ?>
                                 <div class="small text-muted mt-1"><i class="fas fa-lock me-1"></i>This vendor is already booked for this event.</div>
                             <?php endif; ?>
@@ -167,7 +167,7 @@
                                 <div class="fw-semibold"><?= esc($event['title']) ?></div>
                                 <div class="event-option-meta text-muted">
                                     <?php if (!empty($event['event_type'])): ?>
-                                        <span class="badge" style="background:var(--accent-orange,#C4956A);color:#fff;"><?= esc($event['event_type']) ?></span>
+                                        <span class="badge" style="background:var(--green, #1C4A36);color:#fff;"><?= esc($event['event_type']) ?></span>
                                     <?php endif; ?>
                                     <?php if (!empty($event['guest_count'])): ?>
                                         <span><i class="fas fa-users me-1"></i><?= (int) $event['guest_count'] ?> guests</span>

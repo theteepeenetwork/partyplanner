@@ -155,7 +155,7 @@
 
                         <li class="nav-item">
                             <?php if ($navRole === 'vendor'): ?>
-                                <a class="btn btn-nav-cta ms-lg-2 mt-2 mt-lg-0" href="/service/list">Add a Service</a>
+                                <a class="btn btn-nav-cta ms-lg-2 mt-2 mt-lg-0" href="/service/create">Add a Service</a>
                             <?php elseif ($navRole === 'customer'): ?>
                                 <a class="btn btn-nav-cta ms-lg-2 mt-2 mt-lg-0" href="/event/create">Start Planning</a>
                             <?php else: ?>
