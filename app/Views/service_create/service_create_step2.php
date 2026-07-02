@@ -53,6 +53,8 @@
             <div class="form-group">
                 <label>Available for Events:</label>
 
+                <div id="eventTypeErrors" role="alert" aria-live="polite" aria-atomic="true" class="d-none"></div>
+
                 <!-- Public Events -->
                 <?php
                 $selectedEventTypes = session('step3_data.event_types') ?? old('event_types', []);
