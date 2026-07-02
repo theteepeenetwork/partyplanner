@@ -34,6 +34,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const eventPrivate = document.getElementById('event_private');
     const eventCorporate = document.getElementById('event_corporate');
     const nextButton = document.getElementById('step2-next-btn');
+    const step2Form = document.getElementById('step2Form');
+    const eventTypeErrors = document.getElementById('eventTypeErrors');
 
     if (!nextButton || !eventPublic || !eventPrivate || !eventCorporate) {
         return;
@@ -48,18 +50,30 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     };
 
+    // Clear the inline error once any event type is selected
+    const clearEventTypeError = () => {
+        if (eventTypeErrors && (eventPublic.checked || eventPrivate.checked || eventCorporate.checked)) {
+            eventTypeErrors.classList.add('d-none');
+            eventTypeErrors.innerHTML = '';
+        }
+    };
+
     // Listen for change events on the checkboxes only in Step 4
     document.querySelectorAll('.event-type').forEach(checkbox => {
         checkbox.addEventListener('change', toggleNextButton);
+        checkbox.addEventListener('change', clearEventTypeError);
     });
 
-    // Listen for "Next" button click
-    nextButton.addEventListener('click', function () {
-        // If no checkbox is selected, show an alert
-        if (!eventPublic.checked && !eventPrivate.checked && !eventCorporate.checked) {
-            alert("Please select at least one event type before proceeding.");
-        }
-    });
+    // Show an inline, accessible error instead of alert() if no event type is selected on submit
+    if (step2Form && eventTypeErrors) {
+        step2Form.addEventListener('submit', function (event) {
+            if (!eventPublic.checked && !eventPrivate.checked && !eventCorporate.checked) {
+                event.preventDefault();
+                eventTypeErrors.innerHTML = '<p class="text-danger">Please select at least one event type before proceeding.</p>';
+                eventTypeErrors.classList.remove('d-none');
+            }
+        });
+    }
 
     // Initial check to disable/enable the Next button on page load for Step 4
     toggleNextButton();

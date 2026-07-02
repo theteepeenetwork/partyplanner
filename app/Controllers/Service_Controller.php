@@ -1052,6 +1052,20 @@ class Service_Controller extends BaseController
                 unset($step3['enableHours'], $step3['enableDays'], $step3['hour_number'], $step3['hour_price'], $step3['day_number'], $step3['day_price']);
                 unset($step3['package_name'], $step3['package_description'], $step3['package_price']);
             }
+
+            if ($pricingType === 'custom_quote') {
+                // Price-on-request: no detail pricing rows exist for this model (see
+                // saveService()'s private-pricing block and ExampleServicesSeeder),
+                // and downstream quoting reads the discriminator from
+                // services_private_event_pricing.pricing_type, not from step3_data.
+                // Explicitly clear every other model's fields here (rather than
+                // relying on this branch being unreachable) so stale values can't
+                // survive a same-session pricing_type switch to custom_quote.
+                unset($step3['min_guest'], $step3['max_guest'], $step3['guest_price']);
+                unset($step3['enableHours'], $step3['enableDays'], $step3['hour_number'], $step3['hour_price'], $step3['day_number'], $step3['day_price']);
+                unset($step3['package_name'], $step3['package_description'], $step3['package_price']);
+                unset($step3['unit_price'], $step3['min_quantity'], $step3['max_quantity'], $step3['unit_label']);
+            }
         } else {
             // Clear private fields when private not selected
             unset(
