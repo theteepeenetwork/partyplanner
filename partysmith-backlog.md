@@ -152,3 +152,14 @@ These are yours, not the team's. Each blocks the epic noted.
 The Orchestrator works **top-down, respecting the dependency arrows** — it does not start Epic 3 tasks while Epic 2 is incomplete. Each task goes Builder → Verifier against the Definition of Done; any task tagged *human-gated* (all of Epic 4, the pricing-step task in Epic 2, anything touching `quote_breakdown`) pauses for your approval before build and your review before ship. Findings the UX Auditor raises along the way append to this backlog as fix-tasks and are prioritised against the epics.
 
 Scope is large; the protocol's exit conditions and tight task-scoping are what keep it from sprawling. Treat each checkbox as one Builder→Verify cycle, not a sprint.
+
+---
+
+## Follow-ups from the wizard-fixes cycle (PR #87, 2026-07-02)
+
+Verifier-recommended items from the F1/F5/F3 wizard fixes (all three PASSED with an environmental waiver on automated a11y/perf scans):
+
+- [ ] Add axe-core/Lighthouse tooling to CI or the dev environment so the a11y AA / Perf ≥ 90 gates can actually run — they were waived, not passed, on PR #87. Priority given F3 was an accessibility fix verified only manually.
+- [ ] Add a phpunit/functional test covering wizard step2→step3 session behaviour: unchanged step2 resubmit preserves `step3_data`; a genuine event_types/pricing_type change clears it. No coverage exists today (the F1 data-loss fix is browser-verified only).
+- [ ] Focus management on step3 validation failure: move focus to the first error container/offending field. Deferred from F3 because the submit handler's four validators only aggregate a boolean; needs a small rework of that flow in `public/assets/js/service_forms/step3.js`.
+- [ ] Commit a proper `.php-cs-fixer.dist.php` (CodeIgniter4 ruleset via nexusphp/cs-config, `->notPath('Views')` — the fixer mangles mixed HTML/PHP templates). No config is committed today, so the documented `fix app/` command falls back to the wrong default ruleset. Do NOT bulk-reformat existing code in the same change.
