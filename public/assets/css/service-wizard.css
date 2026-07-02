@@ -183,3 +183,11 @@ main.pp-wizard-page {
   .pp-wizard-nav-inner { padding: 12px 18px; }
   .pp-foot-prog { display: none; }
 }
+
+/* ultra-small viewports: the fixed footer nav wraps to a taller block
+   (buttons can stack/shrink), so give content more bottom clearance
+   than the 992px breakpoint reserves */
+@media (max-width: 480px) {
+  main.pp-wizard-page.container,
+  main.pp-wizard-page { padding: 24px 18px 160px !important; }
+}
