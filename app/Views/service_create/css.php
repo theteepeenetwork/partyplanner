@@ -34,15 +34,14 @@
 
     main { margin: 0 auto; padding-top: 25px; }
 
-    /* sections render as cards */
+    /* sections render as cards — separated by shadow, not a border */
     section {
         padding: 26px 28px;
         margin-bottom: 20px;
         margin-top: 0;
-        border: 1px solid var(--pp-line);
         border-radius: 18px;
         background-color: #fff;
-        box-shadow: 0 8px 30px rgba(26, 46, 39, .07);
+        box-shadow: 0 10px 40px rgba(26, 46, 39, .09);
     }
 
     section h4 {

@@ -685,14 +685,11 @@ class Service_Controller extends BaseController
 
                 // Compare the new data with the session data
                 if ($_SESSION['step2_data'] !== $step2Data) {
-                    // Unset the specific session variable
+                    // event_types/pricing_type changed: invalidate stale step3 pricing data
                     unset($_SESSION['step2_data']);
                     unset($_SESSION['step3_data']);
                 }
             }
-
-
-            $this->destroy('step3');
 
 
             session()->set('step2_data', $step2Data);
