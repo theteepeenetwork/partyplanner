@@ -101,7 +101,7 @@
                             <i class="bi bi-question-circle"></i>
                         </span>
 
-                    <div id="attendancePricingErrors"></div>
+                    <div id="attendancePricingErrors" role="alert" aria-live="polite" aria-atomic="true"></div>
                     <div id="pitchFeeContainer"></div>
 
                     <button type="button" class="btn btn-primary" id="addPitchFee">Add Another Fee Range</button>
@@ -131,7 +131,7 @@
                         <p class="form-text text-muted">
                             Specify the price per guest based on the range of attendees. For example, 1–25
                             guests: £25 per guest.
-                        <div id="guestPricingErrors"></div>
+                        <div id="guestPricingErrors" role="alert" aria-live="polite" aria-atomic="true"></div>
                         </p>
 
                         <!-- Container for Dynamic Guest Ranges -->
@@ -159,7 +159,7 @@
 
                         <div id="hoursSection" class="pitch-group" style="display: none;">
                             <h5>Hours Pricing</h5>
-                            <div id="hourPricingErrors"></div>
+                            <div id="hourPricingErrors" role="alert" aria-live="polite" aria-atomic="true"></div>
                             <!-- Missing container added here -->
                             <div id="hoursList" class="display: none"></div>
                             <button type="button" class="btn btn-primary" id="addHourRow">Add Another Hour</button>
@@ -167,7 +167,7 @@
 
                         <div id="daysSection" class="pitch-group" style="display: none;">
                             <h5>Days Pricing</h5>
-                            <div id="dayPricingErrors"></div>
+                            <div id="dayPricingErrors" role="alert" aria-live="polite" aria-atomic="true"></div>
                             <!-- Missing container added here -->
                             <div id="daysList"></div>
                             <button type="button" class="btn btn-primary" id="addDayRow">Add Another Day</button>
@@ -246,7 +246,7 @@
 
                 <div id="corporateBillingSection" style="display:none;">
                     <h5>Billing & Payment</h5>
-                    <div id="corporateErrorsBilling"></div>
+                    <div id="corporateErrorsBilling" role="alert" aria-live="polite" aria-atomic="true"></div>
 
                     <div class="form-check">
                         <input class="form-check-input" type="checkbox" id="corporate_invoice_supported"
@@ -305,7 +305,7 @@
 
                 <div id="corporateComplianceSection" class="mt-4" style="display:none;">
                     <h5>Compliance</h5>
-                    <div id="corporateErrorsCompliance"></div>
+                    <div id="corporateErrorsCompliance" role="alert" aria-live="polite" aria-atomic="true"></div>
 
                     <label class="form-label" for="corporate_pli_level">Public liability insurance</label>
                     <select class="form-select" id="corporate_pli_level" name="corporate_pli_level">
@@ -347,7 +347,7 @@
 
                 <div id="corporateModifiersSection" class="mt-4" style="display:none;">
                     <h5>Corporate Modifiers (Optional)</h5>
-                    <div id="corporateErrorsModifiers"></div>
+                    <div id="corporateErrorsModifiers" role="alert" aria-live="polite" aria-atomic="true"></div>
 
                     <label class="form-label" for="corporate_surcharge_type">Corporate surcharge</label>
                     <select class="form-select" id="corporate_surcharge_type" name="corporate_surcharge_type">
