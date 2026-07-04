@@ -73,6 +73,9 @@ class Profile extends BaseController
         if (($user['role'] ?? '') !== 'vendor') {
             return redirect()->to('/profile')->with('error', 'This area is only available to vendor accounts.');
         }
+        if (($user['vendor_status'] ?? 'pending') !== 'approved') {
+            return redirect()->to('/profile');
+        }
 
         return null;
     }
@@ -106,6 +109,13 @@ class Profile extends BaseController
 
     private function vendorMain($user)
     {
+        if (($user['vendor_status'] ?? 'pending') !== 'approved') {
+            return view('dashboard/vendor_pending', [
+                'user'      => $user,
+                'pageTitle' => 'Vendor account review — Partysmith',
+            ]);
+        }
+
         $userId = $user['id'];
         $serviceModel = new ServiceModel();
         $serviceImageModel = new ServiceImageModel();
