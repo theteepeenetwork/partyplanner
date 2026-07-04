@@ -115,16 +115,23 @@ $routes->match(['GET', 'POST'], 'service/delete/(:num)', 'Service_Controller::de
 $routes->post('service/toggle-status/(:num)', 'Service_Controller::toggleStatus/$1');
 
 
-// Cart Routes
-$routes->match(['GET', 'POST'], '/cart/add/(:num)', 'CartController::add/$1'); // Handles both GET and POST
-$routes->get('/cart', 'CartController::index');
-$routes->post('/cart/update/(:num)', 'CartController::update/$1');
-$routes->get('/cart/remove/(:num)', 'CartController::remove/$1');
-$routes->post('/cart/submit', 'CartController::submit');
+// Cart (retired) — redirect legacy GET entry points to the event-basket flow.
+// The former POST money-path routes (cart/submit, cart/submitToVendors,
+// cart/processPayment) and the cart/update route (never implemented) are
+// intentionally not defined here; they now 404.
+$routes->get('/cart', static function () {
+    session()->setFlashdata('info', 'The cart has been retired. You can now add services directly to your events.');
+
+    return redirect()->to('/profile/events');
+});
+$routes->match(['GET', 'POST'], '/cart/add/(:num)', static function ($serviceId = null) {
+    session()->setFlashdata('info', 'The cart has been retired. Please select an event and add services directly.');
+
+    return redirect()->to('/profile/events');
+});
+
 $routes->post('payment/createPaymentIntent', 'PaymentController::createPaymentIntent');
 $routes->get('booking/success/(:num)', 'BookingController::paymentSuccess/$1');
-$routes->post('cart/submitToVendors', 'CartController::submitToVendors');
-$routes->post('cart/processPayment', 'CartController::processPayment');
 $routes->post('webhook/stripe', 'WebhookController::stripe');
 $routes->post('webhooks/stripe', 'WebhookController::stripe');
 
