@@ -130,7 +130,6 @@ $routes->match(['GET', 'POST'], '/cart/add/(:num)', static function ($serviceId 
     return redirect()->to('/profile/events');
 });
 
-$routes->post('payment/createPaymentIntent', 'PaymentController::createPaymentIntent');
 $routes->get('booking/success/(:num)', 'BookingController::paymentSuccess/$1');
 $routes->post('webhook/stripe', 'WebhookController::stripe');
 $routes->post('webhooks/stripe', 'WebhookController::stripe');
