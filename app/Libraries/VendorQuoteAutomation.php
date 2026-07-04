@@ -3,6 +3,7 @@
 namespace App\Libraries;
 
 use App\Models\BookingItemModel;
+use App\Models\BookingModel;
 use App\Models\QuoteAutomationLogModel;
 use App\Models\VendorQuoteSettingsModel;
 
@@ -86,6 +87,12 @@ class VendorQuoteAutomation
         }
 
         $itemModel = new BookingItemModel();
+        $currentItem = $itemModel->find((int) $bookingItem['id']);
+        $booking = $currentItem ? (new BookingModel())->find((int) $currentItem['booking_id']) : null;
+        if (!$booking || $booking['status'] !== 'confirmed') {
+            return ['auto_accepted' => false, 'reason' => 'payment_not_confirmed'];
+        }
+
         $itemModel->update((int) $bookingItem['id'], ['status' => 'accepted']);
 
         $log = new QuoteAutomationLogModel();

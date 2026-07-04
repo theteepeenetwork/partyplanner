@@ -18,6 +18,7 @@ use App\Models\ServiceCustomDurationPricingModel;
 use App\Models\ServiceLocationModel;
 use App\Models\ServiceOptionalExtrasModel;
 use App\Models\ServiceImageModel;
+use App\Libraries\BookingConfirmation;
 use App\Libraries\DepositCalculator;
 use App\Libraries\EventBookingQuote;
 use App\Libraries\EventQuoteBuilder;
@@ -25,7 +26,6 @@ use App\Libraries\QuoteAnalyticsRecorder;
 use App\Libraries\QuoteNotifier;
 use App\Libraries\ServiceAvailabilityChecker;
 use App\Libraries\StripeCheckoutHelper;
-use App\Libraries\VendorQuoteAutomation;
 use App\Libraries\UKAddressGeocoder;
 use App\Models\PaymentScheduleModel;
 use App\Models\ServiceTieredPackagesPricingModel;
@@ -885,6 +885,7 @@ class EventController extends BaseController
         $paymentPlan = $this->request->getPost('payment_plan') === 'instalments' ? 'instalments' : 'single';
         $balanceDue = max(0, round($totalEstimated - $totalDeposit, 2));
 
+        $paidNow = true;
         if ($stripe->isConfigured()) {
             if (!$paymentIntentId) {
                 return redirect()->to('/event/checkout/' . $eventId)->with('error', 'Payment was not completed.');
@@ -893,6 +894,7 @@ class EventController extends BaseController
             if (!$verified['success']) {
                 return redirect()->to('/event/checkout/' . $eventId)->with('error', $verified['error'] ?? 'Payment verification failed.');
             }
+            $paidNow = ($verified['status'] ?? '') === 'succeeded';
         }
 
         $bookingModel->insert([
@@ -905,7 +907,6 @@ class EventController extends BaseController
         ]);
         $bookingId = $bookingModel->getInsertID();
 
-        $automation = new VendorQuoteAutomation();
         $notifier = new QuoteNotifier();
         $analytics = new QuoteAnalyticsRecorder();
 
@@ -938,16 +939,6 @@ class EventController extends BaseController
                     'event_date' => $event['date'] ?? null,
                     'event_setting' => $event['event_setting'] ?? 'private',
                 ]);
-                $quoteForAutomation = array_merge($quoteDetail, ['total' => (float) $item['estimated_total']]);
-                $autoResult = $automation->evaluateAfterCheckout(
-                    $joinedItem,
-                    $quoteForAutomation,
-                    (int) $svc['vendor_id'],
-                    (int) $item['service_id']
-                );
-                if ($autoResult['auto_accepted']) {
-                    $analytics->recordAccepted((int) $svc['vendor_id'], (int) $item['service_id'], true);
-                }
 
                 $notifier->sendVendorNewQuoteNotification(
                     (int) $svc['vendor_id'],
@@ -986,18 +977,36 @@ class EventController extends BaseController
             ]);
         }
 
-        $paymentsModel->insert([
-            'booking_id' => $bookingId,
-            'payment_intent_id' => $paymentIntentId ?: null,
-            'payment_status' => 'succeeded',
-            'amount_paid' => $totalDeposit,
-            'currency' => 'gbp',
-            'payment_method' => $stripe->isConfigured() ? 'stripe' : 'simulated',
-            'payment_type' => 'deposit',
-            'description' => 'Deposit for ' . $event['title'],
-        ]);
+        $paymentStatus = $paidNow ? 'succeeded' : 'processing';
+        $existingPayment = $paymentIntentId
+            ? $paymentsModel->where('payment_intent_id', $paymentIntentId)->first()
+            : null;
+
+        if ($existingPayment) {
+            // The webhook already inserted a payments row for this PaymentIntent mid-race;
+            // update it instead of inserting a duplicate.
+            $paymentsModel->update($existingPayment['id'], [
+                'payment_status' => $paymentStatus,
+                'amount_paid' => $totalDeposit,
+            ]);
+        } else {
+            $paymentsModel->insert([
+                'booking_id' => $bookingId,
+                'payment_intent_id' => $paymentIntentId ?: null,
+                'payment_status' => $paymentStatus,
+                'amount_paid' => $totalDeposit,
+                'currency' => 'gbp',
+                'payment_method' => $stripe->isConfigured() ? 'stripe' : 'simulated',
+                'payment_type' => 'deposit',
+                'description' => 'Deposit for ' . $event['title'],
+            ]);
+        }
 
         $basketModel->where('event_id', $eventId)->where('user_id', $userId)->delete();
+
+        if ($paidNow) {
+            (new BookingConfirmation())->confirmBooking($bookingId);
+        }
 
         return redirect()->to('/event/checkout/success/' . $bookingId);
     }
