@@ -19,14 +19,30 @@ Epics 3 and 4 are tightly coupled at the checkout seam — build the booking pat
 
 ---
 
-## Decisions to make BEFORE the relevant epic starts
+## Decisions — RESOLVED 2026-07-03
 
-These are yours, not the team's. Each blocks the epic noted.
+All four blocking decisions are made. The team builds to these; changing them requires reopening the decision here.
 
-- **Deposit %** (blocks Epic 4). Resolve 15% (checkout) vs 10% (legacy cart): is the legacy path still reachable? Is the difference intended? Pick one source of truth.
-- **Refund / cancellation policy** (blocks Epic 4). What happens to the deposit on customer cancel, vendor decline, or no-show? Stripe work can't be "done" without this defined.
-- **Review eligibility trigger** (blocks Epic 5). Reviews are "after the event" — what signals event completion? A date passing? An admin/vendor mark-complete? Reviews can't open without it.
-- **Script accent** (blocks any brand-touching task). Mr Dafoe (brief) vs Caveat (live). One decision, then it's consistent everywhere.
+- **Deposit %** ✅ **10% is the single source of truth** (revised 2026-07-03; was 15%). Change event checkout (`EventController`, currently 15%) to 10%, and retire the legacy cart: redirect `/cart/*` routes to the event-basket flow. Epic 4 asserts deposit = 10%. Update the CLAUDE.md "15% deposit" gotcha when the code change ships.
+- **Refund / cancellation policy** ✅ Computed **per `booking_item`** (its share of the deposit), issued as Stripe **partial refunds** against the original PaymentIntent:
+  - **Vendor declines/cancels** → that item's deposit refunded 100%, automatically.
+  - **Customer cancels a confirmed item** → tiered by notice before the event date: **≥30 days = 100% · 14–29 days = 50% · <14 days or no-show = 0%**.
+  - **Customer cancels while the quote is still pending** (vendor hasn't accepted) → free cancellation, 100%, regardless of notice.
+  - Tiers are **platform-wide** for Epic 4; vendor-overridable presets are a later enhancement (see structured-cancellation-policy backlog item).
+- **Review eligibility trigger** ✅ **Hybrid:** review window opens automatically **N days after the event date** unless the booking (item) was cancelled. Default N=2 unless overridden during Epic 5 build.
+- **Script accent** ✅ **Mr Dafoe** (per the brief). Migrate any live Caveat usage; consistent everywhere.
+- **Launch strategy** ✅ (added 2026-07-03, business review):
+  - **Wedge:** North East England — Newcastle–Durham–Teesside–York corridor. All founding-vendor recruitment targets overlapping coverage of this area. No multi-region work until the wedge proves out.
+  - **Launch categories:** catering (guest-based), DJs & photo booths (duration), kids' entertainers (packages). High quote-automation fit; no dependency on unbuilt pricing models. Adjustable if vendor recruitment says otherwise.
+  - **Commission:** **10%, vendor-side, deducted at payout. Commission-only at launch** — no customer booking fees, no subscriptions. Premium/featured/subscription revenue is post-liquidity (year 2).
+  - **Founding-vendor offer:** zero commission on first 5 bookings (or 3 months), founding badge, free featured placement. Target 25–30 vendors hand-onboarded before public launch.
+  - **Launch gate (not a date):** a test search in the wedge returns **≥3 priced quotes in every launch category**. Add a quote-coverage metric to the admin dashboard (Epic 1 add-on).
+  - **Leakage defence:** platform-protection messaging in chat, at quote acceptance, and on the booking page ("payments outside Party Smith aren't protected"); reviews stay booking-gated.
+- **Vendor payout release** ✅ (added 2026-07-03) Funds are only ever released after the customer has **paid in full.** **Balance is due 14 days before the event** (deposit at booking, remainder at T−14 — inside the no-refund window by construction). Release timing is a per-vendor **payout tier**:
+  - **Tier 0 (default):** held until **T+2 days after the event** (same trigger as the review window), per `booking_item`, unless cancelled/refunded.
+  - **Tier 1 (track record):** released **on receipt of full payment**. Unlocked after **5 successful events** (completed, no refund, no dispute). Any dispute/refund **demotes to tier 0**; re-earn required.
+  - Build the tier mechanism (per-vendor `payout_tier` + policy lookup in the payout engine) in Epic 4; everyone launches on tier 0.
+  - Implies Stripe Connect with platform-triggered transfers (not instant pass-through) — an Epic 4 architecture requirement. Get a legal sanity-check on FCA safeguarding before live money.
 
 ---
 
@@ -163,3 +179,85 @@ Verifier-recommended items from the F1/F5/F3 wizard fixes (all three PASSED with
 - [ ] Add a phpunit/functional test covering wizard step2→step3 session behaviour: unchanged step2 resubmit preserves `step3_data`; a genuine event_types/pricing_type change clears it. No coverage exists today (the F1 data-loss fix is browser-verified only).
 - [ ] Focus management on step3 validation failure: move focus to the first error container/offending field. Deferred from F3 because the submit handler's four validators only aggregate a boolean; needs a small rework of that flow in `public/assets/js/service_forms/step3.js`.
 - [ ] Commit a proper `.php-cs-fixer.dist.php` (CodeIgniter4 ruleset via nexusphp/cs-config, `->notPath('Views')` — the fixer mangles mixed HTML/PHP templates). No config is committed today, so the documented `fix app/` command falls back to the wrong default ruleset. Do NOT bulk-reformat existing code in the same change.
+
+---
+
+## Status audit (2026-07-03, code-inspection; suite not run — no host PHP in audit env)
+
+Per-task verdicts from a three-agent read-only audit. **Execution order lives in `partysmith-workplan.md`** — that file is the handoff for Claude Code.
+
+| Epic | Task | Verdict | Note |
+| --- | --- | --- | --- |
+| 1 | Vendor vetting queue | **MISSING** | No `vendor_status` column anywhere; vendors live on registration → workplan B1 |
+| 1 | Service moderation | PARTIAL | Toggle works; no reason capture / audit record → B5 |
+| 1 | Bookings oversight | DONE | Full read view incl. `quote_breakdown` |
+| 1 | Reviews moderation | DONE | Edit/delete + profanity filter; no audit record → B5 |
+| 1 | Messages oversight | DONE | Approve/reject/flag with reviewed_by/admin_note |
+| 1 | AdminAuth on all routes | DONE | Whole group filtered, DB re-check per request; **role tests MISSING** → B5 |
+| 2 | Registration → vetted → dashboard | PARTIAL | Works, but no vetting state (blocked by Epic 1.1) |
+| 2 | Wizard steps | DONE* | 7 steps, order differs from the (stale) task wording — implementation is canonical |
+| 2 | Wizard resilience | DONE | Session persistence + stale-pricing clearing, unit-tested |
+| 2 | Pricing → correct table (all 6 models) | DONE | Round-trip tests missing → C1 |
+| 2 | Vendor dashboard | DONE | Bookings/calendar/earnings/quote-settings all routed |
+| 3 | Hero search honours coverage radius | **PARTIAL — critical** | Location is free-text LIKE; radius never enforced in browse → B2 |
+| 3 | Service detail house rules | PARTIAL | Structure present; house-rule placement unverified → C2 |
+| 3 | Event basket | DONE | Deposit hardcoded 15% → F1/A1 |
+| 3 | Quote generation | DONE | EventBookingQuote well-tested (725-line test); EventQuoteBuilder thin → A5 |
+| 3 | Checkout assembly | DONE | `quote_breakdown` persists |
+| 4 | Keyed path + keyless fallback | DONE | Clean fallback |
+| 4 | PaymentIntent at agreed % | PARTIAL | 15% in code vs decided 10% → F1/A1 |
+| 4 | Webhook signature/success/failure/idempotency | DONE (core) | Only 2 event types; refund/cancel missing → B6 |
+| 4 | Payments persistence + status flip | **PARTIAL — critical** | **Booking never flips to 'confirmed' on payment success** → A3 |
+| 4 | Customer payment states | PARTIAL | Structure exists; messaging unverified |
+| 4 | Quote-automation tie-in | PARTIAL | Automation runs **before** payment confirms — can auto-accept unpaid bookings → A3 |
+| 5 | Chat room on booking | DONE | Created in processCheckout |
+| 5 | Chat gated to booking parties | DONE | Triple-checked in ChatController; **tests missing** → C4 |
+| 5 | Vendor templates in chat | PARTIAL | Model exists, used in quotes, absent from chat UI → C4 |
+| 5 | Post-event review | DONE* | Trigger is `event.date < today`; decision says **T+2** → B4 |
+| F2 | £15 stub | **STILL LIVE** | Routed POST, hardcoded £15 → A2 |
+| F3 | Automation branch tests / travel guard | OPEN | 1 of 8 branches tested; string-match guard remains → A4 |
+| F4 | Stripe E2E path | PARTIAL | Core sound; lifecycle events missing → B6 |
+| F5 | EventQuoteBuilder coverage | OPEN | Single test → A5 |
+
+---
+
+## F1 — Deposit consolidation & legacy cart retirement (scoped 2026-07-03, human-gated)
+
+**Decision applied:** 10% is the single deposit (see Decisions). Code-grounded scope:
+
+**In scope**
+
+- [ ] Introduce a single deposit constant (e.g. `DEPOSIT_PERCENT = 0.10`) in one place, following existing patterns (business logic in `app/Libraries/`). All call sites read it.
+- [ ] `EventController` — replace both hardcoded `0.15` sites (`~L470` checkout assembly, `~L631` quote JSON endpoint) with the constant.
+- [ ] Views — remove hardcoded "15%" copy; render the percent from a value passed by the controller: `event/checkout.php`, `event/basket.php`, `partials/event_planning_card.php`, `dashboard/customer_booking_detail.php`.
+- [ ] Retire the legacy cart: remove the seven `/cart*` routes (`Routes.php` L119–127); GET `/cart` and `/cart/add/(:num)` become redirects to the customer dashboard with a flash message; POST money-path routes (`submit`, `submitToVendors`, `processPayment`) must cease to exist (405/redirect, never processed). Delete `CartController` (494 lines) and `cart_view.php`. Grep confirms no inbound links from views/JS today.
+- [ ] Update docs: `CLAUDE.md` gotchas ("15% deposit" / "legacy cart 10%" lines) and `README.md` cart mentions.
+
+**Out of scope:** F2 (orphaned £15 `PaymentController::createPaymentIntent` stub — separate task), Stripe/payment-schedule work (Epic 4), refund logic.
+
+**Acceptance criteria**
+
+1. Deposit percent is defined in exactly one place; `grep -rn "0\.15\|0\.10" app/` yields no deposit literals outside that definition.
+2. Unit test asserts checkout assembly deposit = 10% of quote total, rounded to 2dp (boundary: penny-rounding case).
+3. No rendered customer-facing view contains "15%"; basket/checkout/booking-detail/planning-card show 10% sourced from the constant.
+4. Every former `/cart` URL redirects (no 404s); no POST to any cart route can move money; `CartController` and `cart_view.php` are gone.
+5. Full suite green (`composer test`) with no regressions; `php -l` and php-cs-fixer clean on touched files; touched pages browser-verified with no console errors.
+
+**Verify:** verifier runs the Definition-of-Done gates; FAIL returns a specific gap to the builder.
+
+---
+
+## Onboarding coverage gaps (audit refresh, 2026-07-03)
+
+From re-verifying `VENDOR_ONBOARDING_AUDIT.md` against current code and the UK supplier landscape (Add to Event / Poptop taxonomies). Audit roadmap items 1, 2, 3 and 5 have shipped; these are the remaining holes, ordered by supplier classes unblocked. **Anything marked human-gated touches pricing/deposits — approve before build, review diff before ship.**
+
+- [ ] **Multi-day events & bookings** *(human-gated — quote pipeline)*: add an event end date and make duration "days" pricing bookable across a range. Unblocks glamping, hot tubs, light-up letters, exhibitions, festivals. Engine currently assumes a single `events.date` throughout `EventBookingQuote`.
+- [ ] **Per-staff × hours pricing model** *(human-gated — new `pricing_type`)*: (headcount × hours × rate), min-staffing. Unblocks security, waiting staff, bar staff, first-aid/medical cover. Add as a first-class `pricing_type` per the CLAUDE.md constraint, not bolted onto duration.
+- [ ] **Consumer-facing compliance/credentials**: surface DBS, SIA, food-hygiene rating, alcohol/TENs, PLI on public/private listings + browse filter. Fields exist only in the corporate branch today. Cheap trust win; mostly form + display.
+- [ ] **A→B distance pricing for transport** *(human-gated — new pricing path)*: per-journey/per-mile quoting; the radius travel model misfits limos/party buses/coaches.
+- [ ] **Seasonal / day-of-week pricing** *(human-gated)*: peak (Sat/Christmas) vs off-peak modifiers on existing models.
+- [ ] **Refundable security deposits / damage waivers** *(human-gated — money path)*: hire businesses (inflatables, hot tubs, furniture) need a refundable deposit distinct from the 15% booking deposit. Depends on the Epic 4 refund-policy decision.
+- [ ] **Minimum spend** (general, not corporate-only): common for caterers/mobile bars.
+- [ ] **Structured cancellation policy**: replace the step-6 free-text textarea (currently pre-filled with a `[placeholder]` template) with structured refund tiers; prerequisite for automating refunds in Epic 4.
+- [ ] **Taxonomy top-up** (data-only): add category rows for hot tubs, fireworks/pyrotechnics, bell tents/glamping structures, fairground rides, Santa's grottos, waste management.
+- [ ] **Specific event-type taxonomy** (audit roadmap 4): vendor-selectable wedding/birthday/festival/school/charity types, customer-filterable; today only public/private/corporate buckets.
