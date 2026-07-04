@@ -21,7 +21,8 @@ build to those values, do not re-ask.
   four views; `/cart*` routes removed/redirected; `CartController` + `cart_view.php`
   deleted; CLAUDE.md/README updated; deposit unit test with rounding boundary.
 
-- [ ] **A2. F2 — Delete the orphaned £15 PaymentIntent stub**
+- [x] **A2. F2 — Delete the orphaned £15 PaymentIntent stub**
+  *(verifier PASS 2026-07-04 — PR #92; suite 58/58; live 404 confirmed; controller fully orphaned, deleted whole)*
   `PaymentController::createPaymentIntent()` (hardcoded £15) and its route
   (`Routes.php` ~L124, `payment/createPaymentIntent`) still exist and accept POSTs.
   Delete both. If nothing else in `PaymentController` is routed, delete the controller.
