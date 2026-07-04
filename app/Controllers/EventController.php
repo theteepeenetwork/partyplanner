@@ -18,6 +18,7 @@ use App\Models\ServiceCustomDurationPricingModel;
 use App\Models\ServiceLocationModel;
 use App\Models\ServiceOptionalExtrasModel;
 use App\Models\ServiceImageModel;
+use App\Libraries\DepositCalculator;
 use App\Libraries\EventBookingQuote;
 use App\Libraries\EventQuoteBuilder;
 use App\Libraries\QuoteAnalyticsRecorder;
@@ -467,8 +468,7 @@ class EventController extends BaseController
         }
 
         $estimated = $quote['total'];
-        $depositPercent = 0.15;
-        $depositAmount = round($estimated * $depositPercent, 2);
+        $depositAmount = DepositCalculator::forTotal($estimated);
 
         // Store a human-readable label for the chosen pricing option (e.g.
         // "Duration (1 day(s))" rather than the raw "duration_1" token). The
@@ -628,7 +628,6 @@ class EventController extends BaseController
         $extraQtyMap = $this->normalizeExtraQtyMap($this->request->getGet('extra_qty'));
 
         $quote = (new EventQuoteBuilder())->build($service, $event, $pricingOption, $selectedExtras, $extraQtyMap, $orderQuantity);
-        $depositPercent = 0.15;
 
         return $this->response->setJSON([
             'lines' => $quote['lines'],
@@ -636,7 +635,7 @@ class EventController extends BaseController
             'warnings' => $quote['warnings'],
             'errors' => $quote['errors'],
             'distance_km' => $quote['distance_km'],
-            'deposit' => round($quote['total'] * $depositPercent, 2),
+            'deposit' => DepositCalculator::forTotal((float) $quote['total']),
         ]);
     }
 
@@ -747,6 +746,7 @@ class EventController extends BaseController
             'basketItems' => $basketItems,
             'totalDeposit' => $totalDeposit,
             'totalEstimated' => $totalEstimated,
+            'depositPercent' => DepositCalculator::percentDisplay(),
         ]);
     }
 
@@ -836,6 +836,7 @@ class EventController extends BaseController
             'stripeEnabled' => $stripeEnabled,
             'stripePublishableKey' => getenv('STRIPE_PUBLISHABLE_KEY') ?: '',
             'stripeClientSecret' => $clientSecret,
+            'depositPercent' => DepositCalculator::percentDisplay(),
         ]);
     }
 

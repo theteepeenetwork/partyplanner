@@ -15,6 +15,7 @@ use App\Models\CategoryModel;
 use App\Models\FavouriteModel;
 use App\Libraries\ChatModeration;
 use App\Libraries\CustomerEventSummary;
+use App\Libraries\DepositCalculator;
 use App\Libraries\QuoteAnalyticsRecorder;
 use App\Models\EventBasketItemModel;
 use App\Models\VendorQuoteModel;
@@ -479,7 +480,7 @@ class Profile extends BaseController
                 ->where('(payments.id IS NULL OR payments.payment_status != \'succeeded\')', null, false)
                 ->findAll();
             foreach ($pendingItems as $pi) {
-                $pendingTotal += (float) ($pi['price'] ?? 0) * 0.15;
+                $pendingTotal += DepositCalculator::forTotal((float) ($pi['price'] ?? 0));
             }
 
             // Recent payments as payout history
@@ -837,10 +838,11 @@ class Profile extends BaseController
         );
 
         return view('dashboard/customer_booking_detail', [
-            'user'          => $user,
-            'item'          => $item,
-            'reviewableIds' => $reviewableIds,
-            'currentTab'    => 'bookings',
+            'user'           => $user,
+            'item'           => $item,
+            'reviewableIds'  => $reviewableIds,
+            'currentTab'     => 'bookings',
+            'depositPercent' => DepositCalculator::percentDisplay(),
         ]);
     }
 
