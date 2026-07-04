@@ -14,7 +14,8 @@ build to those values, do not re-ask.
 
 ## Phase A — Money-path correctness (do first, in order)
 
-- [ ] **A1. F1 — Deposit consolidation & legacy cart retirement** [HUMAN-GATED, scope approved]
+- [x] **A1. F1 — Deposit consolidation & legacy cart retirement** [HUMAN-GATED, scope approved]
+  *(verifier PASS 2026-07-04 — PR #90; suite 57/57; live gates green; cs-fixer gate noted as unexecutable until the config lands)*
   Implement exactly `partysmith-backlog.md` § "F1 — Deposit consolidation & legacy cart
   retirement (scoped 2026-07-03)". Single 10% constant; both `EventController` sites;
   four views; `/cart*` routes removed/redirected; `CartController` + `cart_view.php`
