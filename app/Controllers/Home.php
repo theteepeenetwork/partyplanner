@@ -48,6 +48,9 @@ class Home extends BaseController
             $builder = $builder->where('deleted_at', null);
         }
 
+        // A rejected/pending vendor's services must not be spotlighted on the homepage.
+        $builder = $builder->approvedVendorOnly();
+
         $services = $builder
             ->orderBy('rand()')
             ->limit(9)
