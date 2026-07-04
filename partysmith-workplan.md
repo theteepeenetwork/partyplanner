@@ -28,7 +28,8 @@ build to those values, do not re-ask.
   Delete both. If nothing else in `PaymentController` is routed, delete the controller.
   Verify: route returns 404; grep shows no references; suite green.
 
-- [ ] **A3. Flip booking status on payment confirmation + align quote automation** [HUMAN-GATED]
+- [x] **A3. Flip booking status on payment confirmation + align quote automation** [HUMAN-GATED]
+  *(verifier PASS 2026-07-04 — PR #93; suite 68/68, 0 skipped; live keyless smoke: booking 528 confirmed + payment succeeded; adversarial money-path review PASS; PR #91 superseded — close on merge)*
   Two coupled defects: (1) `processCheckout()` inserts bookings as 'pending' and the
   webhook success handler (`WebhookController::handlePaymentSucceeded`) never flips
   booking status to 'confirmed' — paid bookings stay pending forever. (2)
