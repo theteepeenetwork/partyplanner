@@ -3216,8 +3216,8 @@ class Service_Controller extends BaseController
                         $eventLng
                     );
                     $travel = (new EventBookingQuote())->computeTravel($distance, $loc);
-                    foreach ($travel['warnings'] as $w) {
-                        if (str_contains($w, 'exceeds the vendor') || str_contains($w, 'beyond the maximum')) {
+                    foreach ($travel['warning_codes'] as $code) {
+                        if ($code === EventBookingQuote::WARNING_TRAVEL_OUT_OF_RADIUS) {
                             $reasons[] = 'Too far from your event location';
                             break;
                         }

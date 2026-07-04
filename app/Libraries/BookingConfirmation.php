@@ -143,6 +143,12 @@ class BookingConfirmation
                 $warnings = json_decode($item['quote_warnings'] ?? '', true);
                 $quoteDetail['warnings'] = is_array($warnings) ? $warnings : [];
             }
+            if (!isset($quoteDetail['warning_codes']) && !empty($quoteDetail['warnings'])) {
+                // Pre-A4 quote_breakdown rows only have prose warnings; decode the codes the
+                // structured guards now require via the legacy shim (see
+                // EventBookingQuote::legacyCodesForWarnings for details).
+                $quoteDetail['warning_codes'] = EventBookingQuote::legacyCodesForWarnings($quoteDetail['warnings']);
+            }
 
             $joinedItem = array_merge($item, [
                 'id' => $item['id'],

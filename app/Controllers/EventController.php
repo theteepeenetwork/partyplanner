@@ -481,6 +481,7 @@ class EventController extends BaseController
         $breakdownPayload = json_encode([
             'lines' => $quote['lines'],
             'warnings' => $quote['warnings'],
+            'warning_codes' => $quote['warning_codes'] ?? [],
             'distance_km' => $quote['distance_km'],
         ], JSON_UNESCAPED_UNICODE);
 
