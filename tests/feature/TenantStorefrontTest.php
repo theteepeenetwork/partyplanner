@@ -27,14 +27,13 @@ final class TenantStorefrontTest extends CIUnitTestCase
     use DatabaseTestTrait;
     use FeatureTestTrait;
 
+    private const BASE_DOMAIN = 'partyplanner.test';
+
     // Run migrations from ALL namespaces: Tests\Support provides the minimal
     // users/services tables (guarded), then the real App CreateVendorSites
     // migration builds vendor_sites — the production migration is what's
     // under test here, not a test double.
-    protected $namespace = null;
-
-    private const BASE_DOMAIN = 'partyplanner.test';
-
+    protected $namespace;
     private int $tenantVendorId;
     private int $otherVendorId;
     private int $tenantServiceId;

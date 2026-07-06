@@ -28,6 +28,7 @@ class TenantController extends BaseController
 
         $imageModel    = new ServiceImageModel();
         $categoryModel = new CategoryModel();
+
         foreach ($services as &$service) {
             $service['images'] = $imageModel
                 ->where(['service_id' => $service['id'], 'is_primary' => 1])
@@ -61,6 +62,7 @@ class TenantController extends BaseController
             'vendor'       => $tenant->vendor(),
             'service'      => $service,
             'categoryName' => (new CategoryModel())->getServiceCategoryLabel($service),
+            'pageTitle'    => $service['title'],
         ]);
     }
 

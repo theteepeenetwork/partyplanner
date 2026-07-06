@@ -6,6 +6,7 @@ namespace Tests\Unit;
 
 use App\Libraries\TenantHost;
 use CodeIgniter\Test\CIUnitTestCase;
+use PHPUnit\Framework\Attributes\DataProvider;
 
 /**
  * Host parsing for white-label tenant resolution (T2). The contract:
@@ -18,10 +19,16 @@ final class TenantHostTest extends CIUnitTestCase
 {
     private const BASE = 'partyplanner.test';
 
+    #[DataProvider('provideSubdomainFromHost')]
+    public function testSubdomainFromHost(string $host, ?string $expected): void
+    {
+        $this->assertSame($expected, TenantHost::subdomainFromHost($host, self::BASE));
+    }
+
     /**
      * @return array<string, array{string, string|null}>
      */
-    public static function hostProvider(): array
+    public static function provideSubdomainFromHost(): iterable
     {
         return [
             'tenant subdomain'            => ['vendorone.partyplanner.test', 'vendorone'],
@@ -38,14 +45,6 @@ final class TenantHostTest extends CIUnitTestCase
             'empty host'                  => ['', null],
             'multi-label stays unmatched' => ['a.b.partyplanner.test', 'a.b'],
         ];
-    }
-
-    /**
-     * @dataProvider hostProvider
-     */
-    public function testSubdomainFromHost(string $host, ?string $expected): void
-    {
-        $this->assertSame($expected, TenantHost::subdomainFromHost($host, self::BASE));
     }
 
     public function testProductionBaseDomain(): void

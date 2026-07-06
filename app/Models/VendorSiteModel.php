@@ -6,6 +6,9 @@ use CodeIgniter\Model;
 
 class VendorSiteModel extends Model
 {
+    public const STATUS_ACTIVE    = 'active';
+    public const STATUS_SUSPENDED = 'suspended';
+
     protected $table         = 'vendor_sites';
     protected $primaryKey    = 'id';
     protected $allowedFields = [
@@ -20,9 +23,6 @@ class VendorSiteModel extends Model
         'status',
     ];
     protected $useTimestamps = true;
-
-    public const STATUS_ACTIVE    = 'active';
-    public const STATUS_SUSPENDED = 'suspended';
 
     /**
      * The tenant filter's lookup: an *active* site for the given subdomain,
