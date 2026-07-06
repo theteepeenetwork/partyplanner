@@ -386,6 +386,13 @@ class EventController extends BaseController
             return redirect()->to('/browse-services')->with('error', 'Invalid service or event.');
         }
 
+        // Direct-URL guard: services of non-approved vendors are excluded from
+        // browse/view, but the add-to-basket endpoint must refuse them too.
+        if (!(new UserModel())->isVendorApproved((int) $service['vendor_id'])) {
+            if ($this->request->isAJAX()) return $this->response->setJSON(['ok' => false, 'message' => 'This service is not currently available.']);
+            return redirect()->to('/browse-services')->with('error', 'This service is not currently available.');
+        }
+
         // Prevent adding the same service to the same event more than once.
         $alreadyInBasket = $basketModel
             ->where('event_id', $eventId)
@@ -481,6 +488,7 @@ class EventController extends BaseController
         $breakdownPayload = json_encode([
             'lines' => $quote['lines'],
             'warnings' => $quote['warnings'],
+            'warning_codes' => $quote['warning_codes'] ?? [],
             'distance_km' => $quote['distance_km'],
         ], JSON_UNESCAPED_UNICODE);
 

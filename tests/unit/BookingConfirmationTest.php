@@ -262,4 +262,96 @@ final class BookingConfirmationTest extends CIUnitTestCase
         $logModel = new QuoteAutomationLogModel();
         $this->assertSame(0, $logModel->where('booking_item_id', $overLimitItemId)->countAllResults());
     }
+
+    /**
+     * Pre-A4 rows only persisted prose `warnings`, with no `warning_codes` key at all. The
+     * travel guard now matches exclusively on `warning_codes`, so runAutomationForBooking()
+     * must backfill codes from the old prose via EventBookingQuote::legacyCodesForWarnings()
+     * before handing the quote to evaluateAfterCheckout() — otherwise this legacy row would
+     * wrongly sail past require_within_travel_radius and auto-accept.
+     */
+    public function testLegacyQuoteBreakdownWithoutWarningCodesStillTripsTravelGuard(): void
+    {
+        $bookingId = $this->seedBooking();
+
+        $serviceModel = new ServiceModel();
+        $serviceModel->insert(['vendor_id' => 5004, 'title' => 'Legacy Travel Service']);
+        $serviceId = (int) $serviceModel->getInsertID();
+
+        $settingsModel = new VendorQuoteSettingsModel();
+        $settingsModel->insert([
+            'vendor_id' => 5004,
+            'service_id' => null,
+            'auto_accept_enabled' => 1,
+            'require_within_travel_radius' => 1,
+        ]);
+
+        $bookingItemModel = new BookingItemModel();
+        $bookingItemModel->insert([
+            'booking_id' => $bookingId,
+            'service_id' => $serviceId,
+            'price' => 50.0,
+            'status' => 'pending',
+            // Old-shape quote_breakdown: prose warnings only, no warning_codes key at all.
+            'quote_breakdown' => json_encode([
+                'lines' => [],
+                'warnings' => ['Venue is outside the vendor’s included travel radius; confirm travel cost with the vendor.'],
+                'errors' => [],
+            ], JSON_UNESCAPED_UNICODE),
+        ]);
+        $itemId = (int) $bookingItemModel->getInsertID();
+
+        (new BookingConfirmation())->confirmBooking($bookingId);
+
+        $item = $bookingItemModel->find($itemId);
+        $this->assertSame('pending', $item['status']);
+
+        $logModel = new QuoteAutomationLogModel();
+        $this->assertSame(0, $logModel->where('booking_item_id', $itemId)->where('action', 'auto_accept')->countAllResults());
+    }
+
+    /**
+     * Inverse of the above: an old-shape row (no warning_codes) whose only prose warning is
+     * unrelated to travel must still be free to auto-accept — the legacy shim only recognises
+     * the specific travel-out-of-radius prose fragments, not "any warning present".
+     */
+    public function testLegacyQuoteBreakdownWithUnrelatedWarningStillAutoAccepts(): void
+    {
+        $bookingId = $this->seedBooking();
+
+        $serviceModel = new ServiceModel();
+        $serviceModel->insert(['vendor_id' => 5005, 'title' => 'Legacy Unrelated Warning Service']);
+        $serviceId = (int) $serviceModel->getInsertID();
+
+        $settingsModel = new VendorQuoteSettingsModel();
+        $settingsModel->insert([
+            'vendor_id' => 5005,
+            'service_id' => null,
+            'auto_accept_enabled' => 1,
+            'require_within_travel_radius' => 1,
+        ]);
+
+        $bookingItemModel = new BookingItemModel();
+        $bookingItemModel->insert([
+            'booking_id' => $bookingId,
+            'service_id' => $serviceId,
+            'price' => 50.0,
+            'status' => 'pending',
+            // Old-shape quote_breakdown: prose warnings only, no warning_codes key at all.
+            'quote_breakdown' => json_encode([
+                'lines' => [],
+                'warnings' => ['Free postage applied (order over £50.00)'],
+                'errors' => [],
+            ], JSON_UNESCAPED_UNICODE),
+        ]);
+        $itemId = (int) $bookingItemModel->getInsertID();
+
+        (new BookingConfirmation())->confirmBooking($bookingId);
+
+        $item = $bookingItemModel->find($itemId);
+        $this->assertSame('accepted', $item['status']);
+
+        $logModel = new QuoteAutomationLogModel();
+        $this->assertSame(1, $logModel->where('booking_item_id', $itemId)->where('action', 'auto_accept')->countAllResults());
+    }
 }

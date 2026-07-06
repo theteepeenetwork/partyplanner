@@ -29,23 +29,23 @@ $routes->get('/profile/main', 'Profile::index');
 $routes->get('/dashboard', 'Profile::index');
 $routes->get('/profile/edit', 'Profile::edit');
 $routes->post('/profile/edit', 'Profile::edit');
-$routes->post('/profile/update-booking-status/(:num)', 'Profile::updateBookingStatus/$1');
-$routes->match(['GET', 'POST'], '/profile/quote-settings', 'Profile::quoteSettings');
-$routes->match(['GET', 'POST'], '/profile/quote-analytics', 'Profile::quoteAnalytics');
-$routes->post('/profile/bookings/bulk-status', 'Profile::bulkUpdateBookingStatus');
-$routes->match(['GET', 'POST'], '/profile/vendor-quote/(:num)', 'Profile::vendorQuote/$1');
-$routes->post('/profile/vendor-quote/(:num)/send', 'Profile::sendVendorQuote/$1');
+$routes->post('/profile/update-booking-status/(:num)', 'Profile::updateBookingStatus/$1', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/profile/quote-settings', 'Profile::quoteSettings', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/profile/quote-analytics', 'Profile::quoteAnalytics', ['filter' => 'vendorauth']);
+$routes->post('/profile/bookings/bulk-status', 'Profile::bulkUpdateBookingStatus', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/profile/vendor-quote/(:num)', 'Profile::vendorQuote/$1', ['filter' => 'vendorauth']);
+$routes->post('/profile/vendor-quote/(:num)/send', 'Profile::sendVendorQuote/$1', ['filter' => 'vendorauth']);
 $routes->post('/profile/vendor-quote/(:num)/accept', 'Profile::acceptVendorQuote/$1');
 
 // Vendor tabs
-$routes->get('/profile/services', 'Profile::services');
-$routes->get('/profile/bookings', 'Profile::vendorBookings');
-$routes->get('/profile/request/(:num)', 'Profile::vendorRequestDetail/$1');
-$routes->get('/profile/earnings', 'Profile::vendorEarnings');
-$routes->get('/profile/calendar', 'Profile::vendorCalendar');
-$routes->get('/profile/calendar-data', 'Profile::calendarData');
-$routes->post('/profile/calendar/toggle-block', 'Profile::toggleBlockDate');
-$routes->match(['GET', 'POST'], '/profile/host-profile', 'Profile::hostProfile');
+$routes->get('/profile/services', 'Profile::services', ['filter' => 'vendorauth']);
+$routes->get('/profile/bookings', 'Profile::vendorBookings', ['filter' => 'vendorauth']);
+$routes->get('/profile/request/(:num)', 'Profile::vendorRequestDetail/$1', ['filter' => 'vendorauth']);
+$routes->get('/profile/earnings', 'Profile::vendorEarnings', ['filter' => 'vendorauth']);
+$routes->get('/profile/calendar', 'Profile::vendorCalendar', ['filter' => 'vendorauth']);
+$routes->get('/profile/calendar-data', 'Profile::calendarData', ['filter' => 'vendorauth']);
+$routes->post('/profile/calendar/toggle-block', 'Profile::toggleBlockDate', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/profile/host-profile', 'Profile::hostProfile', ['filter' => 'vendorauth']);
 
 // Customer tabs
 $routes->get('/profile/events', 'Profile::customerEvents');
@@ -80,39 +80,39 @@ $routes->get('service/search', 'Service_Controller::search');
 
 // Service Routes
 $routes->get('service/view/(:num)', 'Service_Controller::view/$1');
-$routes->get('/service', 'Service_Controller::index');
-$routes->post('/service/remove-optional-extra', 'Service_Controller::removeOptionalExtra');
-$routes->post('/service/duplicate/(:num)', 'Service_Controller::duplicateService/$1');
+$routes->get('/service', 'Service_Controller::index', ['filter' => 'vendorauth']);
+$routes->post('/service/remove-optional-extra', 'Service_Controller::removeOptionalExtra', ['filter' => 'vendorauth']);
+$routes->post('/service/duplicate/(:num)', 'Service_Controller::duplicateService/$1', ['filter' => 'vendorauth']);
 
-$routes->post('/service/delete-image/(:any)', 'Service_Controller::deleteImage/$1');
+$routes->post('/service/delete-image/(:any)', 'Service_Controller::deleteImage/$1', ['filter' => 'vendorauth']);
 
 
 // Multi-step service-creation wizard (step1–6 → review → saveService → success).
-$routes->match(['GET', 'POST'], '/service/create', 'Service_Controller::step1');
-$routes->match(['GET', 'POST'], '/service/step1', 'Service_Controller::step1');
-$routes->match(['GET', 'POST'], '/service/service_create_step2', 'Service_Controller::step2');
-$routes->match(['GET', 'POST'], '/service/step2', 'Service_Controller::step2');
-$routes->match(['GET', 'POST'], '/service/step3', 'Service_Controller::step3');
-$routes->match(['GET', 'POST'], '/service/step4', 'Service_Controller::step4');
-$routes->match(['GET', 'POST'], '/service/step5', 'Service_Controller::step5');
-$routes->match(['GET', 'POST'], '/service/step6', 'Service_Controller::step6');
-$routes->match(['GET', 'POST'], '/service/review', 'Service_Controller::review');
-$routes->match(['GET', 'POST'], '/service/saveService', 'Service_Controller::saveService');
-$routes->get('/service/success', 'Service_Controller::success');
+$routes->match(['GET', 'POST'], '/service/create', 'Service_Controller::step1', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/service/step1', 'Service_Controller::step1', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/service/service_create_step2', 'Service_Controller::step2', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/service/step2', 'Service_Controller::step2', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/service/step3', 'Service_Controller::step3', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/service/step4', 'Service_Controller::step4', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/service/step5', 'Service_Controller::step5', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/service/step6', 'Service_Controller::step6', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/service/review', 'Service_Controller::review', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/service/saveService', 'Service_Controller::saveService', ['filter' => 'vendorauth']);
+$routes->get('/service/success', 'Service_Controller::success', ['filter' => 'vendorauth']);
 
-$routes->match(['GET', 'POST'], '/service/edit/(:num)', 'Service_Controller::update/$1');
-$routes->post('/service/update/(:num)', 'Service_Controller::update/$1');
-$routes->post('/service/set-primary-image/(:num)', 'Service_Controller::setPrimaryImage/$1');
+$routes->match(['GET', 'POST'], '/service/edit/(:num)', 'Service_Controller::update/$1', ['filter' => 'vendorauth']);
+$routes->post('/service/update/(:num)', 'Service_Controller::update/$1', ['filter' => 'vendorauth']);
+$routes->post('/service/set-primary-image/(:num)', 'Service_Controller::setPrimaryImage/$1', ['filter' => 'vendorauth']);
 
 $routes->post('service/book', 'Service_Controller::bookService');
 
 
 
 // Service status management
-$routes->match(['GET', 'POST'], 'service/deactivate/(:num)', 'Service_Controller::deactivate/$1');
-$routes->match(['GET', 'POST'], 'service/reactivate/(:num)', 'Service_Controller::reactivate/$1');
-$routes->match(['GET', 'POST'], 'service/delete/(:num)', 'Service_Controller::delete/$1');
-$routes->post('service/toggle-status/(:num)', 'Service_Controller::toggleStatus/$1');
+$routes->match(['GET', 'POST'], 'service/deactivate/(:num)', 'Service_Controller::deactivate/$1', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], 'service/reactivate/(:num)', 'Service_Controller::reactivate/$1', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], 'service/delete/(:num)', 'Service_Controller::delete/$1', ['filter' => 'vendorauth']);
+$routes->post('service/toggle-status/(:num)', 'Service_Controller::toggleStatus/$1', ['filter' => 'vendorauth']);
 
 
 // Cart (retired) — redirect legacy GET entry points to the event-basket flow.
@@ -196,6 +196,8 @@ $routes->group('admin', ['filter' => ['adminauth', 'csrf']], static function ($r
     $routes->match(['GET', 'POST'], 'vendors/(:num)/edit', 'Admin\Vendors::edit/$1');
     $routes->get('vendors/(:num)/delete', 'Admin\Vendors::deleteConfirm/$1');
     $routes->post('vendors/(:num)/delete', 'Admin\Vendors::delete/$1');
+    $routes->post('vendors/(:num)/approve', 'Admin\Vendors::approve/$1');
+    $routes->post('vendors/(:num)/reject', 'Admin\Vendors::reject/$1');
 
     $routes->get('bookings', 'Admin\Bookings::index');
     $routes->get('bookings/(:num)', 'Admin\Bookings::show/$1');

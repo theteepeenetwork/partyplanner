@@ -191,6 +191,33 @@ class CreateTestBookingConfirmationTables extends Migration
             $this->forge->createTable('vendor_quote_settings');
         }
 
+        if (!$this->db->tableExists('unavailable_dates')) {
+            $this->forge->addField([
+                'id' => [
+                    'type' => 'INT',
+                    'constraint' => 11,
+                    'unsigned' => true,
+                    'auto_increment' => true,
+                ],
+                'service_id' => [
+                    'type' => 'INT',
+                    'constraint' => 11,
+                    'null' => true,
+                ],
+                'vendor_id' => [
+                    'type' => 'INT',
+                    'constraint' => 11,
+                    'null' => true,
+                ],
+                'date' => [
+                    'type' => 'DATE',
+                    'null' => true,
+                ],
+            ]);
+            $this->forge->addKey('id', true);
+            $this->forge->createTable('unavailable_dates');
+        }
+
         if (!$this->db->tableExists('quote_automation_log')) {
             $this->forge->addField([
                 'id' => [
@@ -223,7 +250,7 @@ class CreateTestBookingConfirmationTables extends Migration
 
     public function down(): void
     {
-        foreach (['quote_automation_log', 'vendor_quote_settings', 'services', 'payments'] as $table) {
+        foreach (['quote_automation_log', 'unavailable_dates', 'vendor_quote_settings', 'services', 'payments'] as $table) {
             if ($this->db->tableExists($table)) {
                 $this->forge->dropTable($table, true);
             }

@@ -8,6 +8,67 @@ namespace App\Libraries;
 class EventBookingQuote
 {
     /**
+     * Structured warning codes. Consumers (e.g. VendorQuoteAutomation) should match on
+     * these instead of str_contains()-ing the human-readable warning text, which is free
+     * to be reworded without breaking behaviour.
+     */
+    public const WARNING_NO_BASE_PRICE = 'no_base_price';
+    public const WARNING_NEAR_ATTENDANCE_BAND_EDGE = 'near_attendance_band_edge';
+    public const WARNING_PITCH_FEE_EXCEEDS_MAX = 'pitch_fee_exceeds_max';
+    public const WARNING_PITCH_FEE_DEFAULTED = 'pitch_fee_defaulted';
+    public const WARNING_ATTENDANCE_BAND_GAP = 'attendance_band_gap';
+    public const WARNING_NEAR_GUEST_TIER_EDGE = 'near_guest_tier_edge';
+    public const WARNING_GUEST_TIER_GAP = 'guest_tier_gap';
+    public const WARNING_NEAR_QUANTITY_TIER_EDGE = 'near_quantity_tier_edge';
+    public const WARNING_QUANTITY_TIER_GAP = 'quantity_tier_gap';
+    public const WARNING_CUSTOM_QUOTE = 'custom_quote';
+    public const WARNING_NO_PRIVATE_PRICING = 'no_private_pricing';
+    public const WARNING_TRAVEL_INCLUDED_NO_RADIUS = 'travel_included_no_radius';
+    public const WARNING_TRAVEL_OUT_OF_RADIUS = 'travel_out_of_radius';
+    public const WARNING_TRAVEL_DISTANCE_UNKNOWN = 'travel_distance_unknown';
+    public const WARNING_TRAVEL_INCOMPLETE = 'travel_incomplete';
+    public const WARNING_CORPORATE_MIN_SPEND = 'corporate_min_spend';
+    public const WARNING_FREE_POSTAGE_APPLIED = 'free_postage_applied';
+    public const WARNING_POSTAGE_NOT_CONFIGURED = 'postage_not_configured';
+    public const WARNING_DELIVERY_LEAD_TIME = 'delivery_lead_time';
+    public const WARNING_DELIVERY_TOO_SOON = 'delivery_too_soon';
+    public const WARNING_PUBLIC_COMMISSION_INFO = 'public_commission_info';
+    public const WARNING_BUDGET_MAX_EXCEEDED = 'budget_max_exceeded';
+    public const WARNING_BUDGET_MIN_NOT_MET = 'budget_min_not_met';
+
+    /**
+     * Legacy-decode shim for pre-`warning_codes` quote JSON.
+     *
+     * Booking items written before `warning_codes` existed only have the human-readable
+     * `warnings` prose persisted in `quote_breakdown`/`quote_warnings`. This maps that prose
+     * back to structured codes so callers such as VendorQuoteAutomation's guards (which now
+     * only match on codes, never on prose) still behave correctly for those older rows.
+     *
+     * The prose fragments matched here are byte-identical to the old `isTravelRadiusWarning()`
+     * str_contains() matcher this shim replaces. Only travel-out-of-radius prose is recognised;
+     * unrecognised warnings contribute no code. Remove once no pre-change pending bookings remain.
+     *
+     * @param list<string> $warnings
+     * @return list<string>
+     */
+    public static function legacyCodesForWarnings(array $warnings): array
+    {
+        $codes = [];
+        foreach ($warnings as $warning) {
+            if (!is_string($warning)) {
+                continue;
+            }
+            if (str_contains($warning, 'exceeds the vendor')
+                || str_contains($warning, 'beyond the maximum')
+                || str_contains($warning, 'outside the vendor')) {
+                $codes[] = self::WARNING_TRAVEL_OUT_OF_RADIUS;
+            }
+        }
+
+        return $codes;
+    }
+
+    /**
      * @param array<string,mixed> $service            Row from `services`
      * @param array<string,mixed> $event              Row from `events` (expects guest_count, event_setting, latitude, longitude, organiser_pitch_fee)
      * @param array<string,mixed>|null $location      Row from `services_locations` or null
@@ -23,7 +84,7 @@ class EventBookingQuote
      * @param string|null $pricingOption               e.g. guest_12, duration_3, package_4
      * @param array<int, int> $extraQuantitiesById     Optional per-extra quantity overrides (per_item extras only)
      * @param array<string,mixed>|null $corporatePricing Decoded services_corporate_event_pricing.pricing_details
-     * @return array{lines: list<array{code:string,label:string,amount:float}>, total: float, warnings: list<string>, errors: list<string>, distance_km: ?float}
+     * @return array{lines: list<array{code:string,label:string,amount:float}>, total: float, warnings: list<string>, warning_codes: list<string>, errors: list<string>, distance_km: ?float}
      */
     public function calculate(
         array $service,
@@ -44,6 +105,7 @@ class EventBookingQuote
         array $timeBlocks = []
     ): array {
         $warnings = [];
+        $warningCodes = [];
         $errors  = [];
         $lines   = [];
 
@@ -54,10 +116,12 @@ class EventBookingQuote
             $publicResult = $this->publicEventSubtotal($service, $event, $publicBands, $guestCount);
             $lines = array_merge($lines, $publicResult['lines']);
             $warnings = array_merge($warnings, $publicResult['warnings']);
+            $warningCodes = array_merge($warningCodes, $publicResult['warning_codes']);
             $errors   = array_merge($errors, $publicResult['errors']);
             $commissionResult = $this->publicCommissionLine($publicBands, $guestCount, $lines);
             $lines = array_merge($lines, $commissionResult['lines']);
             $warnings = array_merge($warnings, $commissionResult['warnings']);
+            $warningCodes = array_merge($warningCodes, $commissionResult['warning_codes']);
         } else {
             $privateResult = $this->privateEventSubtotal(
                 $service,
@@ -73,6 +137,7 @@ class EventBookingQuote
             );
             $lines = array_merge($lines, $privateResult['lines']);
             $warnings = array_merge($warnings, $privateResult['warnings']);
+            $warningCodes = array_merge($warningCodes, $privateResult['warning_codes']);
             $errors   = array_merge($errors, $privateResult['errors']);
         }
 
@@ -93,6 +158,7 @@ class EventBookingQuote
             $corpResult = $this->corporateModifiers($corporatePricing, $lines);
             $lines = array_merge($lines, $corpResult['lines']);
             $warnings = array_merge($warnings, $corpResult['warnings']);
+            $warningCodes = array_merge($warningCodes, $corpResult['warning_codes']);
             $errors = array_merge($errors, $corpResult['errors']);
         }
 
@@ -101,6 +167,7 @@ class EventBookingQuote
         $postalResult = $this->postalLines($location ?? [], $merchandiseSubtotal, $event);
         $lines = array_merge($lines, $postalResult['lines']);
         $warnings = array_merge($warnings, $postalResult['warnings']);
+        $warningCodes = array_merge($warningCodes, $postalResult['warning_codes']);
 
         $fulfillmentType = strtolower(trim((string) (($location ?? [])['fulfillment_type'] ?? 'in_person')));
         $distanceKm = null;
@@ -113,15 +180,18 @@ class EventBookingQuote
                     $errors[] = $msg;
                 } else {
                     $warnings[] = $msg;
+                    $warningCodes[] = self::WARNING_TRAVEL_DISTANCE_UNKNOWN;
                 }
             } else {
                 $travel = $this->computeTravel((float) $distanceKm, $location ?? []);
                 $lines  = array_merge($lines, $travel['lines']);
-                foreach ($travel['warnings'] as $tw) {
-                    if ($strictTravel && $this->isTravelRadiusWarning($tw)) {
+                foreach ($travel['warnings'] as $i => $tw) {
+                    $twCode = $travel['warning_codes'][$i] ?? null;
+                    if ($strictTravel && $twCode === self::WARNING_TRAVEL_OUT_OF_RADIUS) {
                         $errors[] = $tw;
                     } else {
                         $warnings[] = $tw;
+                        $warningCodes[] = $twCode ?? self::WARNING_TRAVEL_INCOMPLETE;
                     }
                 }
             }
@@ -138,12 +208,14 @@ class EventBookingQuote
 
         $budgetResult = $this->budgetValidation($event, $total);
         $warnings = array_merge($warnings, $budgetResult['warnings']);
+        $warningCodes = array_merge($warningCodes, $budgetResult['warning_codes']);
         $errors = array_merge($errors, $budgetResult['errors']);
 
         return [
             'lines'        => $lines,
             'total'        => $total,
             'warnings'     => $warnings,
+            'warning_codes' => $warningCodes,
             'errors'       => $errors,
             'distance_km'  => $distanceKm,
             'custom_quote' => is_array($privatePricing) && ($privatePricing['pricing_type'] ?? '') === 'custom_quote',
@@ -152,12 +224,13 @@ class EventBookingQuote
 
     /**
      * @param list<array<string,mixed>> $publicBands
-     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>, errors: list<string>}
+     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>, warning_codes: list<string>, errors: list<string>}
      */
     private function publicEventSubtotal(array $service, array $event, array $publicBands, int $guestCount): array
     {
         $lines    = [];
         $warnings = [];
+        $warningCodes = [];
         $errors   = [];
 
         $base = (float) ($service['price'] ?? 0);
@@ -169,9 +242,14 @@ class EventBookingQuote
             ];
         } else {
             $warnings[] = 'This listing has no base service price on file; only pitch and travel are included in the estimate.';
+            $warningCodes[] = self::WARNING_NO_BASE_PRICE;
         }
 
-        $warnings = array_merge($warnings, $this->validatePublicAttendanceCoverage($publicBands, $guestCount));
+        $coverageWarnings = $this->validatePublicAttendanceCoverage($publicBands, $guestCount);
+        $warnings = array_merge($warnings, $coverageWarnings);
+        foreach ($coverageWarnings as $ignored) {
+            $warningCodes[] = self::WARNING_ATTENDANCE_BAND_GAP;
+        }
 
         $band = $this->matchAttendanceBand($publicBands, $guestCount);
         if ($band === null) {
@@ -186,11 +264,12 @@ class EventBookingQuote
                 $errors[] = 'Expected attendance does not match any band configured for this vendor’s public event pricing.';
             }
 
-            return compact('lines', 'warnings', 'errors');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
         }
 
         if ($this->isNearAttendanceBandEdge($band, $guestCount)) {
             $warnings[] = 'Your guest count is near the edge of a pricing band; confirm the correct tier with the vendor.';
+            $warningCodes[] = self::WARNING_NEAR_ATTENDANCE_BAND_EDGE;
         }
 
         $vendorMaxPitch = (float) ($band['max_pitch_fee'] ?? 0);
@@ -199,10 +278,12 @@ class EventBookingQuote
             $pitch = (float) $organiserPitch;
             if ($pitch > $vendorMaxPitch + 0.004) {
                 $warnings[] = 'Organiser pitch fee exceeds the maximum this vendor accepted for this attendance band; they may decline the booking.';
+                $warningCodes[] = self::WARNING_PITCH_FEE_EXCEEDS_MAX;
             }
         } else {
             $pitch = $vendorMaxPitch;
             $warnings[] = 'No organiser pitch fee saved on your event; using the vendor’s maximum pitch for this attendance band as an estimate.';
+            $warningCodes[] = self::WARNING_PITCH_FEE_DEFAULTED;
         }
 
         if ($pitch > 0) {
@@ -213,7 +294,7 @@ class EventBookingQuote
             ];
         }
 
-        return compact('lines', 'warnings', 'errors');
+        return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
     }
 
     /**
@@ -239,7 +320,7 @@ class EventBookingQuote
      * @param list<array<string,mixed>> $timeBlocks
      * @param list<array<string,mixed>> $packages
      * @param array<string,mixed>|null $quantityPricing
-     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>, errors: list<string>}
+     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>, warning_codes: list<string>, errors: list<string>}
      */
     private function privateEventSubtotal(
         array $service,
@@ -255,12 +336,17 @@ class EventBookingQuote
     ): array {
         $lines    = [];
         $warnings = [];
+        $warningCodes = [];
         $errors   = [];
 
         $type = $privatePricing['pricing_type'] ?? null;
 
         if ($type === 'guest_based_pricing') {
-            $warnings = array_merge($warnings, $this->validateGuestTierCoverage($guestTiers, $guestCount));
+            $guestCoverageWarnings = $this->validateGuestTierCoverage($guestTiers, $guestCount);
+            $warnings = array_merge($warnings, $guestCoverageWarnings);
+            foreach ($guestCoverageWarnings as $ignored) {
+                $warningCodes[] = self::WARNING_GUEST_TIER_GAP;
+            }
 
             $tier = $this->resolveGuestTier($guestTiers, $guestCount, $pricingOption);
             if ($tier === null) {
@@ -275,11 +361,12 @@ class EventBookingQuote
                     $errors[] = 'Guest count does not match any guest-based price band for this service.';
                 }
 
-                return compact('lines', 'warnings', 'errors');
+                return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
             }
 
             if ($this->isNearGuestTierEdge($tier, $guestCount)) {
                 $warnings[] = 'Your guest count is near the edge of a pricing band; confirm the correct tier with the vendor.';
+                $warningCodes[] = self::WARNING_NEAR_GUEST_TIER_EDGE;
             }
 
             $perHead = (float) ($tier['guest_price'] ?? 0);
@@ -289,21 +376,25 @@ class EventBookingQuote
                 'label'  => 'Guest-based service (' . $guestCount . ' guests × £' . number_format($perHead, 2) . ')',
                 'amount' => $sub,
             ];
-            return compact('lines', 'warnings', 'errors');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
         }
 
         if ($type === 'quantity_based_pricing') {
             if ($quantityTiers === []) {
                 $errors[] = 'This service does not have quantity-based pricing configured.';
-                return compact('lines', 'warnings', 'errors');
+                return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
             }
 
-            $warnings = array_merge($warnings, $this->validateQuantityTierCoverage($quantityTiers));
+            $qtyCoverageWarnings = $this->validateQuantityTierCoverage($quantityTiers);
+            $warnings = array_merge($warnings, $qtyCoverageWarnings);
+            foreach ($qtyCoverageWarnings as $ignored) {
+                $warningCodes[] = self::WARNING_QUANTITY_TIER_GAP;
+            }
 
             $qty = $this->resolveOrderQuantityFromTiers($quantityTiers, $pricingOption, $orderQuantity);
             if ($qty === null) {
                 $errors[] = 'Please enter a valid order quantity for this service.';
-                return compact('lines', 'warnings', 'errors');
+                return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
             }
 
             $tier = $this->resolveQuantityTier($quantityTiers, $qty);
@@ -319,17 +410,18 @@ class EventBookingQuote
                     $errors[] = 'Order quantity does not match any price band for this service.';
                 }
 
-                return compact('lines', 'warnings', 'errors');
+                return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
             }
 
             if ($this->isNearQuantityTierEdge($tier, $qty)) {
                 $warnings[] = 'Your order quantity is near the edge of a price band; confirm the correct unit price with the vendor.';
+                $warningCodes[] = self::WARNING_NEAR_QUANTITY_TIER_EDGE;
             }
 
             $unitPrice = (float) ($tier['unit_price'] ?? 0);
             if ($unitPrice <= 0) {
                 $errors[] = 'Quantity-based unit price is not configured for this service.';
-                return compact('lines', 'warnings', 'errors');
+                return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
             }
 
             $unitLabel = trim((string) ($tier['unit_label'] ?? 'items'));
@@ -351,7 +443,7 @@ class EventBookingQuote
                 'amount' => $sub,
             ];
 
-            return compact('lines', 'warnings', 'errors');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
         }
 
         if ($type === 'custom_duration_pricing') {
@@ -364,13 +456,13 @@ class EventBookingQuote
                     'amount' => round($price, 2),
                 ];
 
-                return compact('lines', 'warnings', 'errors');
+                return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
             }
 
             $row = $this->resolveDurationRow($durationTiers, $pricingOption);
             if ($row === null) {
                 $errors[] = 'Please choose a duration option for this service.';
-                return compact('lines', 'warnings', 'errors');
+                return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
             }
             $price = (float) ($row['price'] ?? 0);
             $unit  = ($row['duration_type'] ?? '') === 'day' ? 'day(s)' : 'hour(s)';
@@ -379,14 +471,14 @@ class EventBookingQuote
                 'label'  => 'Duration (' . (int) ($row['duration'] ?? 0) . ' ' . $unit . ')',
                 'amount' => round($price, 2),
             ];
-            return compact('lines', 'warnings', 'errors');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
         }
 
         if ($type === 'tiered_packages_pricing') {
             $row = $this->resolvePackageRow($packages, $pricingOption);
             if ($row === null) {
                 $errors[] = 'Please choose a package for this service.';
-                return compact('lines', 'warnings', 'errors');
+                return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
             }
             $price = (float) ($row['package_price'] ?? 0);
             $name  = (string) ($row['package_name'] ?? 'Package');
@@ -395,15 +487,16 @@ class EventBookingQuote
                 'label'  => 'Package: ' . $name,
                 'amount' => round($price, 2),
             ];
-            return compact('lines', 'warnings', 'errors');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
         }
 
         if ($type === 'custom_quote') {
             // Bespoke / "price on request" supplier — no instant total. The
             // request enters the normal flow and the vendor sends a quote.
             $warnings[] = 'This supplier provides a bespoke quote on request.';
+            $warningCodes[] = self::WARNING_CUSTOM_QUOTE;
 
-            return compact('lines', 'warnings', 'errors');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
         }
 
         $fallback = (float) ($service['price'] ?? 0);
@@ -414,11 +507,12 @@ class EventBookingQuote
                 'amount' => round($fallback, 2),
             ];
             $warnings[] = 'This service has no structured private pricing; using the listing price only.';
+            $warningCodes[] = self::WARNING_NO_PRIVATE_PRICING;
         } else {
             $errors[] = 'This service does not have applicable private pricing for your event.';
         }
 
-        return compact('lines', 'warnings', 'errors');
+        return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
     }
 
     /**
@@ -837,12 +931,13 @@ class EventBookingQuote
      * Travel rules mirror vendor step 4 / review copy.
      *
      * @param array<string,mixed> $loc Normalised location row (may be empty)
-     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>}
+     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>, warning_codes: list<string>}
      */
     public function computeTravel(float $distanceKm, array $loc): array
     {
         $lines    = [];
         $warnings = [];
+        $warningCodes = [];
 
         $all   = !empty($loc['all_travel_included']);
         $nat   = !empty($loc['no_travel_limit']);
@@ -853,20 +948,22 @@ class EventBookingQuote
         $d = max(0.0, $distanceKm);
 
         if ($all && $nat) {
-            return ['lines' => [], 'warnings' => []];
+            return ['lines' => [], 'warnings' => [], 'warning_codes' => []];
         }
 
         if ($all && !$nat) {
             if ($free <= 0) {
                 $warnings[] = 'Vendor includes travel but did not specify a radius; travel charge assumed £0.';
-                return ['lines' => [], 'warnings' => $warnings];
+                $warningCodes[] = self::WARNING_TRAVEL_INCLUDED_NO_RADIUS;
+                return ['lines' => [], 'warnings' => $warnings, 'warning_codes' => $warningCodes];
             }
             if ($d <= $free) {
-                return ['lines' => [], 'warnings' => []];
+                return ['lines' => [], 'warnings' => [], 'warning_codes' => []];
             }
             if ($fee <= 0) {
                 $warnings[] = 'Distance exceeds the vendor’s included travel radius; per-km rate not set—confirm travel cost with the vendor.';
-                return ['lines' => [], 'warnings' => $warnings];
+                $warningCodes[] = self::WARNING_TRAVEL_OUT_OF_RADIUS;
+                return ['lines' => [], 'warnings' => $warnings, 'warning_codes' => $warningCodes];
             }
             $km   = $d - $free;
             $cost = round($km * $fee, 2);
@@ -875,7 +972,7 @@ class EventBookingQuote
                 'label'  => sprintf('Travel beyond %d km included (%.1f km × £%s / km)', $free, $km, number_format($fee, 2)),
                 'amount' => $cost,
             ];
-            return compact('lines', 'warnings');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
         if ($nat && !$all) {
@@ -889,7 +986,7 @@ class EventBookingQuote
                         'amount' => $cost,
                     ];
                 }
-                return compact('lines', 'warnings');
+                return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
             }
             $cost = round($d * $fee, 2);
             $lines[] = [
@@ -897,7 +994,7 @@ class EventBookingQuote
                 'label'  => sprintf('Travel (%.1f km × £%s / km)', $d, number_format($fee, 2)),
                 'amount' => $cost,
             ];
-            return compact('lines', 'warnings');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
         if ($free > 0 && $paid > 0 && $fee > 0) {
@@ -922,13 +1019,14 @@ class EventBookingQuote
                     $d,
                     $free + $paid
                 );
+                $warningCodes[] = self::WARNING_TRAVEL_OUT_OF_RADIUS;
             }
-            return compact('lines', 'warnings');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
         if ($free > 0 && $paid <= 0) {
             if ($d <= $free) {
-                return ['lines' => [], 'warnings' => []];
+                return ['lines' => [], 'warnings' => [], 'warning_codes' => []];
             }
             if ($fee > 0) {
                 $km = $d - $free;
@@ -937,10 +1035,11 @@ class EventBookingQuote
                     'label'  => sprintf('Travel beyond %d km included (%.1f km × £%s / km)', $free, $km, number_format($fee, 2)),
                     'amount' => round($km * $fee, 2),
                 ];
-                return compact('lines', 'warnings');
+                return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
             }
             $warnings[] = 'Venue is outside the vendor’s included travel radius; confirm travel cost with the vendor.';
-            return compact('lines', 'warnings');
+            $warningCodes[] = self::WARNING_TRAVEL_OUT_OF_RADIUS;
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
         if ($free <= 0 && $paid > 0 && $fee > 0) {
@@ -952,20 +1051,23 @@ class EventBookingQuote
             ];
             if ($d > $paid) {
                 $warnings[] = 'Venue may be beyond the maximum distance this vendor quoted; confirm availability.';
+                $warningCodes[] = self::WARNING_TRAVEL_OUT_OF_RADIUS;
             }
-            return compact('lines', 'warnings');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
         if ($free > 0 && $fee <= 0) {
             if ($d <= $free) {
-                return ['lines' => [], 'warnings' => []];
+                return ['lines' => [], 'warnings' => [], 'warning_codes' => []];
             }
             $warnings[] = 'Venue is outside the vendor’s included travel radius; no per-km rate is configured—confirm with the vendor.';
-            return compact('lines', 'warnings');
+            $warningCodes[] = self::WARNING_TRAVEL_OUT_OF_RADIUS;
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
         $warnings[] = 'Travel pricing is incomplete for this listing; confirm travel with the vendor.';
-        return compact('lines', 'warnings');
+        $warningCodes[] = self::WARNING_TRAVEL_INCOMPLETE;
+        return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
     }
 
     /**
@@ -981,17 +1083,18 @@ class EventBookingQuote
     /**
      * @param array<string,mixed> $corporatePricing
      * @param list<array{code:string,label:string,amount:float}> $existingLines
-     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>, errors: list<string>}
+     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>, warning_codes: list<string>, errors: list<string>}
      */
     private function corporateModifiers(array $corporatePricing, array $existingLines): array
     {
         $lines = [];
         $warnings = [];
+        $warningCodes = [];
         $errors = [];
 
         if (empty($corporatePricing['corporate_enabled'])) {
             $errors[] = 'This vendor has not enabled corporate event bookings for this listing.';
-            return compact('lines', 'warnings', 'errors');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
         }
 
         $subtotal = 0.0;
@@ -1010,6 +1113,7 @@ class EventBookingQuote
                 'amount' => $shortfall,
             ];
             $warnings[] = 'A minimum corporate spend applies; the estimate includes an adjustment to meet it.';
+            $warningCodes[] = self::WARNING_CORPORATE_MIN_SPEND;
         }
 
         $sType = strtolower(trim((string) ($corporatePricing['corporate_surcharge_type'] ?? 'none')));
@@ -1044,7 +1148,7 @@ class EventBookingQuote
             ];
         }
 
-        return compact('lines', 'warnings', 'errors');
+        return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
     }
 
     /**
@@ -1066,26 +1170,30 @@ class EventBookingQuote
     /**
      * @param array<string,mixed> $loc
      * @param array<string,mixed> $event
-     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>}
+     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>, warning_codes: list<string>}
      */
     private function postalLines(array $loc, float $merchandiseSubtotal = 0.0, array $event = []): array
     {
         $lines = [];
         $warnings = [];
+        $warningCodes = [];
         $ftype = strtolower(trim((string) ($loc['fulfillment_type'] ?? 'in_person')));
         if ($ftype !== 'postal' && $ftype !== 'both') {
-            return compact('lines', 'warnings');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
-        $warnings = array_merge($warnings, $this->deliveryLeadTimeWarnings($loc, $event));
+        $leadTimeResult = $this->deliveryLeadTimeWarnings($loc, $event);
+        $warnings = array_merge($warnings, $leadTimeResult['warnings']);
+        $warningCodes = array_merge($warningCodes, $leadTimeResult['warning_codes']);
 
         $freeAbove = isset($loc['free_postage_above']) && $loc['free_postage_above'] !== '' && $loc['free_postage_above'] !== null
             ? (float) $loc['free_postage_above']
             : null;
         if ($freeAbove !== null && $freeAbove > 0 && $merchandiseSubtotal >= $freeAbove - 0.004) {
             $warnings[] = sprintf('Free postage applied (order over £%s)', number_format($freeAbove, 2));
+            $warningCodes[] = self::WARNING_FREE_POSTAGE_APPLIED;
 
-            return compact('lines', 'warnings');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
         $fee = isset($loc['postal_fee']) && $loc['postal_fee'] !== '' && $loc['postal_fee'] !== null
@@ -1093,8 +1201,9 @@ class EventBookingQuote
             : 0.0;
         if ($fee <= 0) {
             $warnings[] = 'Postal delivery is offered but no postage fee is configured; confirm delivery cost with the vendor.';
+            $warningCodes[] = self::WARNING_POSTAGE_NOT_CONFIGURED;
 
-            return compact('lines', 'warnings');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
         $lines[] = [
@@ -1103,22 +1212,23 @@ class EventBookingQuote
             'amount' => round($fee, 2),
         ];
 
-        return compact('lines', 'warnings');
+        return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
     }
 
     /**
      * @param array<string,mixed> $loc
      * @param array<string,mixed> $event
-     * @return list<string>
+     * @return array{warnings: list<string>, warning_codes: list<string>}
      */
     private function deliveryLeadTimeWarnings(array $loc, array $event): array
     {
         $warnings = [];
+        $warningCodes = [];
         $leadDays = isset($loc['delivery_lead_time_days']) && $loc['delivery_lead_time_days'] !== '' && $loc['delivery_lead_time_days'] !== null
             ? (int) $loc['delivery_lead_time_days']
             : 0;
         if ($leadDays <= 0) {
-            return $warnings;
+            return ['warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
         $dayWord = $leadDays === 1 ? 'day' : 'days';
@@ -1127,15 +1237,16 @@ class EventBookingQuote
             $leadDays,
             $dayWord
         );
+        $warningCodes[] = self::WARNING_DELIVERY_LEAD_TIME;
 
         $eventDate = $event['date'] ?? null;
         if ($eventDate === null || $eventDate === '') {
-            return $warnings;
+            return ['warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
         $eventTs = strtotime((string) $eventDate);
         if ($eventTs === false) {
-            return $warnings;
+            return ['warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
         $daysUntil = (int) floor(($eventTs - strtotime('today')) / 86400);
@@ -1145,30 +1256,32 @@ class EventBookingQuote
                 $leadDays,
                 $dayWord
             );
+            $warningCodes[] = self::WARNING_DELIVERY_TOO_SOON;
         }
 
-        return $warnings;
+        return ['warnings' => $warnings, 'warning_codes' => $warningCodes];
     }
 
     /**
      * @param list<array<string,mixed>> $publicBands
      * @param list<array{code:string,label:string,amount:float}> $linesSoFar
-     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>}
+     * @return array{lines: list<array{code:string,label:string,amount:float}>, warnings: list<string>, warning_codes: list<string>}
      */
     private function publicCommissionLine(array $publicBands, int $guestCount, array $linesSoFar): array
     {
         $lines = [];
         $warnings = [];
+        $warningCodes = [];
         $band = $this->matchAttendanceBand($publicBands, $guestCount);
         if ($band === null) {
-            return compact('lines', 'warnings');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
         $pct = isset($band['commission_percentage']) && $band['commission_percentage'] !== '' && $band['commission_percentage'] !== null
             ? (float) $band['commission_percentage']
             : 0.0;
         if ($pct <= 0) {
-            return compact('lines', 'warnings');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
         $subtotal = 0.0;
@@ -1176,7 +1289,7 @@ class EventBookingQuote
             $subtotal += (float) ($line['amount'] ?? 0);
         }
         if ($subtotal <= 0) {
-            return compact('lines', 'warnings');
+            return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
         }
 
         $commission = round($subtotal * ($pct / 100), 2);
@@ -1187,18 +1300,20 @@ class EventBookingQuote
                 'amount' => $commission,
             ];
             $warnings[] = 'Commission line is informational for public events; confirm final payout with the vendor.';
+            $warningCodes[] = self::WARNING_PUBLIC_COMMISSION_INFO;
         }
 
-        return compact('lines', 'warnings');
+        return ['lines' => $lines, 'warnings' => $warnings, 'warning_codes' => $warningCodes];
     }
 
     /**
      * @param array<string,mixed> $event
-     * @return array{warnings: list<string>, errors: list<string>}
+     * @return array{warnings: list<string>, warning_codes: list<string>, errors: list<string>}
      */
     private function budgetValidation(array $event, float $total): array
     {
         $warnings = [];
+        $warningCodes = [];
         $errors = [];
         $min = isset($event['budget_min']) && $event['budget_min'] !== '' && $event['budget_min'] !== null
             ? (float) $event['budget_min']
@@ -1213,6 +1328,7 @@ class EventBookingQuote
                 number_format($total, 2),
                 number_format($max, 2)
             );
+            $warningCodes[] = self::WARNING_BUDGET_MAX_EXCEEDED;
         }
         if ($min !== null && $min > 0 && $total < $min - 0.004) {
             $warnings[] = sprintf(
@@ -1220,16 +1336,10 @@ class EventBookingQuote
                 number_format($total, 2),
                 number_format($min, 2)
             );
+            $warningCodes[] = self::WARNING_BUDGET_MIN_NOT_MET;
         }
 
-        return compact('warnings', 'errors');
-    }
-
-    private function isTravelRadiusWarning(string $message): bool
-    {
-        return str_contains($message, 'exceeds the vendor')
-            || str_contains($message, 'beyond the maximum')
-            || str_contains($message, 'outside the vendor');
+        return ['warnings' => $warnings, 'warning_codes' => $warningCodes, 'errors' => $errors];
     }
 
     /**
