@@ -77,4 +77,24 @@ class ServiceModel extends Model
         // Set the selected image as the primary one
         return $serviceImageModel->update($imageId, ['is_primary' => 1]);
     }
+
+    /**
+     * Restrict a services query to listings from vendors currently approved
+     * to trade (vendor_status = 'approved'). Pending/rejected vendors keep
+     * their own services visible on their own dashboard (that code queries
+     * ServiceModel directly, bypassing this scope) but must disappear from
+     * every public storefront surface: browse/search, and the vendor
+     * profile's service grid.
+     *
+     * A subquery (rather than a join) is used so this composes safely with
+     * callers that already join/group on `services` (e.g. the browse search
+     * filter's category joins + `GROUP BY services.id`).
+     */
+    public function approvedVendorOnly(): self
+    {
+        return $this->whereIn(
+            'services.vendor_id',
+            $this->db->table('users')->select('id')->where('vendor_status', 'approved')
+        );
+    }
 }

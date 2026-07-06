@@ -191,13 +191,21 @@ class QASeeder extends Seeder
      */
     private function insertUser(array $user, string $role, string $hash): int
     {
-        $this->db->table('users')->insert([
+        $data = [
             'name'     => $user['name'],
             'username' => $user['username'],
             'email'    => $user['email'],
             'password' => $hash,
             'role'     => $role,
-        ]);
+        ];
+
+        // The vendor_status column defaults to 'pending' (fail-safe); QA vendors
+        // must be pre-approved so browser QA and re-runs are not gated.
+        if ($role === 'vendor') {
+            $data['vendor_status'] = 'approved';
+        }
+
+        $this->db->table('users')->insert($data);
 
         return (int) $this->db->insertID();
     }
