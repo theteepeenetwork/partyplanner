@@ -21,13 +21,15 @@ build to those values, do not re-ask.
   four views; `/cart*` routes removed/redirected; `CartController` + `cart_view.php`
   deleted; CLAUDE.md/README updated; deposit unit test with rounding boundary.
 
-- [ ] **A2. F2 — Delete the orphaned £15 PaymentIntent stub**
+- [x] **A2. F2 — Delete the orphaned £15 PaymentIntent stub**
+  *(verifier PASS 2026-07-04 — PR #92; suite 58/58; live 404 confirmed; controller fully orphaned, deleted whole)*
   `PaymentController::createPaymentIntent()` (hardcoded £15) and its route
   (`Routes.php` ~L124, `payment/createPaymentIntent`) still exist and accept POSTs.
   Delete both. If nothing else in `PaymentController` is routed, delete the controller.
   Verify: route returns 404; grep shows no references; suite green.
 
-- [ ] **A3. Flip booking status on payment confirmation + align quote automation** [HUMAN-GATED]
+- [x] **A3. Flip booking status on payment confirmation + align quote automation** [HUMAN-GATED]
+  *(verifier PASS 2026-07-04 — PR #93; suite 68/68, 0 skipped; live keyless smoke: booking 528 confirmed + payment succeeded; adversarial money-path review PASS; PR #91 superseded — close on merge)*
   Two coupled defects: (1) `processCheckout()` inserts bookings as 'pending' and the
   webhook success handler (`WebhookController::handlePaymentSucceeded`) never flips
   booking status to 'confirmed' — paid bookings stay pending forever. (2)
@@ -37,7 +39,8 @@ build to those values, do not re-ask.
   mode must still work. Tests: status-flip on success, no flip on failure, no
   double-processing on webhook replay, automation never accepts an unpaid booking.
 
-- [ ] **A4. F3 — VendorQuoteAutomation: structured travel code + full branch tests**
+- [x] **A4. F3 — VendorQuoteAutomation: structured travel code + full branch tests**
+  *(verifier PASS 2026-07-04 — PR #94; suite 81/81 on Docker; all 9 outcomes tested; both prose matchers replaced by WARNING_TRAVEL_OUT_OF_RADIUS; legacy-row shim closes the pre-codes bypass found in adversarial review)*
   The travel guard string-matches human-readable warning text
   (`str_contains($w, 'exceeds the vendor'...)`, `VendorQuoteAutomation.php` ~L44–53) —
   rewording a warning silently breaks it. Add a structured warning `code` to
@@ -46,7 +49,8 @@ build to those values, do not re-ask.
   event_setting_not_allowed, insufficient_lead_time, unavailable, rules_matched) —
   only 1 of 8 is tested today (`VendorQuoteAutomationTest.php`).
 
-- [ ] **A5. F5 — EventQuoteBuilder coverage**
+- [x] **A5. F5 — EventQuoteBuilder coverage**
+  *(verifier PASS 2026-07-04 — PR #95; suite 97/97; build() covered per model + missing-rows fails closed (hard error, no silent £0) + travel + 50/51 and quantity-clamp boundaries)*
   `EventQuoteBuilderTest.php` has a single test (mergeServiceLocation). Add tests for
   `build()` across each pricing model, missing-pricing-rows error handling, and travel
   fee integration. Include boundary tests: guest-range edge (50 vs 51), quantity
