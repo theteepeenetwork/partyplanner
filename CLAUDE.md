@@ -164,8 +164,7 @@ docker exec partyplanner php spark quote:expire-stale
 
 ## Gotchas
 
-* Event checkout uses a 15% deposit.
-* Legacy cart uses a 10% deposit.
+* The customer deposit is 10%, defined once in `App\Libraries\DepositCalculator::PERCENT`; controllers and views must read it from there rather than hardcoding a percentage.
 * Stripe is optional and the application must function without Stripe keys.
 * `CI_ENVIRONMENT=cloud` disables the debug toolbar.
 * Kint must remain on version 5.1.1.
@@ -226,6 +225,7 @@ This project runs a **human-orchestrated** agent team. You (the lead session) ar
 Done only when the verifier confirms: every objective gate passes (php-cs-fixer clean · `composer test` green with no regressions · no console errors · a11y AA and Perf ≥ 90 on touched surfaces) AND the quality rubric clears (mean ≥ 4.0, no dimension < 3). Stop on the exit conditions (5 cycles, < 0.3 rubric gain, or no net change) and escalate.
 
 ## Human-gated — never let the team act autonomously here
+
 * Anything touching pricing, deposits, the quote pipeline, or Stripe — you approve before build and review the diff before ship.
 * Net-new features — the team proposes; you choose.
 

@@ -438,6 +438,96 @@ final class EventBookingQuoteTest extends CIUnitTestCase
         $this->assertNotEmpty($result['errors']);
     }
 
+    /**
+     * computeTravel() must emit a parallel warning_codes array so consumers (e.g.
+     * VendorQuoteAutomation) can match structured codes instead of str_contains()-ing
+     * the human-readable warning text.
+     */
+    public function testComputeTravelReturnsMatchingWarningCodes(): void
+    {
+        $calc = new EventBookingQuote();
+        $r = $calc->computeTravel(50.0, [
+            'all_travel_included' => 0,
+            'no_travel_limit' => 0,
+            'free_coverage_radius' => 10,
+            'paid_coverage_radius' => 20,
+            'travel_fee_per_km' => 1.0,
+        ]);
+        $this->assertArrayHasKey('warning_codes', $r);
+        $this->assertCount(count($r['warnings']), $r['warning_codes']);
+        $this->assertContains(EventBookingQuote::WARNING_TRAVEL_OUT_OF_RADIUS, $r['warning_codes']);
+    }
+
+    public function testComputeTravelNoWarningsMeansNoCodes(): void
+    {
+        $calc = new EventBookingQuote();
+        $r = $calc->computeTravel(500.0, [
+            'all_travel_included' => 1,
+            'no_travel_limit' => 1,
+        ]);
+        $this->assertSame([], $r['warnings']);
+        $this->assertSame([], $r['warning_codes']);
+    }
+
+    /**
+     * The non-strict (soft) travel-radius-exceeded path must surface the same
+     * structured code as the strict/error path so VendorQuoteAutomation can key off
+     * it regardless of whether the vendor treats it as a hard block.
+     */
+    public function testCalculateSurfacesTravelOutOfRadiusCodeWhenNotStrict(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 100.0, 'latitude' => 51.5, 'longitude' => -0.12];
+        $event = [
+            'guest_count' => 5,
+            'event_setting' => 'private',
+            'latitude' => 52.5,
+            'longitude' => -1.0,
+        ];
+        $loc = [
+            'latitude' => 51.5,
+            'longitude' => -0.12,
+            'all_travel_included' => 0,
+            'no_travel_limit' => 0,
+            'free_coverage_radius' => 10,
+            'paid_coverage_radius' => 20,
+            'travel_fee_per_km' => 1.0,
+            'strict_travel_radius' => 0,
+        ];
+        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], [], [], [], null);
+        $this->assertSame([], $result['errors']);
+        $this->assertArrayHasKey('warning_codes', $result);
+        $this->assertCount(count($result['warnings']), $result['warning_codes']);
+        $this->assertContains(EventBookingQuote::WARNING_TRAVEL_OUT_OF_RADIUS, $result['warning_codes']);
+    }
+
+    /**
+     * Every warning emitted by calculate() must have a corresponding code at the same
+     * index, across a scenario that stacks several warning types together.
+     */
+    public function testWarningsAndWarningCodesStayParallelAcrossMultipleWarningTypes(): void
+    {
+        $calc = new EventBookingQuote();
+        $service = ['price' => 200.0];
+        $event = [
+            'guest_count' => 5,
+            'event_setting' => 'private',
+            'budget_max' => 1.0,
+            'date' => date('Y-m-d', strtotime('+1 day')),
+        ];
+        $loc = [
+            'fulfillment_type' => 'postal',
+            'postal_fee' => 5.0,
+            'delivery_lead_time_days' => 5,
+        ];
+        $result = $calc->calculate($service, $event, $loc, [], null, [], [], [], [], [], [], null);
+        $this->assertGreaterThanOrEqual(3, count($result['warnings']));
+        $this->assertCount(count($result['warnings']), $result['warning_codes']);
+        $this->assertContains(EventBookingQuote::WARNING_DELIVERY_LEAD_TIME, $result['warning_codes']);
+        $this->assertContains(EventBookingQuote::WARNING_DELIVERY_TOO_SOON, $result['warning_codes']);
+        $this->assertContains(EventBookingQuote::WARNING_BUDGET_MAX_EXCEEDED, $result['warning_codes']);
+    }
+
     public function testDeliveryLeadTimeWarningWhenEventTooSoon(): void
     {
         $calc = new EventBookingQuote();

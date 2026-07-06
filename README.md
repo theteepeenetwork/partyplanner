@@ -228,8 +228,7 @@ The platform should remain fully usable without Stripe credentials configured.
 
 Current payment behaviour:
 
-* Event checkout: 15% deposit
-* Legacy cart checkout: 10% deposit
+* Event checkout: 10% deposit, defined in `App\Libraries\DepositCalculator`
 
 ---
 

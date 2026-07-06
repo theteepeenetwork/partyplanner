@@ -3,6 +3,7 @@
 namespace App\Controllers\Admin;
 
 use App\Libraries\AdminAccountPurge;
+use App\Libraries\VendorVetting;
 use App\Models\ServiceModel;
 use App\Models\UserModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
@@ -13,6 +14,10 @@ class Vendors extends BaseAdminController
     {
         $userModel = new UserModel();
         $q         = trim((string) $this->request->getGet('q'));
+        $status    = trim((string) $this->request->getGet('status'));
+        if (! in_array($status, ['pending', 'approved', 'rejected'], true)) {
+            $status = '';
+        }
 
         $builder = $userModel->where('role', 'vendor');
         if ($q !== '') {
@@ -24,17 +29,59 @@ class Vendors extends BaseAdminController
             }
             $builder->groupEnd();
         }
+        if ($status !== '') {
+            $builder->where('vendor_status', $status);
+        }
 
         $vendors = $builder->orderBy('id', 'DESC')->paginate(25);
         $pager   = $userModel->pager;
 
+        $pendingCount = (new UserModel())->where('role', 'vendor')->where('vendor_status', 'pending')->countAllResults();
+
+        $serviceModel = new ServiceModel();
+        foreach ($vendors as &$vendor) {
+            $vendor['services_count'] = $serviceModel->where('vendor_id', $vendor['id'])->countAllResults();
+        }
+        unset($vendor);
+
         return $this->layout('admin/vendors/index', [
-            'title'     => 'Vendors',
-            'activeNav' => 'vendors',
-            'vendors'   => $vendors,
-            'pager'     => $pager,
-            'q'         => $q,
+            'title'        => 'Vendors',
+            'activeNav'    => 'vendors',
+            'vendors'      => $vendors,
+            'pager'        => $pager,
+            'q'            => $q,
+            'status'       => $status,
+            'pendingCount' => $pendingCount,
         ]);
+    }
+
+    public function approve(int $id)
+    {
+        $reasonInput = trim((string) $this->request->getPost('reason'));
+        $reason      = $reasonInput !== '' ? $reasonInput : null;
+
+        $vetting = new VendorVetting();
+        $ok      = $vetting->approve($id, (int) session()->get('user_id'), $reason);
+
+        if (! $ok) {
+            return redirect()->back()->with('error', 'Could not approve that vendor.');
+        }
+
+        return redirect()->back()->with('success', 'Vendor approved.');
+    }
+
+    public function reject(int $id)
+    {
+        $reason = trim((string) $this->request->getPost('reason'));
+
+        $vetting = new VendorVetting();
+        $ok      = $vetting->reject($id, (int) session()->get('user_id'), $reason);
+
+        if (! $ok) {
+            return redirect()->back()->with('error', 'A reason is required to reject a vendor.');
+        }
+
+        return redirect()->back()->with('success', 'Vendor rejected.');
     }
 
     public function show(int $id)

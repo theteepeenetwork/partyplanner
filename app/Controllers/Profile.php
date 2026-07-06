@@ -15,6 +15,7 @@ use App\Models\CategoryModel;
 use App\Models\FavouriteModel;
 use App\Libraries\ChatModeration;
 use App\Libraries\CustomerEventSummary;
+use App\Libraries\DepositCalculator;
 use App\Libraries\QuoteAnalyticsRecorder;
 use App\Models\EventBasketItemModel;
 use App\Models\VendorQuoteModel;
@@ -72,6 +73,9 @@ class Profile extends BaseController
         if (($user['role'] ?? '') !== 'vendor') {
             return redirect()->to('/profile')->with('error', 'This area is only available to vendor accounts.');
         }
+        if (($user['vendor_status'] ?? 'pending') !== 'approved') {
+            return redirect()->to('/profile');
+        }
 
         return null;
     }
@@ -105,6 +109,13 @@ class Profile extends BaseController
 
     private function vendorMain($user)
     {
+        if (($user['vendor_status'] ?? 'pending') !== 'approved') {
+            return view('dashboard/vendor_pending', [
+                'user'      => $user,
+                'pageTitle' => 'Vendor account review — Partysmith',
+            ]);
+        }
+
         $userId = $user['id'];
         $serviceModel = new ServiceModel();
         $serviceImageModel = new ServiceImageModel();
@@ -479,7 +490,7 @@ class Profile extends BaseController
                 ->where('(payments.id IS NULL OR payments.payment_status != \'succeeded\')', null, false)
                 ->findAll();
             foreach ($pendingItems as $pi) {
-                $pendingTotal += (float) ($pi['price'] ?? 0) * 0.15;
+                $pendingTotal += DepositCalculator::forTotal((float) ($pi['price'] ?? 0));
             }
 
             // Recent payments as payout history
@@ -837,10 +848,11 @@ class Profile extends BaseController
         );
 
         return view('dashboard/customer_booking_detail', [
-            'user'          => $user,
-            'item'          => $item,
-            'reviewableIds' => $reviewableIds,
-            'currentTab'    => 'bookings',
+            'user'           => $user,
+            'item'           => $item,
+            'reviewableIds'  => $reviewableIds,
+            'currentTab'     => 'bookings',
+            'depositPercent' => DepositCalculator::percentDisplay(),
         ]);
     }
 

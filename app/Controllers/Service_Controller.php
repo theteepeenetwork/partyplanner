@@ -254,6 +254,10 @@ class Service_Controller extends BaseController
             $builder = $builder->where('deleted_at', null);
         }
 
+        // A rejected/pending vendor's services must never surface on public
+        // listings, even while the listing row itself is still 'active'.
+        $builder = $builder->approvedVendorOnly();
+
         return $builder;
     }
 
@@ -2546,6 +2550,12 @@ class Service_Controller extends BaseController
             return redirect()->to('/browse-services')->with('error', 'Service not found.');
         }
 
+        // A pending/rejected vendor's service must not be directly reachable
+        // even though the listing row itself may still be 'active'.
+        if (! (new UserModel())->isVendorApproved((int) $service['vendor_id'])) {
+            return redirect()->to('/browse-services')->with('error', 'Service not found.');
+        }
+
         // Fetch associated images
         $images = $serviceImageModel->where('service_id', $id)->findAll();
 
@@ -2717,6 +2727,13 @@ class Service_Controller extends BaseController
             throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Vendor not found.');
         }
 
+        // Pending/rejected vendors have no public storefront — mirrors the
+        // "vendor not found" 404 above rather than exposing their profile
+        // with an empty/partial services grid.
+        if (($vendorUser['vendor_status'] ?? 'pending') !== 'approved') {
+            throw \CodeIgniter\Exceptions\PageNotFoundException::forPageNotFound('Vendor not found.');
+        }
+
         $playsArr = [];
         if (! empty($vendorUser['host_plays'])) {
             $decoded  = json_decode($vendorUser['host_plays'], true);
@@ -2742,6 +2759,7 @@ class Service_Controller extends BaseController
             ->where('vendor_id', (int) $id)
             ->where('status', 'active')
             ->where('deleted_at', null)
+            ->approvedVendorOnly()
             ->findAll();
 
         foreach ($services as &$service) {
@@ -3216,8 +3234,8 @@ class Service_Controller extends BaseController
                         $eventLng
                     );
                     $travel = (new EventBookingQuote())->computeTravel($distance, $loc);
-                    foreach ($travel['warnings'] as $w) {
-                        if (str_contains($w, 'exceeds the vendor') || str_contains($w, 'beyond the maximum')) {
+                    foreach ($travel['warning_codes'] as $code) {
+                        if ($code === EventBookingQuote::WARNING_TRAVEL_OUT_OF_RADIUS) {
                             $reasons[] = 'Too far from your event location';
                             break;
                         }

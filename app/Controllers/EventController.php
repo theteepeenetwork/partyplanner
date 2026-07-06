@@ -18,13 +18,14 @@ use App\Models\ServiceCustomDurationPricingModel;
 use App\Models\ServiceLocationModel;
 use App\Models\ServiceOptionalExtrasModel;
 use App\Models\ServiceImageModel;
+use App\Libraries\BookingConfirmation;
+use App\Libraries\DepositCalculator;
 use App\Libraries\EventBookingQuote;
 use App\Libraries\EventQuoteBuilder;
 use App\Libraries\QuoteAnalyticsRecorder;
 use App\Libraries\QuoteNotifier;
 use App\Libraries\ServiceAvailabilityChecker;
 use App\Libraries\StripeCheckoutHelper;
-use App\Libraries\VendorQuoteAutomation;
 use App\Libraries\UKAddressGeocoder;
 use App\Models\PaymentScheduleModel;
 use App\Models\ServiceTieredPackagesPricingModel;
@@ -385,6 +386,13 @@ class EventController extends BaseController
             return redirect()->to('/browse-services')->with('error', 'Invalid service or event.');
         }
 
+        // Direct-URL guard: services of non-approved vendors are excluded from
+        // browse/view, but the add-to-basket endpoint must refuse them too.
+        if (!(new UserModel())->isVendorApproved((int) $service['vendor_id'])) {
+            if ($this->request->isAJAX()) return $this->response->setJSON(['ok' => false, 'message' => 'This service is not currently available.']);
+            return redirect()->to('/browse-services')->with('error', 'This service is not currently available.');
+        }
+
         // Prevent adding the same service to the same event more than once.
         $alreadyInBasket = $basketModel
             ->where('event_id', $eventId)
@@ -467,8 +475,7 @@ class EventController extends BaseController
         }
 
         $estimated = $quote['total'];
-        $depositPercent = 0.15;
-        $depositAmount = round($estimated * $depositPercent, 2);
+        $depositAmount = DepositCalculator::forTotal($estimated);
 
         // Store a human-readable label for the chosen pricing option (e.g.
         // "Duration (1 day(s))" rather than the raw "duration_1" token). The
@@ -481,6 +488,7 @@ class EventController extends BaseController
         $breakdownPayload = json_encode([
             'lines' => $quote['lines'],
             'warnings' => $quote['warnings'],
+            'warning_codes' => $quote['warning_codes'] ?? [],
             'distance_km' => $quote['distance_km'],
         ], JSON_UNESCAPED_UNICODE);
 
@@ -628,7 +636,6 @@ class EventController extends BaseController
         $extraQtyMap = $this->normalizeExtraQtyMap($this->request->getGet('extra_qty'));
 
         $quote = (new EventQuoteBuilder())->build($service, $event, $pricingOption, $selectedExtras, $extraQtyMap, $orderQuantity);
-        $depositPercent = 0.15;
 
         return $this->response->setJSON([
             'lines' => $quote['lines'],
@@ -636,7 +643,7 @@ class EventController extends BaseController
             'warnings' => $quote['warnings'],
             'errors' => $quote['errors'],
             'distance_km' => $quote['distance_km'],
-            'deposit' => round($quote['total'] * $depositPercent, 2),
+            'deposit' => DepositCalculator::forTotal((float) $quote['total']),
         ]);
     }
 
@@ -747,6 +754,7 @@ class EventController extends BaseController
             'basketItems' => $basketItems,
             'totalDeposit' => $totalDeposit,
             'totalEstimated' => $totalEstimated,
+            'depositPercent' => DepositCalculator::percentDisplay(),
         ]);
     }
 
@@ -836,6 +844,7 @@ class EventController extends BaseController
             'stripeEnabled' => $stripeEnabled,
             'stripePublishableKey' => getenv('STRIPE_PUBLISHABLE_KEY') ?: '',
             'stripeClientSecret' => $clientSecret,
+            'depositPercent' => DepositCalculator::percentDisplay(),
         ]);
     }
 
@@ -884,6 +893,7 @@ class EventController extends BaseController
         $paymentPlan = $this->request->getPost('payment_plan') === 'instalments' ? 'instalments' : 'single';
         $balanceDue = max(0, round($totalEstimated - $totalDeposit, 2));
 
+        $paidNow = true;
         if ($stripe->isConfigured()) {
             if (!$paymentIntentId) {
                 return redirect()->to('/event/checkout/' . $eventId)->with('error', 'Payment was not completed.');
@@ -892,6 +902,7 @@ class EventController extends BaseController
             if (!$verified['success']) {
                 return redirect()->to('/event/checkout/' . $eventId)->with('error', $verified['error'] ?? 'Payment verification failed.');
             }
+            $paidNow = ($verified['status'] ?? '') === 'succeeded';
         }
 
         $bookingModel->insert([
@@ -904,7 +915,6 @@ class EventController extends BaseController
         ]);
         $bookingId = $bookingModel->getInsertID();
 
-        $automation = new VendorQuoteAutomation();
         $notifier = new QuoteNotifier();
         $analytics = new QuoteAnalyticsRecorder();
 
@@ -937,16 +947,6 @@ class EventController extends BaseController
                     'event_date' => $event['date'] ?? null,
                     'event_setting' => $event['event_setting'] ?? 'private',
                 ]);
-                $quoteForAutomation = array_merge($quoteDetail, ['total' => (float) $item['estimated_total']]);
-                $autoResult = $automation->evaluateAfterCheckout(
-                    $joinedItem,
-                    $quoteForAutomation,
-                    (int) $svc['vendor_id'],
-                    (int) $item['service_id']
-                );
-                if ($autoResult['auto_accepted']) {
-                    $analytics->recordAccepted((int) $svc['vendor_id'], (int) $item['service_id'], true);
-                }
 
                 $notifier->sendVendorNewQuoteNotification(
                     (int) $svc['vendor_id'],
@@ -985,18 +985,36 @@ class EventController extends BaseController
             ]);
         }
 
-        $paymentsModel->insert([
-            'booking_id' => $bookingId,
-            'payment_intent_id' => $paymentIntentId ?: null,
-            'payment_status' => 'succeeded',
-            'amount_paid' => $totalDeposit,
-            'currency' => 'gbp',
-            'payment_method' => $stripe->isConfigured() ? 'stripe' : 'simulated',
-            'payment_type' => 'deposit',
-            'description' => 'Deposit for ' . $event['title'],
-        ]);
+        $paymentStatus = $paidNow ? 'succeeded' : 'processing';
+        $existingPayment = $paymentIntentId
+            ? $paymentsModel->where('payment_intent_id', $paymentIntentId)->first()
+            : null;
+
+        if ($existingPayment) {
+            // The webhook already inserted a payments row for this PaymentIntent mid-race;
+            // update it instead of inserting a duplicate.
+            $paymentsModel->update($existingPayment['id'], [
+                'payment_status' => $paymentStatus,
+                'amount_paid' => $totalDeposit,
+            ]);
+        } else {
+            $paymentsModel->insert([
+                'booking_id' => $bookingId,
+                'payment_intent_id' => $paymentIntentId ?: null,
+                'payment_status' => $paymentStatus,
+                'amount_paid' => $totalDeposit,
+                'currency' => 'gbp',
+                'payment_method' => $stripe->isConfigured() ? 'stripe' : 'simulated',
+                'payment_type' => 'deposit',
+                'description' => 'Deposit for ' . $event['title'],
+            ]);
+        }
 
         $basketModel->where('event_id', $eventId)->where('user_id', $userId)->delete();
+
+        if ($paidNow) {
+            (new BookingConfirmation())->confirmBooking($bookingId);
+        }
 
         return redirect()->to('/event/checkout/success/' . $bookingId);
     }

@@ -30,7 +30,7 @@
                 </div>
             <?php endforeach; ?>
             <div class="d-flex justify-content-between pt-3">
-                <span class="fw-bold">Total Deposit (15%)</span>
+                <span class="fw-bold">Total Deposit (<?= (int) ($depositPercent ?? 10) ?>%)</span>
                 <span class="fw-bold text-primary fs-5">£<?= number_format($totalDeposit, 2) ?></span>
             </div>
         </div>
