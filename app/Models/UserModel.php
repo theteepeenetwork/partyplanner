@@ -16,6 +16,7 @@ class UserModel extends Model
         'name', 'username', 'email', 'password', 'role',
         'password_reset_token', 'password_reset_expires_at',
         'host_bio', 'host_tagline', 'host_quote', 'host_plays', 'host_photo_path',
+        'vendor_status', 'vendor_status_reason', 'vendor_status_reviewed_by', 'vendor_status_reviewed_at',
     ];
 
     public function __construct(?ConnectionInterface $db = null, ?ValidationInterface $validation = null)
@@ -54,5 +55,20 @@ class UserModel extends Model
         }
 
         return $this->where('password_reset_token', $token)->first();
+    }
+
+    /**
+     * Fail-safe vendor-approval check for public storefront surfaces (vendor
+     * profile page, service detail page). Missing/null `vendor_status` is
+     * treated as not-approved, matching VendorAuth and Profile's fail-safe
+     * default of 'pending' for a null column.
+     */
+    public function isVendorApproved(int $vendorId): bool
+    {
+        $vendor = $this->find($vendorId);
+
+        return $vendor !== null
+            && ($vendor['role'] ?? '') === 'vendor'
+            && ($vendor['vendor_status'] ?? 'pending') === 'approved';
     }
 }
