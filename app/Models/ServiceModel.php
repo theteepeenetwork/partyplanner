@@ -64,6 +64,33 @@ class ServiceModel extends Model
         return $service;
     }
 
+    /**
+     * Public catalogue scope: active, non-soft-deleted listings (when those
+     * columns exist) from vendors approved to trade. Single source for every
+     * public storefront surface — the marketplace browse/search (via
+     * Service_Controller) and the white-label tenant storefronts
+     * (TenantController).
+     *
+     * @param list<string>|null $cols services column names, if the caller
+     *                                already fetched them for other filters
+     */
+    public function publicCatalogue(?array $cols = null): self
+    {
+        $cols ??= $this->db->getFieldNames($this->table);
+
+        $builder = $this;
+        if (in_array('status', $cols, true)) {
+            $builder = $builder->where('status', 'active');
+        }
+        if (in_array('deleted_at', $cols, true)) {
+            $builder = $builder->where('deleted_at', null);
+        }
+
+        // A rejected/pending vendor's services must never surface on public
+        // listings, even while the listing row itself is still 'active'.
+        return $builder->approvedVendorOnly();
+    }
+
     // Function to unset the current primary image and set a new one
     public function setPrimaryImage($serviceId, $imageId)
     {

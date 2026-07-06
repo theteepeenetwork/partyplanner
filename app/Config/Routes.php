@@ -4,6 +4,22 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
+
+// ── White-label tenant hosts ─────────────────────────────────────────────
+// A vendor subdomain (<slug>.<tenant.baseDomain>) gets ONLY the tenant
+// storefront routes; every marketplace URL 404s there, so tenant traffic
+// can never wander into cross-vendor surfaces. Any other host — the main
+// domain, www, partyplanner.home, CLI (`spark`) — skips this block and the
+// marketplace routes below are registered exactly as before.
+if (\App\Libraries\TenantHost::current() !== null) {
+    $routes->group('', ['filter' => 'vendortenant'], static function ($routes) {
+        $routes->get('/', 'TenantController::home');
+        $routes->get('service/(:num)', 'TenantController::service/$1');
+    });
+
+    return;
+}
+
 $routes->get('/', 'Home::index');
 
 // User Routes
