@@ -78,11 +78,12 @@ class Register extends BaseController
         }
 
         $data = [
-            'name'     => $this->request->getVar('name'),
-            'username' => $this->request->getVar('username'),
-            'email'    => $this->request->getVar('email'),
-            'password' => password_hash($this->request->getVar('password'), PASSWORD_DEFAULT),
-            'role'     => 'vendor',
+            'name'          => $this->request->getVar('name'),
+            'username'      => $this->request->getVar('username'),
+            'email'         => $this->request->getVar('email'),
+            'password'      => password_hash($this->request->getVar('password'), PASSWORD_DEFAULT),
+            'role'          => 'vendor',
+            'vendor_status' => 'pending',
         ];
 
         $userModel->save($data);
@@ -95,7 +96,7 @@ class Register extends BaseController
             'role'     => $newUser['role'],
         ]);
 
-        return redirect()->to('/profile')->with('success', 'Welcome! Your vendor account is set up. Start by creating your first service listing.');
+        return redirect()->to('/profile')->with('success', "Welcome! Your vendor account is being reviewed \u{2014} we'll unlock listings once it's approved.");
     }
 
     public function vendorSuccess()

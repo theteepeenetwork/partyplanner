@@ -32,12 +32,12 @@
                     <!-- Quote breakdown -->
                     <?php
                     $total   = (float)($item['price'] ?? $item['service_price'] ?? 0);
-                    $deposit = round($total * 0.15, 2);
+                    $deposit = \App\Libraries\DepositCalculator::forTotal($total);
                     $balance = $total - ($item['payment_status'] === 'succeeded' ? $deposit : 0);
                     ?>
                     <div class="fye-quote" style="margin-top:18px">
                         <div class="qrow"><span class="fye-muted"><?= esc($item['service_title'] ?? 'Service') ?></span><span class="fye-num">£<?= number_format($total, 2) ?></span></div>
-                        <div class="qrow"><span class="fye-muted">Deposit (15%)</span><span class="fye-num">£<?= number_format($deposit, 2) ?></span></div>
+                        <div class="qrow"><span class="fye-muted">Deposit (<?= (int) ($depositPercent ?? 10) ?>%)</span><span class="fye-num">£<?= number_format($deposit, 2) ?></span></div>
                         <div class="qrow"><span class="fye-muted"><?= $item['payment_status'] === 'succeeded' ? 'Deposit paid' : 'Balance on the day' ?></span><span class="fye-num">£<?= number_format($balance, 2) ?></span></div>
                         <div class="qrow total"><span>Total</span><b class="fye-num">£<?= number_format($total, 2) ?></b></div>
                     </div>

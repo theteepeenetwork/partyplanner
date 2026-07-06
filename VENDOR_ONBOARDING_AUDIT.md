@@ -7,6 +7,58 @@ this repository.
 
 ---
 
+## Status update — 2026-07-03 (re-verified against current code)
+
+The original audit below is preserved for history, but several of its findings
+have since shipped. Current state:
+
+**Shipped since the audit was written:**
+
+- **Roadmap item 1 — requirements/capacity/logistics** ✅ Step 4 now captures
+  power, water, vehicle access, indoor/outdoor, space required, equipment
+  provided, setup/breakdown minutes, min notice days, min/max capacity
+  (`service_create_step4.php`, `database_service_requirements.sql`).
+- **Roadmap item 2 — custom quote / POA** ✅ `custom_quote` is a first-class
+  `pricing_type` in step 2, handled in step 3 and in `EventBookingQuote`.
+- **Roadmap item 3 — discovery filters** ✅ `browse()` now accepts
+  `price_min`/`price_max`, `guests`, `event_type`, `location`, `date`,
+  `show_unavailable`.
+- **Roadmap item 5 — availability UI** ✅ (core) Vendor calendar at
+  `/profile/calendar` with `toggleBlockDate`; `unavailable_dates` is live in
+  `Service_Controller` and `UnavailableDateModel`.
+
+The exec-summary claims "no requirements fields", "no custom-quote path",
+"availability unmanageable" and "no discovery filters" are therefore **stale**.
+
+**Still open (verified 2026-07-03):**
+
+1. **Multi-day events/bookings** — `events.date` is a single date; duration
+   "days" tiers exist but no end date, so glamping/hot tubs/light-up
+   letters/exhibitions/festivals can't book a Fri–Sun hire. *(roadmap 6)*
+2. **Per-staff × hours pricing** — security/waiting staff/first-aid have no
+   fitting model; custom quote is the only fallback.
+3. **A→B distance pricing** — transport quotes per journey/mile; the
+   radius-to-venue travel model misfits limos/buses/coaches.
+4. **Seasonal / day-of-week pricing** — no peak/off-peak mechanism. *(roadmap 6)*
+5. **Consumer-facing compliance** — DBS/SIA/food-hygiene/alcohol(TEN)/pyro/
+   drone credentials exist only in the *corporate* branch; private customers
+   can't see or filter them.
+6. **Security deposits / damage waivers** — no refundable-deposit concept for
+   hire businesses (only the 15% booking deposit). *Human-gated (money).*
+7. **Minimum spend** — only corporate min-spend and quantity min exist.
+8. **Structured cancellation policy** — step 6 remains a free-text textarea
+   pre-filled with a `[placeholder]` template; nothing machine-readable.
+   *(roadmap 7)*
+9. **Taxonomy stragglers** — no category rows for hot tubs, fireworks/pyro,
+   bell tents, fairground rides, grottos, waste management (data-only fix).
+10. **Specific event-type taxonomy** (wedding/birthday/festival) — still only
+    the public/private/corporate buckets on services. *(roadmap 4)*
+
+These are tracked as backlog items in `partysmith-backlog.md` (§ Onboarding
+coverage gaps).
+
+---
+
 ## Executive summary
 
 The platform has a **strong taxonomy** and a **solid set of structured pricing
@@ -193,3 +245,7 @@ Ordered by *impact ÷ risk*. Each is additive and backwards-compatible.
 **Item 1 is implemented in this change set** (see the implementation summary at
 the end / commit). Items 2–7 are recommended follow-ups, each suitable for its
 own focused PR.
+
+**2026-07-03:** items 1, 2, 3 and 5 (core) have shipped — see the status
+update at the top of this document. Items 4, 6 and 7 remain open, plus the
+newly identified gaps listed there.

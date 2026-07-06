@@ -96,7 +96,7 @@ class BookingController extends Controller
             ->where('bookings.date', $date)
             ->where('bookings.start_time <', $endTime)
             ->where('bookings.end_time >', $startTime)
-            ->whereIn('bookings.status', ['accepted', 'pending'])
+            ->whereIn('bookings.status', ['accepted', 'pending', 'confirmed'])
             ->first();
 
         if ($conflict) {

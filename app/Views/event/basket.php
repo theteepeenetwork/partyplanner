@@ -105,7 +105,7 @@
               <?php endforeach; ?>
               <div class="sum-row"><span>Booking fee</span><b style="color:var(--green-bright)">£0.00</b></div>
               <div class="sum-row total"><span>Estimated total</span><span class="n">£<?= number_format($totalEstimated, 2) ?></span></div>
-              <div class="sum-row"><span>Deposit due today (15%)</span><b style="color:var(--green-bright)">£<?= number_format($totalDeposit, 2) ?></b></div>
+              <div class="sum-row"><span>Deposit due today (<?= (int) ($depositPercent ?? 10) ?>%)</span><b style="color:var(--green-bright)">£<?= number_format($totalDeposit, 2) ?></b></div>
               <a href="/event/checkout/<?= $event['id'] ?>" class="btn btn-primary btn-block btn-lg" style="margin-top:16px"><i class="fas fa-lock"></i> Proceed to checkout</a>
               <p style="text-align:center;font-size:12.5px;color:var(--ink-faint);margin:12px 0 0">Cards, Apple Pay &amp; Google Pay accepted</p>
             </div>

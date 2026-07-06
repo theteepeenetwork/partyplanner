@@ -3,6 +3,7 @@
 namespace App\Libraries;
 
 use App\Models\BookingItemModel;
+use App\Models\BookingModel;
 use App\Models\QuoteAutomationLogModel;
 use App\Models\VendorQuoteSettingsModel;
 
@@ -15,7 +16,7 @@ class VendorQuoteAutomation
      * Apply vendor auto-accept rules to a newly created booking item and accept it when all pass.
      *
      * @param array<string,mixed> $bookingItem Row with booking + event fields joined
-     * @param array{lines: list<array>, total: float, warnings: list<string>, errors: list<string>, distance_km: ?float} $quote
+     * @param array{lines: list<array>, total: float, warnings: list<string>, warning_codes?: list<string>, errors: list<string>, distance_km: ?float} $quote
      * @param int $vendorId ID of the vendor who owns the service.
      * @param int $serviceId ID of the service being booked.
      * @return array{auto_accepted: bool, reason: string}
@@ -42,12 +43,8 @@ class VendorQuoteAutomation
         }
 
         if (!empty($settings['require_within_travel_radius'])) {
-            foreach ($quote['warnings'] ?? [] as $w) {
-                if (is_string($w) && (
-                    str_contains($w, 'exceeds the vendor')
-                    || str_contains($w, 'beyond the maximum')
-                    || str_contains($w, 'outside the vendor')
-                )) {
+            foreach ($quote['warning_codes'] ?? [] as $code) {
+                if ($code === EventBookingQuote::WARNING_TRAVEL_OUT_OF_RADIUS) {
                     return ['auto_accepted' => false, 'reason' => 'travel_warning'];
                 }
             }
@@ -86,6 +83,12 @@ class VendorQuoteAutomation
         }
 
         $itemModel = new BookingItemModel();
+        $currentItem = $itemModel->find((int) $bookingItem['id']);
+        $booking = $currentItem ? (new BookingModel())->find((int) $currentItem['booking_id']) : null;
+        if (!$booking || $booking['status'] !== 'confirmed') {
+            return ['auto_accepted' => false, 'reason' => 'payment_not_confirmed'];
+        }
+
         $itemModel->update((int) $bookingItem['id'], ['status' => 'accepted']);
 
         $log = new QuoteAutomationLogModel();

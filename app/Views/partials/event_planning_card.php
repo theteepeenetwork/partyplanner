@@ -51,7 +51,7 @@ $acceptedCount = (int) ($event['accepted_count'] ?? 0);
 
             <?php if ($basketCount > 0): ?>
                 <p class="small text-muted mt-2 mb-0">
-                    Deposit for this event: <strong>£<?= number_format($basketDep, 2) ?></strong> (15% of basket estimate)
+                    Deposit for this event: <strong>£<?= number_format($basketDep, 2) ?></strong> (<?= \App\Libraries\DepositCalculator::percentDisplay() ?>% of basket estimate)
                 </p>
             <?php endif; ?>
         </div>
