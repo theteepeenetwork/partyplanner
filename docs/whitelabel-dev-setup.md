@@ -1,7 +1,8 @@
 # White-label vendor sites — local dev setup
 
-Phase 1 of the white-label plan (see `whitelabel-build-plan.md`, T1–T4) serves a
-vendor's branded storefront on `<subdomain>.<base domain>`:
+Phase 1 of the white-label build plan (tickets T1–T4; the plan itself lives
+outside this repo) serves a vendor's branded storefront on
+`<subdomain>.<base domain>`:
 
 - **Production:** `*.partysmith.co.uk`
 - **Local dev:** `*.partyplanner.test`
