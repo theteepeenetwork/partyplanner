@@ -58,6 +58,17 @@ $phoneHref = $phone !== '' ? 'tel:' . preg_replace('/[^0-9+]/', '', $phone) : ''
 
 $logoPath = trim((string) ($site['logo_path'] ?? ''));
 $logoUrl  = $logoPath !== '' ? '/' . ltrim($logoPath, '/') : '';
+
+// Monogram fallback (first letters of the first two words) when there's no logo.
+$initials = '';
+foreach (preg_split('/\s+/', $businessName) as $word) {
+    if ($word !== '' && strlen($initials) < 2) {
+        $initials .= strtoupper(mb_substr($word, 0, 1));
+    }
+}
+if ($initials === '') {
+    $initials = 'P';
+}
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -84,6 +95,8 @@ $logoUrl  = $logoPath !== '' ? '/' . ltrim($logoPath, '/') : '';
     <link rel="stylesheet" href="/assets/css/style.css">
     <!-- Partysmith design system, scoped under .ps-app -->
     <link rel="stylesheet" href="/assets/css/partysmith-app.css">
+    <!-- White-label storefront components, themed by the palette below -->
+    <link rel="stylesheet" href="/assets/css/tenant-storefront.css">
 
     <?php if ($primaryColor !== null || $secondaryColor !== null): ?>
     <!-- Tenant brand palette: overrides the :root tokens the design system reads -->
@@ -112,12 +125,18 @@ $logoUrl  = $logoPath !== '' ? '/' . ltrim($logoPath, '/') : '';
     <header>
         <nav class="navbar fixed-top shadow-sm">
             <div class="container d-flex align-items-center justify-content-between flex-nowrap">
-                <a class="navbar-brand brand" href="/">
+                <a class="sf-brandwrap" href="/">
                     <?php if ($logoUrl !== ''): ?>
                         <img src="<?= esc($logoUrl, 'attr') ?>" alt="<?= esc($businessName, 'attr') ?>" style="height: 44px; width: auto;">
                     <?php else: ?>
-                        <span class="name"><?= esc($businessName) ?></span>
+                        <span class="sf-monogram" aria-hidden="true"><?= esc($initials) ?></span>
                     <?php endif; ?>
+                    <span>
+                        <span class="sf-bn"><?= esc($businessName) ?></span>
+                        <?php if ($phone !== ''): ?>
+                            <span class="sf-bsub d-none d-sm-block"><?= esc($phone) ?></span>
+                        <?php endif; ?>
+                    </span>
                 </a>
 
                 <?php if ($phone !== ''): ?>

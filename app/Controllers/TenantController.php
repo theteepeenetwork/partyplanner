@@ -6,6 +6,7 @@ use App\Libraries\TenantContext;
 use App\Models\CategoryModel;
 use App\Models\ServiceImageModel;
 use App\Models\ServiceModel;
+use App\Models\ServiceOptionalExtrasModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
 
 /**
@@ -41,6 +42,7 @@ class TenantController extends BaseController
             'site'     => $tenant->site(),
             'vendor'   => $tenant->vendor(),
             'services' => $services,
+            'trust'    => $this->vendorTrust($tenant->vendorId()),
         ]);
     }
 
@@ -57,11 +59,17 @@ class TenantController extends BaseController
             throw PageNotFoundException::forPageNotFound();
         }
 
+        $extras = (new ServiceOptionalExtrasModel())
+            ->where('service_id', (int) $service['id'])
+            ->findAll();
+
         return view('tenant/service', [
             'site'         => $tenant->site(),
             'vendor'       => $tenant->vendor(),
             'service'      => $service,
             'categoryName' => (new CategoryModel())->getServiceCategoryLabel($service),
+            'extras'       => $extras,
+            'trust'        => $this->vendorTrust($tenant->vendorId(), (int) $service['id']),
             'pageTitle'    => $service['title'],
         ]);
     }
@@ -78,5 +86,45 @@ class TenantController extends BaseController
         }
 
         return $tenant;
+    }
+
+    /**
+     * Social-proof figures for the storefront hero: the vendor's average
+     * review rating and a confirmed-bookings count. Read-only aggregates —
+     * the same reviews/booking_items tables the marketplace already reads.
+     * When $serviceId is given, the booking count is for that service only.
+     *
+     * @return array{rating: float|null, reviews: int, bookings: int}
+     */
+    private function vendorTrust(int $vendorId, ?int $serviceId = null): array
+    {
+        $db = \Config\Database::connect();
+
+        $rating  = null;
+        $reviews = 0;
+        if ($db->tableExists('reviews')) {
+            $row = $db->table('reviews')
+                ->select('AVG(rating) AS avg_rating, COUNT(*) AS cnt')
+                ->where('vendor_id', $vendorId)
+                ->get()->getRowArray();
+            if ($row && $row['cnt'] > 0) {
+                $rating  = round((float) $row['avg_rating'], 1);
+                $reviews = (int) $row['cnt'];
+            }
+        }
+
+        $bookings = 0;
+        if ($db->tableExists('booking_items') && $db->tableExists('services')) {
+            $builder = $db->table('booking_items')
+                ->join('services', 'services.id = booking_items.service_id')
+                ->where('services.vendor_id', $vendorId)
+                ->whereIn('booking_items.status', ['accepted', 'confirmed']);
+            if ($serviceId !== null) {
+                $builder->where('booking_items.service_id', $serviceId);
+            }
+            $bookings = (int) $builder->countAllResults();
+        }
+
+        return ['rating' => $rating, 'reviews' => $reviews, 'bookings' => $bookings];
     }
 }

@@ -1,52 +1,131 @@
 <?= $this->include('tenant_header') ?>
+<?php
+$images  = $service['images'] ?? [];
+$imgCount = count($images);
+$mainImg = $imgCount > 0
+    ? '/' . ltrim((string) ($images[0]['image_path'] ?? $images[0]['thumbnail_path'] ?? ''), '/')
+    : '/assets/images/fallback-service-card.jpg';
 
-<main class="section" style="padding-top: clamp(44px, 6vw, 78px);">
-    <div class="container">
-        <nav class="breadcrumb" aria-label="Breadcrumb" style="margin-bottom: 18px;">
-            <a href="/"><?= esc($site['business_name']) ?></a><span class="sep">/</span>
-            <span class="cur"><?= esc($service['title']) ?></span>
-        </nav>
+$rating   = $trust['rating'] ?? null;
+$bookings = (int) ($trust['bookings'] ?? 0);
+$phone     = trim((string) ($site['phone'] ?? ''));
+$phoneHref = $phone !== '' ? 'tel:' . preg_replace('/[^0-9+]/', '', $phone) : '';
+$price     = isset($service['price']) && $service['price'] !== null ? (float) $service['price'] : null;
 
-        <div class="section-head" style="margin-bottom: 28px;">
-            <?php if (! empty($categoryName)): ?>
-                <p class="eyebrow"><?= esc($categoryName) ?></p>
-            <?php endif; ?>
-            <h1 class="heading"><?= esc($service['title']) ?></h1>
-            <?php if (! empty($service['short_description'])): ?>
-                <p class="lead"><?= esc($service['short_description']) ?></p>
-            <?php endif; ?>
-        </div>
+// Spec chips from whichever service fields are populated.
+$chips = [];
+$minCap = (int) ($service['min_capacity'] ?? 0);
+$maxCap = (int) ($service['max_capacity'] ?? 0);
+if ($maxCap > 0) {
+    $chips[] = ['fa-users', $minCap > 0 && $minCap !== $maxCap ? "{$minCap}–{$maxCap} guests" : "Up to {$maxCap} guests"];
+}
+$io = strtolower(trim((string) ($service['indoor_outdoor'] ?? '')));
+if ($io === 'both') {
+    $chips[] = ['fa-house', 'Indoor & outdoor'];
+} elseif ($io === 'indoor') {
+    $chips[] = ['fa-house', 'Indoor'];
+} elseif ($io === 'outdoor') {
+    $chips[] = ['fa-tree', 'Outdoor'];
+}
+if (! empty($service['equipment_provided'])) {
+    $chips[] = ['fa-box-open', 'Equipment provided'];
+}
+if ((int) ($service['setup_minutes'] ?? 0) > 0) {
+    $chips[] = ['fa-screwdriver-wrench', 'We set up & pack down'];
+}
+?>
 
-        <?php if (! empty($service['images'])): ?>
-            <div class="row g-3" style="margin-bottom: 32px;">
-                <?php foreach (array_slice($service['images'], 0, 3) as $image):
-                    $imgSrc = '/' . ltrim((string) ($image['image_path'] ?? ''), '/');
-                    ?>
-                    <div class="col-md-4">
-                        <img src="<?= esc($imgSrc, 'attr') ?>" alt="<?= esc($service['title'], 'attr') ?>"
-                            style="width: 100%; height: 240px; object-fit: cover; border-radius: var(--r-img);"
-                            loading="lazy" onerror="this.closest('.col-md-4').remove();">
+<div class="ps-storefront">
+<main>
+    <section class="sf-sec" style="padding-top: clamp(20px, 3vw, 32px);">
+        <div class="container" style="max-width: 820px;">
+            <a class="sf-back" href="/"><span aria-hidden="true">‹</span> <?= esc($site['business_name']) ?></a>
+
+            <!-- Gallery -->
+            <div class="sf-gallery">
+                <div class="sf-gallery-main">
+                    <img src="<?= esc($mainImg, 'attr') ?>" alt="<?= esc($service['title'], 'attr') ?>"
+                        onerror="this.onerror=null;this.src='/assets/images/fallback-service-card.jpg';">
+                    <?php if ($imgCount > 1): ?>
+                        <span class="sf-gallery-count">1 / <?= $imgCount ?> photos</span>
+                    <?php endif; ?>
+                </div>
+                <?php if ($imgCount > 1): ?>
+                    <div class="sf-thumbs">
+                        <?php foreach (array_slice($images, 1, 6) as $img):
+                            $t = '/' . ltrim((string) ($img['thumbnail_path'] ?? $img['image_path'] ?? ''), '/');
+                        ?>
+                            <img src="<?= esc($t, 'attr') ?>" alt="" loading="lazy"
+                                onerror="this.closest('img').remove();">
+                        <?php endforeach; ?>
                     </div>
-                <?php endforeach; ?>
+                <?php endif; ?>
             </div>
-        <?php endif; ?>
 
-        <?php if (! empty($service['description'])): ?>
-            <div style="max-width: 70ch;">
-                <p class="lead" style="font-size: 16.5px;"><?= nl2br(esc($service['description'])) ?></p>
-            </div>
-        <?php endif; ?>
+            <h1 class="heading" style="font-size: clamp(26px,4vw,38px); margin: 18px 0 8px;"><?= esc($service['title']) ?></h1>
 
-        <?php if (! empty($site['phone'])):
-            $phoneHref = 'tel:' . preg_replace('/[^0-9+]/', '', (string) $site['phone']);
-            ?>
-            <div style="margin-top: 36px;">
-                <a class="btn btn-primary btn-lg" href="<?= esc($phoneHref, 'attr') ?>">
-                    <i class="fas fa-phone" aria-hidden="true"></i> Call <?= esc($site['phone']) ?> to book
-                </a>
+            <?php if (! empty($categoryName) || $rating !== null): ?>
+                <div class="sf-rating">
+                    <?php if ($rating !== null): ?>
+                        <span class="sf-stars" aria-hidden="true">★★★★★</span> <b><?= esc(number_format((float) $rating, 1)) ?></b>
+                        <?php if ($bookings > 0): ?>· booked <?= esc(number_format($bookings)) ?> time<?= $bookings === 1 ? '' : 's' ?> through this site<?php endif; ?>
+                    <?php elseif (! empty($categoryName)): ?>
+                        <?= esc($categoryName) ?>
+                    <?php endif; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (! empty($chips)): ?>
+                <div class="sf-badges">
+                    <?php foreach ($chips as [$icon, $label]): ?>
+                        <span class="sf-chip"><i class="fas <?= esc($icon, 'attr') ?>" aria-hidden="true"></i> <?= esc($label) ?></span>
+                    <?php endforeach; ?>
+                </div>
+            <?php endif; ?>
+
+            <?php if (! empty($service['short_description'])): ?>
+                <p class="lead" style="margin: 6px 0 14px;"><?= esc($service['short_description']) ?></p>
+            <?php endif; ?>
+            <?php if (! empty($service['description'])): ?>
+                <div style="max-width: 66ch; color: var(--ink-soft); line-height: 1.65;"><?= nl2br(esc($service['description'])) ?></div>
+            <?php endif; ?>
+
+            <?php if ($price !== null && $price > 0): ?>
+                <p class="sf-detail-price">from £<?= esc(number_format($price, ($price == (int) $price) ? 0 : 2)) ?> <small>· get an exact price for your date</small></p>
+            <?php endif; ?>
+
+            <?php if (! empty($extras)): ?>
+                <h2 style="font-family: var(--serif); font-weight: 500; font-size: 20px; margin: 26px 0 4px; color: var(--ink);">Add extras</h2>
+                <ul class="sf-extras">
+                    <?php foreach ($extras as $x):
+                        $xp = isset($x['price']) && $x['price'] !== null ? (float) $x['price'] : null;
+                    ?>
+                        <li>
+                            <span>
+                                <span class="x-name"><?= esc($x['name'] ?? 'Extra') ?></span>
+                                <?php if (! empty($x['description'])): ?><br><span class="x-desc"><?= esc($x['description']) ?></span><?php endif; ?>
+                            </span>
+                            <?php if ($xp !== null): ?>
+                                <span class="x-price">+£<?= esc(number_format($xp, ($xp == (int) $xp) ? 0 : 2)) ?></span>
+                            <?php endif; ?>
+                        </li>
+                    <?php endforeach; ?>
+                </ul>
+            <?php endif; ?>
+
+            <!-- Booking CTA. The instant-quote + deposit flow is not wired on tenant
+                 sites yet; until it is, the storefront converts to a phone booking. -->
+            <div class="sf-detail-cta">
+                <?php if ($phone !== ''): ?>
+                    <a class="sf-btn block" href="<?= esc($phoneHref, 'attr') ?>"><i class="fas fa-phone" aria-hidden="true"></i> Call <?= esc($phone) ?> to book</a>
+                <?php else: ?>
+                    <a class="sf-btn block" href="/">Back to all services</a>
+                <?php endif; ?>
+                <p class="sf-book-note">10% deposit holds your date · free 14-day cancellation</p>
             </div>
-        <?php endif; ?>
-    </div>
+        </div>
+    </section>
 </main>
+</div>
 
 <?= $this->include('tenant_footer') ?>
