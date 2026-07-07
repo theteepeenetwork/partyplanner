@@ -3,10 +3,10 @@
 use App\Libraries\TenantHost;
 
 /**
- * White-label tenant layout — footer (T4).
+ * White-label tenant layout — footer.
  *
- * The one place PartySmith appears on a tenant page: a discreet
- * "Powered by PartySmith" line. No marketplace nav, no browse links.
+ * Dark neutral ground. The phone's second (and last) appearance, and the one
+ * place PartySmith appears on a tenant page — muted "Powered by" line.
  */
 $site ??= service('tenant')->site() ?? [];
 
@@ -16,22 +16,45 @@ $phoneHref    = $phone !== '' ? 'tel:' . preg_replace('/[^0-9+]/', '', $phone) :
 
 $poweredByUrl = 'https://www.' . TenantHost::baseDomain();
 ?>
-    </div><!-- /.ps-app -->
-    </div><!-- /#main-content -->
+    </main>
 
-    <footer class="site-footer mt-0">
-        <div class="container py-4">
-            <div class="foot-bottom">
-                <p>
-                    &copy; <?= date('Y') ?> <?= esc($businessName) ?>
-                    <?php if ($phone !== ''): ?>
-                        &middot; <a href="<?= esc($phoneHref, 'attr') ?>" style="color: inherit;"><?= esc($phone) ?></a>
-                    <?php endif; ?>
-                </p>
-                <div class="foot-legal">
-                    <a href="<?= esc($poweredByUrl, 'attr') ?>" rel="nofollow">Powered by PartySmith</a>
-                </div>
-            </div>
+    <script>
+    /* Gallery mosaic: clicking (or Enter/Space on) a small tile promotes its
+       photo to the big cell by swapping src+alt with the current big image.
+       Delegated once here so every tenant page's mosaic gets the behaviour. */
+    (function () {
+        function swap(cell) {
+            var mosaic = cell.closest('.sf-mosaic');
+            var bigImg = mosaic && mosaic.querySelector('.cell.big img');
+            var img = cell.querySelector('img');
+            if (!bigImg || !img || bigImg === img) return;
+            var src = bigImg.src, alt = bigImg.alt;
+            bigImg.src = img.src; bigImg.alt = img.alt;
+            img.src = src; img.alt = alt;
+        }
+        document.addEventListener('click', function (e) {
+            var cell = e.target.closest('.sf-mosaic .cell:not(.big)');
+            if (cell) swap(cell);
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            var cell = e.target.closest ? e.target.closest('.sf-mosaic .cell:not(.big)') : null;
+            if (cell) { e.preventDefault(); swap(cell); }
+        });
+    })();
+    </script>
+
+    <footer class="sf-foot">
+        <div class="sf-shell sf-foot-in">
+            <p style="margin: 0;">
+                &copy; <?= date('Y') ?> <?= esc($businessName) ?>
+                <?php if ($phone !== ''): ?>
+                    &middot; <a href="<?= esc($phoneHref, 'attr') ?>"><?= esc($phone) ?></a>
+                <?php endif; ?>
+            </p>
+            <p class="powered" style="margin: 0;">
+                <a href="<?= esc($poweredByUrl, 'attr') ?>" rel="nofollow">Powered by PartySmith</a>
+            </p>
         </div>
     </footer>
 </body>

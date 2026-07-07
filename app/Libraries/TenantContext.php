@@ -49,6 +49,23 @@ final class TenantContext
     }
 
     /**
+     * Absolute URL on THIS tenant host. Redirects must use this instead of
+     * redirect()->to('/path'): site_url() resolves bare paths against the
+     * marketplace baseURL (the tenant subdomain is not an allowedHostname),
+     * which would bounce the visitor off the storefront mid-funnel.
+     */
+    public function url(string $path = '/'): string
+    {
+        $host = (string) ($_SERVER['HTTP_HOST'] ?? '');
+        if ($host === '' || preg_match('/^[A-Za-z0-9.:\-\[\]]+$/', $host) !== 1) {
+            return $path; // fall back to a relative redirect
+        }
+        $scheme = (! empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off') ? 'https' : 'http';
+
+        return $scheme . '://' . $host . '/' . ltrim($path, '/');
+    }
+
+    /**
      * Ownership guard for tenant-reachable records: 404 unless the given row
      * (anything carrying a vendor_id, e.g. a service) belongs to the tenant
      * vendor. Returns the row so lookups can chain through it.
