@@ -2,39 +2,44 @@
 
 namespace App\Controllers;
 
-use App\Models\UserModel;
-use App\Models\ServiceModel;
-use App\Models\ServiceImageModel;
-use App\Models\BookingModel;
-use App\Models\BookingItemModel;
-use App\Models\EventModel;
-use App\Models\ChatMessageModel;
-use App\Models\ChatRoomModel;
-use App\Models\PaymentsModel;
-use App\Models\CategoryModel;
-use App\Models\FavouriteModel;
 use App\Libraries\ChatModeration;
+use App\Libraries\CustomerDashboardRecommendations;
 use App\Libraries\CustomerEventSummary;
 use App\Libraries\DepositCalculator;
 use App\Libraries\QuoteAnalyticsRecorder;
-use App\Models\EventBasketItemModel;
+use App\Models\BookingItemModel;
+use App\Models\BookingModel;
+use App\Models\CategoryModel;
+use App\Models\ChatMessageModel;
+use App\Models\ChatRoomModel;
+use App\Models\EventModel;
+use App\Models\FavouriteModel;
+use App\Models\PaymentsModel;
+use App\Models\ServiceImageModel;
+use App\Models\ServiceModel;
+use App\Models\UnavailableDateModel;
+use App\Models\UserModel;
+use App\Models\VendorMessageTemplateModel;
 use App\Models\VendorQuoteModel;
 use App\Models\VendorQuoteSettingsModel;
-use App\Models\VendorMessageTemplateModel;
+use App\Models\VendorSiteModel;
+use CodeIgniter\HTTP\RedirectResponse;
+use Config\Database;
 use DateTime;
 
 class Profile extends BaseController
 {
     private function requireLogin()
     {
-        if (!session()->has('user_id')) {
+        if (! session()->has('user_id')) {
             return redirect()->to('/login')->with('error', 'You must be logged in.');
         }
+
         return null;
     }
 
     /**
-     * @return \CodeIgniter\HTTP\RedirectResponse|null
+     * @return RedirectResponse|null
      */
     private function requireCustomer()
     {
@@ -42,7 +47,7 @@ class Profile extends BaseController
             return $r;
         }
         $user = $this->getUser();
-        if (!$user) {
+        if (! $user) {
             return redirect()->to('/')->with('error', 'User not found.');
         }
         if (($user['role'] ?? '') === 'admin') {
@@ -56,7 +61,7 @@ class Profile extends BaseController
     }
 
     /**
-     * @return \CodeIgniter\HTTP\RedirectResponse|null
+     * @return RedirectResponse|null
      */
     private function requireVendor()
     {
@@ -64,7 +69,7 @@ class Profile extends BaseController
             return $r;
         }
         $user = $this->getUser();
-        if (!$user) {
+        if (! $user) {
             return redirect()->to('/')->with('error', 'User not found.');
         }
         if (($user['role'] ?? '') === 'admin') {
@@ -82,8 +87,9 @@ class Profile extends BaseController
 
     private function getUser()
     {
-        $userId = session()->get('user_id');
+        $userId    = session()->get('user_id');
         $userModel = new UserModel();
+
         return $userModel->find($userId);
     }
 
@@ -93,9 +99,13 @@ class Profile extends BaseController
 
     public function index()
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireLogin()) {
+            return $r;
+        }
         $user = $this->getUser();
-        if (!$user) return redirect()->to('/')->with('error', 'User not found.');
+        if (! $user) {
+            return redirect()->to('/')->with('error', 'User not found.');
+        }
 
         if (($user['role'] ?? '') === 'admin') {
             return redirect()->to('/admin');
@@ -104,6 +114,7 @@ class Profile extends BaseController
         if ($user['role'] === 'vendor') {
             return $this->vendorMain($user);
         }
+
         return $this->customerMain($user);
     }
 
@@ -116,24 +127,24 @@ class Profile extends BaseController
             ]);
         }
 
-        $userId = $user['id'];
-        $serviceModel = new ServiceModel();
+        $userId            = $user['id'];
+        $serviceModel      = new ServiceModel();
         $serviceImageModel = new ServiceImageModel();
-        $bookingItemModel = new BookingItemModel();
-        $chatMessageModel = new ChatMessageModel();
-        $paymentsModel = new PaymentsModel();
+        $bookingItemModel  = new BookingItemModel();
+        $chatMessageModel  = new ChatMessageModel();
+        $paymentsModel     = new PaymentsModel();
 
-        $activeServices = $serviceModel->where('vendor_id', $userId)->where('status', 'active')->where('deleted_at', null)->findAll();
+        $activeServices   = $serviceModel->where('vendor_id', $userId)->where('status', 'active')->where('deleted_at', null)->findAll();
         $vendorServiceIds = array_column($activeServices, 'id');
 
-        $pendingBookings = 0;
-        $upcomingBookings = 0;
+        $pendingBookings      = 0;
+        $upcomingBookings     = 0;
         $upcomingBookingsList = [];
-        $pendingBookingsList = [];
-        $earningsThisMonth = 0.0;
+        $pendingBookingsList  = [];
+        $earningsThisMonth    = 0.0;
 
-        if (!empty($vendorServiceIds)) {
-            $pendingBookings = $bookingItemModel->whereIn('service_id', $vendorServiceIds)->where('status', 'pending')->countAllResults();
+        if (! empty($vendorServiceIds)) {
+            $pendingBookings  = $bookingItemModel->whereIn('service_id', $vendorServiceIds)->where('status', 'pending')->countAllResults();
             $upcomingBookings = $bookingItemModel->whereIn('service_id', $vendorServiceIds)->where('status', 'accepted')->countAllResults();
 
             $upcomingBookingsList = $bookingItemModel
@@ -157,9 +168,9 @@ class Profile extends BaseController
                 ->orderBy('events.`date`', 'ASC', false)->limit(5)->findAll();
 
             // Calculate earnings this month: payments received for bookings of vendor's services
-            $monthStart = date('Y-m-01 00:00:00');
-            $monthEnd   = date('Y-m-t 23:59:59');
-            $db = \Config\Database::connect();
+            $monthStart  = date('Y-m-01 00:00:00');
+            $monthEnd    = date('Y-m-t 23:59:59');
+            $db          = Database::connect();
             $earningsRow = $db->table('payments')
                 ->select('SUM(payments.amount_paid) as total')
                 ->join('booking_items', 'booking_items.booking_id = payments.booking_id')
@@ -174,25 +185,28 @@ class Profile extends BaseController
         $unreadMessages = $chatMessageModel->where('receiver_id', $userId)->where('is_read', 0)->countAllResults();
 
         $servicesMissingImages = 0;
-        $serviceHealthItems = [];
+        $serviceHealthItems    = [];
+
         foreach ($activeServices as $svc) {
             $hasImages = $serviceImageModel->where('service_id', $svc['id'])->countAllResults() > 0;
-            if (!$hasImages) $servicesMissingImages++;
-            $bookingsCount = $bookingItemModel->where('service_id', $svc['id'])->countAllResults();
+            if (! $hasImages) {
+                $servicesMissingImages++;
+            }
+            $bookingsCount        = $bookingItemModel->where('service_id', $svc['id'])->countAllResults();
             $serviceHealthItems[] = [
-                'title'           => $svc['title'],
-                'has_images'      => $hasImages,
-                'has_price'       => !empty($svc['price']),
-                'has_description' => !empty($svc['description']),
-                'has_cancellation'=> !empty($svc['cancellation_policy']),
-                'bookings_count'  => $bookingsCount,
+                'title'            => $svc['title'],
+                'has_images'       => $hasImages,
+                'has_price'        => ! empty($svc['price']),
+                'has_description'  => ! empty($svc['description']),
+                'has_cancellation' => ! empty($svc['cancellation_policy']),
+                'bookings_count'   => $bookingsCount,
             ];
         }
 
         // Add guest_count to pending and upcoming lists.
         foreach ($pendingBookingsList as &$row) {
-            if (!isset($row['guest_count']) && !empty($row['event_id'])) {
-                $ev = (new \App\Models\EventModel())->find($row['event_id']);
+            if (! isset($row['guest_count']) && ! empty($row['event_id'])) {
+                $ev                 = (new EventModel())->find($row['event_id']);
                 $row['guest_count'] = $ev['guest_count'] ?? null;
             }
         }
@@ -200,12 +214,13 @@ class Profile extends BaseController
 
         // Payout summary — use this month's earnings as settled, outstanding accepted as pending.
         $pendingPayoutAmount = 0.0;
-        if (!empty($vendorServiceIds)) {
+        if (! empty($vendorServiceIds)) {
             $acceptedItems = $bookingItemModel
                 ->select('booking_items.price', false)
                 ->whereIn('service_id', $vendorServiceIds)
                 ->whereIn('status', ['accepted', 'confirmed'])
                 ->findAll();
+
             foreach ($acceptedItems as $ai) {
                 $pendingPayoutAmount += (float) ($ai['price'] ?? 0);
             }
@@ -217,50 +232,50 @@ class Profile extends BaseController
         ];
 
         return view('dashboard/vendor_main', [
-            'user' => $user,
-            'activeServicesCount' => count($activeServices),
-            'pendingBookings' => $pendingBookings,
-            'upcomingBookings' => $upcomingBookings,
-            'upcomingBookingsList' => $upcomingBookingsList,
-            'pendingBookingsList' => $pendingBookingsList,
-            'unreadMessages' => $unreadMessages,
+            'user'                  => $user,
+            'activeServicesCount'   => count($activeServices),
+            'pendingBookings'       => $pendingBookings,
+            'upcomingBookings'      => $upcomingBookings,
+            'upcomingBookingsList'  => $upcomingBookingsList,
+            'pendingBookingsList'   => $pendingBookingsList,
+            'unreadMessages'        => $unreadMessages,
             'servicesMissingImages' => $servicesMissingImages,
-            'serviceHealthItems' => $serviceHealthItems,
-            'earningsThisMonth' => $earningsThisMonth,
-            'payouts' => $payouts,
-            'currentTab' => 'main',
+            'serviceHealthItems'    => $serviceHealthItems,
+            'earningsThisMonth'     => $earningsThisMonth,
+            'payouts'               => $payouts,
+            'currentTab'            => 'main',
         ]);
     }
 
     private function customerMain($user)
     {
-        $userId = $user['id'];
-        $eventModel = new EventModel();
-        $bookingModel = new BookingModel();
+        $userId           = $user['id'];
+        $eventModel       = new EventModel();
+        $bookingModel     = new BookingModel();
         $bookingItemModel = new BookingItemModel();
-        $serviceModel = new ServiceModel();
-        $userModel = new UserModel();
+        $serviceModel     = new ServiceModel();
+        $userModel        = new UserModel();
         $chatMessageModel = new ChatMessageModel();
-        $paymentsModel = new PaymentsModel();
-        $categoryModel = new CategoryModel();
+        $paymentsModel    = new PaymentsModel();
+        $categoryModel    = new CategoryModel();
 
-        $events = $eventModel->where('user_id', $userId)->orderBy('date', 'ASC')->findAll();
-        $summaryLib = new CustomerEventSummary();
-        $enrichedEvents = $summaryLib->enrichMany($userId, $events);
+        $events               = $eventModel->where('user_id', $userId)->orderBy('date', 'ASC')->findAll();
+        $summaryLib           = new CustomerEventSummary();
+        $enrichedEvents       = $summaryLib->enrichMany($userId, $events);
         $totalPendingRequests = 0;
-        $totalAccepted = 0;
-        $totalDeclined = 0;
-        $totalConfirmed = 0;
+        $totalAccepted        = 0;
+        $totalDeclined        = 0;
+        $totalConfirmed       = 0;
         $totalAwaitingPayment = 0;
-        $totalSpend = 0.0;
-        $depositsPaid = 0.0;
+        $totalSpend           = 0.0;
+        $depositsPaid         = 0.0;
 
         foreach ($enrichedEvents as &$event) {
             $event['servicesBooked'] = $event['services_booked'] ?? 0;
-            $event['totalCost'] = $event['total_cost'] ?? 0;
+            $event['totalCost']      = $event['total_cost'] ?? 0;
             $totalSpend += (float) $event['total_cost'];
 
-            $bookings = $bookingModel->where('event_id', $event['id'])->findAll();
+            $bookings          = $bookingModel->where('event_id', $event['id'])->findAll();
             $eventBookingItems = [];
 
             foreach ($bookings as $booking) {
@@ -275,23 +290,27 @@ class Profile extends BaseController
                 }
 
                 foreach ($items as &$item) {
-                    $vendor = $userModel->find($item['vendor_id']);
-                    $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
+                    $vendor                 = $userModel->find($item['vendor_id']);
+                    $item['vendor_name']    = $vendor ? $vendor['name'] : 'Unknown';
                     $item['payment_status'] = $payment ? $payment['payment_status'] : 'not paid';
-                    if (!$payment && in_array($item['status'], ['accepted', 'confirmed'], true)) {
+                    if (! $payment && in_array($item['status'], ['accepted', 'confirmed'], true)) {
                         $totalAwaitingPayment++;
                     }
+
                     switch ($item['status']) {
                         case 'pending':
                             $totalPendingRequests++;
                             break;
+
                         case 'accepted':
                             $totalAccepted++;
                             break;
+
                         case 'rejected':
                         case 'cancelled':
                             $totalDeclined++;
                             break;
+
                         case 'confirmed':
                             $totalConfirmed++;
                             break;
@@ -312,10 +331,11 @@ class Profile extends BaseController
             ->orderBy('chat_messages.created_at', 'DESC')->limit(5)->findAll();
 
         // Compute days until each event and sort ascending (soonest first) for countdown cards.
-        $today = new \DateTime('today');
+        $today = new DateTime('today');
+
         foreach ($enrichedEvents as &$ev) {
-            if (!empty($ev['date'])) {
-                $d = new \DateTime($ev['date']);
+            if (! empty($ev['date'])) {
+                $d          = new DateTime($ev['date']);
                 $ev['days'] = (int) $today->diff($d)->days * ($d >= $today ? 1 : -1);
             } else {
                 $ev['days'] = null;
@@ -325,18 +345,19 @@ class Profile extends BaseController
         usort($enrichedEvents, static function ($a, $b) {
             $da = $a['days'] ?? PHP_INT_MAX;
             $db = $b['days'] ?? PHP_INT_MAX;
+
             return $da <=> $db;
         });
 
         return view('dashboard/customer_main', [
-            'user' => $user, 'events' => $enrichedEvents,
-            'totalPendingRequests' => $totalPendingRequests, 'totalAccepted' => $totalAccepted,
-            'totalDeclined' => $totalDeclined, 'totalConfirmed' => $totalConfirmed,
-            'totalAwaitingPayment' => $totalAwaitingPayment, 'unreadMessages' => $unreadMessages,
-            'recentMessages' => $recentMessages, 'totalSpend' => $totalSpend,
-            'depositsPaid' => $depositsPaid, 'categories' => $categoryModel->getRootCategories(),
-            'recommendedCategories' => \App\Libraries\CustomerDashboardRecommendations::forUser($userId, $categoryModel),
-            'currentTab' => 'main',
+            'user'                  => $user, 'events' => $enrichedEvents,
+            'totalPendingRequests'  => $totalPendingRequests, 'totalAccepted' => $totalAccepted,
+            'totalDeclined'         => $totalDeclined, 'totalConfirmed' => $totalConfirmed,
+            'totalAwaitingPayment'  => $totalAwaitingPayment, 'unreadMessages' => $unreadMessages,
+            'recentMessages'        => $recentMessages, 'totalSpend' => $totalSpend,
+            'depositsPaid'          => $depositsPaid, 'categories' => $categoryModel->getRootCategories(),
+            'recommendedCategories' => CustomerDashboardRecommendations::forUser($userId, $categoryModel),
+            'currentTab'            => 'main',
         ]);
     }
 
@@ -346,15 +367,18 @@ class Profile extends BaseController
 
     public function services()
     {
-        if ($r = $this->requireVendor()) return $r;
-        $user = $this->getUser();
-        $userId = $user['id'];
-        $serviceModel = new ServiceModel();
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $user              = $this->getUser();
+        $userId            = $user['id'];
+        $serviceModel      = new ServiceModel();
         $serviceImageModel = new ServiceImageModel();
-        $categoryModel = new CategoryModel();
+        $categoryModel     = new CategoryModel();
 
         $bookingItemModel = new BookingItemModel();
-        $allServices = $serviceModel->where('vendor_id', $userId)->where('deleted_at', null)->findAll();
+        $allServices      = $serviceModel->where('vendor_id', $userId)->where('deleted_at', null)->findAll();
+
         foreach ($allServices as &$svc) {
             $svc['images']         = $serviceImageModel->where(['service_id' => $svc['id'], 'is_primary' => 1])->findAll();
             $svc['category_name']  = $categoryModel->getServiceCategoryLabel($svc);
@@ -371,17 +395,19 @@ class Profile extends BaseController
 
     public function vendorBookings()
     {
-        if ($r = $this->requireVendor()) return $r;
-        $user = $this->getUser();
-        $userId = $user['id'];
-        $serviceModel = new ServiceModel();
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $user             = $this->getUser();
+        $userId           = $user['id'];
+        $serviceModel     = new ServiceModel();
         $bookingItemModel = new BookingItemModel();
 
-        $vendorServices = $serviceModel->where('vendor_id', $userId)->findAll();
+        $vendorServices   = $serviceModel->where('vendor_id', $userId)->findAll();
         $vendorServiceIds = array_column($vendorServices, 'id');
 
         $bookingItems = [];
-        if (!empty($vendorServiceIds)) {
+        if (! empty($vendorServiceIds)) {
             $bookingItems = $bookingItemModel
                 ->select('booking_items.*, bookings.user_id, bookings.event_id, bookings.status as booking_status, bookings.created_at as request_date,
                           events.title as event_title, events.`date` as event_date, events.location, events.event_type,
@@ -399,10 +425,10 @@ class Profile extends BaseController
                 ->findAll();
 
             foreach ($bookingItems as &$bi) {
-                $qd = json_decode($bi['quote_breakdown'] ?? '', true);
+                $qd                 = json_decode($bi['quote_breakdown'] ?? '', true);
                 $bi['quote_detail'] = is_array($qd) ? $qd : null;
-                if ($bi['quote_detail'] === null && !empty($bi['quote_warnings'])) {
-                    $w = json_decode($bi['quote_warnings'], true);
+                if ($bi['quote_detail'] === null && ! empty($bi['quote_warnings'])) {
+                    $w                  = json_decode($bi['quote_warnings'], true);
                     $bi['quote_detail'] = ['lines' => [], 'warnings' => is_array($w) ? $w : []];
                 }
             }
@@ -410,26 +436,30 @@ class Profile extends BaseController
         }
 
         return view('dashboard/vendor_bookings', [
-            'user' => $user,
+            'user'         => $user,
             'bookingItems' => $bookingItems,
-            'currentTab' => 'bookings',
+            'currentTab'   => 'bookings',
         ]);
     }
 
     public function vendorCalendar()
     {
-        if ($r = $this->requireVendor()) return $r;
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
         $user = $this->getUser();
 
         return view('dashboard/vendor_calendar', [
-            'user' => $user,
+            'user'       => $user,
             'currentTab' => 'calendar',
         ]);
     }
 
     public function vendorEarnings()
     {
-        if ($r = $this->requireVendor()) return $r;
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
         $user   = $this->getUser();
         $userId = (int) $user['id'];
 
@@ -437,8 +467,8 @@ class Profile extends BaseController
         $bookingItemModel = new BookingItemModel();
         $paymentsModel    = new PaymentsModel();
 
-        $services       = $serviceModel->where('vendor_id', $userId)->where('status', 'active')->findAll();
-        $serviceIds     = array_column($services, 'id');
+        $services   = $serviceModel->where('vendor_id', $userId)->where('status', 'active')->findAll();
+        $serviceIds = array_column($services, 'id');
 
         $earningsThisMonth = 0.0;
         $settledTotal      = 0.0;
@@ -447,12 +477,12 @@ class Profile extends BaseController
         $payoutHistory     = [];
 
         if (! empty($serviceIds)) {
-            $db = \Config\Database::connect();
+            $db = Database::connect();
 
             // This month
             $monthStart = date('Y-m-01 00:00:00');
             $monthEnd   = date('Y-m-t 23:59:59');
-            $row = $db->table('payments')
+            $row        = $db->table('payments')
                 ->select('SUM(payments.amount_paid) as total')
                 ->join('booking_items', 'booking_items.booking_id = payments.booking_id')
                 ->whereIn('booking_items.service_id', $serviceIds)
@@ -464,7 +494,7 @@ class Profile extends BaseController
 
             // Last 6 months
             for ($i = 5; $i >= 0; $i--) {
-                $ts    = strtotime("-{$i} months");
+                $ts     = strtotime("-{$i} months");
                 $mStart = date('Y-m-01 00:00:00', $ts);
                 $mEnd   = date('Y-m-t 23:59:59', $ts);
                 $mRow   = $db->table('payments')
@@ -489,6 +519,7 @@ class Profile extends BaseController
                 ->where('booking_items.status', 'accepted')
                 ->where('(payments.id IS NULL OR payments.payment_status != \'succeeded\')', null, false)
                 ->findAll();
+
             foreach ($pendingItems as $pi) {
                 $pendingTotal += DepositCalculator::forTotal((float) ($pi['price'] ?? 0));
             }
@@ -501,6 +532,7 @@ class Profile extends BaseController
                 ->orderBy('payments.created_at', 'DESC')
                 ->limit(8)
                 ->get()->getResultArray();
+
             foreach ($payoutHistory as &$ph) {
                 $ph['status']    = $ph['status'] === 'succeeded' ? 'settled' : 'pending';
                 $ph['date']      = date('d M Y', strtotime($ph['date']));
@@ -509,7 +541,7 @@ class Profile extends BaseController
             unset($ph);
         }
 
-        $allMonths = array_column($monthlyEarnings, 'amount');
+        $allMonths  = array_column($monthlyEarnings, 'amount');
         $avgMonthly = count($allMonths) > 0 ? array_sum($allMonths) / count($allMonths) : 0;
 
         return view('dashboard/vendor_earnings', [
@@ -526,7 +558,9 @@ class Profile extends BaseController
 
     public function vendorRequestDetail($bookingItemId)
     {
-        if ($r = $this->requireVendor()) return $r;
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
         $user   = $this->getUser();
         $userId = (int) $user['id'];
 
@@ -552,7 +586,7 @@ class Profile extends BaseController
             return redirect()->to('/profile/bookings')->with('error', 'Request not found.');
         }
 
-        $qd = json_decode($item['quote_breakdown'] ?? '', true);
+        $qd                   = json_decode($item['quote_breakdown'] ?? '', true);
         $item['quote_detail'] = is_array($qd) ? $qd : null;
 
         return view('dashboard/vendor_request_detail', [
@@ -573,7 +607,7 @@ class Profile extends BaseController
             $userModel = new UserModel();
 
             $playsRaw = $this->request->getPost('host_plays') ?? '';
-            $plays = array_values(array_filter(array_map('trim', explode(',', $playsRaw))));
+            $plays    = array_values(array_filter(array_map('trim', explode(',', $playsRaw))));
 
             $updateData = [
                 'host_bio'     => $this->request->getPost('host_bio'),
@@ -603,6 +637,7 @@ class Profile extends BaseController
         $serviceModel      = new ServiceModel();
         $serviceImageModel = new ServiceImageModel();
         $hostServices      = $serviceModel->where('vendor_id', $user['id'])->where('status', 'active')->where('deleted_at', null)->findAll();
+
         foreach ($hostServices as &$svc) {
             $svc['images'] = $serviceImageModel->where(['service_id' => $svc['id'], 'is_primary' => 1])->findAll();
         }
@@ -615,25 +650,136 @@ class Profile extends BaseController
         ]);
     }
 
+    /**
+     * "My site" — the vendor's white-label storefront appearance editor.
+     * Edits only the presentation fields of the vendor's own vendor_sites
+     * row (colours, logo, about, public phone). Subdomain, status and
+     * vendor_id are never writable here — those are onboarding/billing
+     * concerns, not appearance.
+     */
+    public function mySite()
+    {
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $user      = $this->getUser();
+        $siteModel = new VendorSiteModel();
+        $site      = $siteModel->where('vendor_id', (int) $user['id'])->first();
+
+        // No storefront provisioned yet — appearance editing needs a site row
+        // (subdomain allocation is onboarding, out of scope here).
+        if ($site === null) {
+            return view('dashboard/vendor_my_site', [
+                'user'       => $user,
+                'site'       => null,
+                'currentTab' => 'my-site',
+            ]);
+        }
+
+        if ($this->request->getMethod() === 'POST') {
+            return $this->saveMySite($user, $site, $siteModel);
+        }
+
+        return view('dashboard/vendor_my_site', [
+            'user'       => $user,
+            'site'       => $site,
+            'currentTab' => 'my-site',
+        ]);
+    }
+
+    /**
+     * Validate + persist the appearance fields for the vendor's storefront.
+     */
+    private function saveMySite(array $user, array $site, VendorSiteModel $siteModel)
+    {
+        $back = redirect()->to('/profile/my-site');
+
+        $primary   = $this->normaliseHexColour($this->request->getPost('primary_color'));
+        $secondary = $this->normaliseHexColour($this->request->getPost('secondary_color'));
+        if ($this->request->getPost('primary_color') !== null && $this->request->getPost('primary_color') !== '' && $primary === null) {
+            return $back->with('error', 'Main colour must be a hex value like #2E5FD7.');
+        }
+        if ($this->request->getPost('secondary_color') !== null && $this->request->getPost('secondary_color') !== '' && $secondary === null) {
+            return $back->with('error', 'Accent colour must be a hex value like #FFB300.');
+        }
+
+        $about = trim((string) $this->request->getPost('about_text'));
+        if (mb_strlen($about) > 1000) {
+            return $back->with('error', 'About text must be 1000 characters or fewer.');
+        }
+        $phone = trim((string) $this->request->getPost('phone'));
+        if (mb_strlen($phone) > 32) {
+            return $back->with('error', 'Phone number is too long.');
+        }
+
+        $update = [
+            'primary_color'   => $primary,
+            'secondary_color' => $secondary,
+            'about_text'      => $about !== '' ? $about : null,
+            'phone'           => $phone !== '' ? $phone : null,
+        ];
+
+        $logo = $this->request->getFile('logo');
+        if ($logo && $logo->isValid() && ! $logo->hasMoved()) {
+            if (! in_array(strtolower($logo->getExtension()), ['jpg', 'jpeg', 'png', 'webp', 'svg'], true)) {
+                return $back->with('error', 'Logo must be a jpg, png, webp or svg file.');
+            }
+            if ($logo->getSize() > 2 * 1024 * 1024) {
+                return $back->with('error', 'Logo must be under 2 MB.');
+            }
+            $dir     = ROOTPATH . 'public/uploads/vendor_logos/';
+            $newName = 'site_' . (int) $site['id'] . '_' . time() . '.' . $logo->getExtension();
+            $logo->move($dir, $newName);
+            $update['logo_path'] = 'uploads/vendor_logos/' . $newName;
+        }
+
+        $siteModel->update((int) $site['id'], $update);
+
+        return $back->with('success', 'Your site has been updated — changes are live.');
+    }
+
+    /**
+     * Accept a #RGB or #RRGGBB colour and normalise to lowercase #rrggbb,
+     * or null if blank/invalid. Mirrors the tenant layout's hex guard so the
+     * stored value is always safe to inject into CSS.
+     *
+     * @param mixed $value
+     */
+    private function normaliseHexColour($value): ?string
+    {
+        $value = strtolower(trim((string) $value));
+        if ($value === '') {
+            return null;
+        }
+        if (preg_match('/^#([0-9a-f]{3})$/', $value, $m)) {
+            return '#' . $m[1][0] . $m[1][0] . $m[1][1] . $m[1][1] . $m[1][2] . $m[1][2];
+        }
+
+        return preg_match('/^#[0-9a-f]{6}$/', $value) === 1 ? $value : null;
+    }
+
     public function calendarData()
     {
-        if (!session()->has('user_id')) return $this->response->setJSON([]);
-        $userModel = new UserModel();
-        $user = $userModel->find((int) session()->get('user_id'));
-        if (!$user || ($user['role'] ?? '') !== 'vendor') {
+        if (! session()->has('user_id')) {
             return $this->response->setJSON([]);
         }
-        $userId = session()->get('user_id');
-        $serviceModel = new ServiceModel();
+        $userModel = new UserModel();
+        $user      = $userModel->find((int) session()->get('user_id'));
+        if (! $user || ($user['role'] ?? '') !== 'vendor') {
+            return $this->response->setJSON([]);
+        }
+        $userId           = session()->get('user_id');
+        $serviceModel     = new ServiceModel();
         $bookingItemModel = new BookingItemModel();
 
-        $vendorServices = $serviceModel->where('vendor_id', $userId)->findAll();
+        $vendorServices   = $serviceModel->where('vendor_id', $userId)->findAll();
         $vendorServiceIds = array_column($vendorServices, 'id');
 
         $calendarEvents = [];
 
         // Vendor-level blocked (unavailable) dates — rendered so they can be toggled off.
-        $blockedDates = (new \App\Models\UnavailableDateModel())->where('vendor_id', $userId)->findAll();
+        $blockedDates = (new UnavailableDateModel())->where('vendor_id', $userId)->findAll();
+
         foreach ($blockedDates as $bd) {
             $calendarEvents[] = [
                 'title'         => 'Blocked',
@@ -656,17 +802,19 @@ class Profile extends BaseController
 
         foreach ($items as $item) {
             $color = '#ffc107';
-            if ($item['status'] === 'accepted' || $item['status'] === 'confirmed') $color = '#198754';
+            if ($item['status'] === 'accepted' || $item['status'] === 'confirmed') {
+                $color = '#198754';
+            }
             $calendarEvents[] = [
-                'title' => $item['event_title'] . ' - ' . $item['service_title'],
-                'start' => $item['event_date'],
-                'color' => $color,
+                'title'         => $item['event_title'] . ' - ' . $item['service_title'],
+                'start'         => $item['event_date'],
+                'color'         => $color,
                 'extendedProps' => [
-                    'customer' => $item['customer_name'],
+                    'customer'   => $item['customer_name'],
                     'event_type' => $item['event_type'] ?? '',
-                    'location' => $item['location'] ?? '',
-                    'service' => $item['service_title'],
-                    'status' => ucfirst($item['status']),
+                    'location'   => $item['location'] ?? '',
+                    'service'    => $item['service_title'],
+                    'status'     => ucfirst($item['status']),
                 ],
             ];
         }
@@ -681,21 +829,21 @@ class Profile extends BaseController
      */
     public function toggleBlockDate()
     {
-        if (!session()->has('user_id')) {
+        if (! session()->has('user_id')) {
             return $this->response->setStatusCode(401)->setJSON(['ok' => false, 'error' => 'Not signed in']);
         }
         $user = (new UserModel())->find((int) session()->get('user_id'));
-        if (!$user || ($user['role'] ?? '') !== 'vendor') {
+        if (! $user || ($user['role'] ?? '') !== 'vendor') {
             return $this->response->setStatusCode(403)->setJSON(['ok' => false, 'error' => 'Vendors only']);
         }
 
         $date = trim((string) $this->request->getPost('date'));
-        if (!preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
+        if (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date)) {
             return $this->response->setStatusCode(400)->setJSON(['ok' => false, 'error' => 'Invalid date', 'csrfHash' => csrf_hash()]);
         }
 
         $vendorId = (int) session()->get('user_id');
-        $model    = new \App\Models\UnavailableDateModel();
+        $model    = new UnavailableDateModel();
         $existing = $model->where('vendor_id', $vendorId)->where('date', $date)->first();
 
         if ($existing) {
@@ -720,20 +868,23 @@ class Profile extends BaseController
 
     public function customerEvents()
     {
-        if ($r = $this->requireCustomer()) return $r;
-        $user = $this->getUser();
-        $userId = (int) $user['id'];
+        if ($r = $this->requireCustomer()) {
+            return $r;
+        }
+        $user       = $this->getUser();
+        $userId     = (int) $user['id'];
         $eventModel = new EventModel();
-        $summary = new CustomerEventSummary();
+        $summary    = new CustomerEventSummary();
 
         $events = $eventModel->where('user_id', $userId)->orderBy('date', 'ASC')->findAll();
         $events = $summary->enrichMany($userId, $events);
-        $today  = new \DateTime('today');
+        $today  = new DateTime('today');
+
         foreach ($events as &$event) {
             $event['servicesBooked'] = $event['services_booked'] ?? 0;
             $event['totalCost']      = $event['total_cost'] ?? 0;
             if (! empty($event['date'])) {
-                $d             = new \DateTime($event['date']);
+                $d             = new DateTime($event['date']);
                 $event['days'] = (int) $today->diff($d)->days * ($d >= $today ? 1 : -1);
             } else {
                 $event['days'] = null;
@@ -751,7 +902,9 @@ class Profile extends BaseController
 
     public function customerEventDetail($eventId)
     {
-        if ($r = $this->requireCustomer()) return $r;
+        if ($r = $this->requireCustomer()) {
+            return $r;
+        }
         $user   = $this->getUser();
         $userId = (int) $user['id'];
 
@@ -766,14 +919,15 @@ class Profile extends BaseController
             return redirect()->to('/profile/events')->with('error', 'Event not found.');
         }
 
-        $today = new \DateTime('today');
+        $today = new DateTime('today');
         if (! empty($event['date'])) {
-            $d              = new \DateTime($event['date']);
-            $event['days']  = (int) $today->diff($d)->days * ($d >= $today ? 1 : -1);
+            $d             = new DateTime($event['date']);
+            $event['days'] = (int) $today->diff($d)->days * ($d >= $today ? 1 : -1);
         }
 
         $bookings     = $bookingModel->where('event_id', $event['id'])->findAll();
         $liveBookings = [];
+
         foreach ($bookings as $booking) {
             $items = $bookingItemModel
                 ->select('booking_items.*, services.title as service_title, services.category_id, users.name as vendor_name, payments.payment_status, payments.amount_paid', false)
@@ -782,6 +936,7 @@ class Profile extends BaseController
                 ->join('payments', 'payments.booking_id = booking_items.booking_id', 'left')
                 ->where('booking_items.booking_id', $booking['id'])
                 ->findAll();
+
             foreach ($items as $item) {
                 if (! in_array($item['status'] ?? '', ['rejected', 'cancelled'], true)) {
                     $liveBookings[] = array_merge($item, [
@@ -794,7 +949,7 @@ class Profile extends BaseController
             }
         }
 
-        $categoryModel      = new \App\Models\CategoryModel();
+        $categoryModel      = new CategoryModel();
         $planningCategories = ['Venue', 'Catering', 'Photography', 'Entertainment', 'Flowers', 'Cake', 'Transport', 'Hair & beauty'];
 
         return view('dashboard/customer_event_detail', [
@@ -808,7 +963,9 @@ class Profile extends BaseController
 
     public function customerBookingDetail($bookingItemId)
     {
-        if ($r = $this->requireCustomer()) return $r;
+        if ($r = $this->requireCustomer()) {
+            return $r;
+        }
         $user   = $this->getUser();
         $userId = (int) $user['id'];
 
@@ -834,8 +991,8 @@ class Profile extends BaseController
             return redirect()->to('/profile/my-bookings')->with('error', 'Booking not found.');
         }
 
-        $qd = json_decode($item['quote_breakdown'] ?? '', true);
-        $item['quote_detail'] = is_array($qd) ? $qd : null;
+        $qd                           = json_decode($item['quote_breakdown'] ?? '', true);
+        $item['quote_detail']         = is_array($qd) ? $qd : null;
         $item['pending_vendor_quote'] = $vqModel
             ->where('booking_item_id', (int) $item['id'])
             ->where('status', 'sent')
@@ -844,7 +1001,7 @@ class Profile extends BaseController
 
         $reviewableIds = array_map(
             static fn ($r) => (int) $r['booking_item_id'],
-            $bookingItemModel->reviewableItemsForCustomer($userId)
+            $bookingItemModel->reviewableItemsForCustomer($userId),
         );
 
         return view('dashboard/customer_booking_detail', [
@@ -861,10 +1018,10 @@ class Profile extends BaseController
         if ($r = $this->requireCustomer()) {
             return $r;
         }
-        $userId = (int) session()->get('user_id');
+        $userId     = (int) session()->get('user_id');
         $eventModel = new EventModel();
-        $event = $eventModel->find((int) $eventId);
-        if (!$event || (int) ($event['user_id'] ?? 0) !== $userId) {
+        $event      = $eventModel->find((int) $eventId);
+        if (! $event || (int) ($event['user_id'] ?? 0) !== $userId) {
             return redirect()->to('/profile/events')->with('error', 'Event not found.');
         }
 
@@ -884,13 +1041,15 @@ class Profile extends BaseController
 
     public function customerBookings()
     {
-        if ($r = $this->requireCustomer()) return $r;
-        $user = $this->getUser();
-        $userId = $user['id'];
-        $bookingModel = new BookingModel();
+        if ($r = $this->requireCustomer()) {
+            return $r;
+        }
+        $user             = $this->getUser();
+        $userId           = $user['id'];
+        $bookingModel     = new BookingModel();
         $bookingItemModel = new BookingItemModel();
-        $paymentsModel = new PaymentsModel();
-        $userModel = new UserModel();
+        $paymentsModel    = new PaymentsModel();
+        $userModel        = new UserModel();
 
         $filterEventId = (int) ($this->request->getGet('event_id') ?? 0);
 
@@ -909,12 +1068,13 @@ class Profile extends BaseController
         }
 
         $allItems = $builder->findAll();
-        $vqModel = new VendorQuoteModel();
+        $vqModel  = new VendorQuoteModel();
 
         // Pre-calculate total price per booking so deposit can be split proportionally.
         $bookingTotals = [];
+
         foreach ($allItems as $bItem) {
-            $bid = (int) $bItem['booking_id'];
+            $bid                 = (int) $bItem['booking_id'];
             $bookingTotals[$bid] = ($bookingTotals[$bid] ?? 0.0) + (float) ($bItem['price'] ?? $bItem['service_price'] ?? 0);
         }
 
@@ -922,37 +1082,38 @@ class Profile extends BaseController
         $paymentsCache = [];
 
         foreach ($allItems as &$item) {
-            $vendor = $userModel->find($item['vendor_id']);
+            $vendor              = $userModel->find($item['vendor_id']);
             $item['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
-            $bid = (int) $item['booking_id'];
+            $bid                 = (int) $item['booking_id'];
             if (! array_key_exists($bid, $paymentsCache)) {
                 $paymentsCache[$bid] = $paymentsModel->where('booking_id', $bid)->first();
             }
-            $payment = $paymentsCache[$bid];
+            $payment                = $paymentsCache[$bid];
             $item['payment_status'] = $payment ? $payment['payment_status'] : 'unpaid';
-            $itemPrice = (float) ($item['price'] ?? $item['service_price'] ?? 0);
-            $bookingTotal = $bookingTotals[$bid] ?: $itemPrice;
-            $totalPaid    = $payment ? (float) ($payment['amount_paid'] ?? 0) : 0.0;
-            $item['amount_paid'] = ($bookingTotal > 0 && $totalPaid > 0)
+            $itemPrice              = (float) ($item['price'] ?? $item['service_price'] ?? 0);
+            $bookingTotal           = $bookingTotals[$bid] ?: $itemPrice;
+            $totalPaid              = $payment ? (float) ($payment['amount_paid'] ?? 0) : 0.0;
+            $item['amount_paid']    = ($bookingTotal > 0 && $totalPaid > 0)
                 ? round($itemPrice / $bookingTotal * $totalPaid, 2)
                 : 0.0;
-            $item['outstanding'] = max(0.0, $itemPrice - $item['amount_paid']);
-            $qd = json_decode($item['quote_breakdown'] ?? '', true);
-            $item['quote_detail'] = is_array($qd) ? $qd : null;
+            $item['outstanding']          = max(0.0, $itemPrice - $item['amount_paid']);
+            $qd                           = json_decode($item['quote_breakdown'] ?? '', true);
+            $item['quote_detail']         = is_array($qd) ? $qd : null;
             $item['pending_vendor_quote'] = $vqModel->where('booking_item_id', (int) $item['id'])
                 ->where('status', 'sent')->orderBy('id', 'DESC')->first();
         }
         unset($item);
 
         $groupedByEvent = [];
+
         foreach ($allItems as $item) {
             $eid = (int) ($item['event_id'] ?? 0);
-            if (!isset($groupedByEvent[$eid])) {
+            if (! isset($groupedByEvent[$eid])) {
                 $groupedByEvent[$eid] = [
                     'event_title' => $item['event_title'] ?? '',
-                    'event_date' => $item['event_date'] ?? '',
-                    'location' => $item['location'] ?? '',
-                    'items' => [],
+                    'event_date'  => $item['event_date'] ?? '',
+                    'location'    => $item['location'] ?? '',
+                    'items'       => [],
                 ];
             }
             $groupedByEvent[$eid]['items'][] = $item;
@@ -960,34 +1121,36 @@ class Profile extends BaseController
 
         $reviewableIds = array_map(
             static fn ($r) => (int) $r['booking_item_id'],
-            $bookingItemModel->reviewableItemsForCustomer($userId)
+            $bookingItemModel->reviewableItemsForCustomer($userId),
         );
 
         return view('dashboard/customer_bookings', [
-            'user' => $user,
-            'bookingItems' => $allItems,
+            'user'           => $user,
+            'bookingItems'   => $allItems,
             'groupedByEvent' => $groupedByEvent,
-            'filterEventId' => $filterEventId,
-            'reviewableIds' => $reviewableIds,
-            'currentTab' => 'bookings',
+            'filterEventId'  => $filterEventId,
+            'reviewableIds'  => $reviewableIds,
+            'currentTab'     => 'bookings',
         ]);
     }
 
     public function customerMessages()
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireLogin()) {
+            return $r;
+        }
         $user = $this->getUser();
-        if (!$user) {
+        if (! $user) {
             return redirect()->to('/')->with('error', 'User not found.');
         }
         if (($user['role'] ?? '') === 'admin') {
             return redirect()->to('/admin');
         }
-        $userId = $user['id'];
-        $chatRoomModel = new ChatRoomModel();
+        $userId           = $user['id'];
+        $chatRoomModel    = new ChatRoomModel();
         $chatMessageModel = new ChatMessageModel();
-        $userModel = new UserModel();
-        $serviceModel = new ServiceModel();
+        $userModel        = new UserModel();
+        $serviceModel     = new ServiceModel();
 
         $rooms = $chatRoomModel->groupStart()
             ->where('customer_id', $userId)
@@ -997,19 +1160,19 @@ class Profile extends BaseController
             ->findAll();
 
         foreach ($rooms as &$room) {
-            $peerId = ((int) $room['customer_id'] === (int) $userId) ? (int) $room['vendor_id'] : (int) $room['customer_id'];
-            $peer = $userModel->find($peerId);
-            $room['peer_name'] = $peer ? $peer['name'] : 'Unknown';
-            $vendor = $userModel->find($room['vendor_id']);
-            $room['vendor_name'] = $vendor ? $vendor['name'] : 'Unknown';
-            $customer = $userModel->find($room['customer_id']);
-            $room['customer_name'] = $customer ? $customer['name'] : 'Unknown';
-            $service = $serviceModel->find($room['service_id']);
-            $room['service_name'] = $service ? $service['title'] : '';
-            $lastMsg = $chatMessageModel->where('chat_room_id', $room['id'])->orderBy('created_at', 'DESC')->first();
-            $room['last_message'] = $lastMsg ? $lastMsg['message'] : '';
+            $peerId                    = ((int) $room['customer_id'] === (int) $userId) ? (int) $room['vendor_id'] : (int) $room['customer_id'];
+            $peer                      = $userModel->find($peerId);
+            $room['peer_name']         = $peer ? $peer['name'] : 'Unknown';
+            $vendor                    = $userModel->find($room['vendor_id']);
+            $room['vendor_name']       = $vendor ? $vendor['name'] : 'Unknown';
+            $customer                  = $userModel->find($room['customer_id']);
+            $room['customer_name']     = $customer ? $customer['name'] : 'Unknown';
+            $service                   = $serviceModel->find($room['service_id']);
+            $room['service_name']      = $service ? $service['title'] : '';
+            $lastMsg                   = $chatMessageModel->where('chat_room_id', $room['id'])->orderBy('created_at', 'DESC')->first();
+            $room['last_message']      = $lastMsg ? $lastMsg['message'] : '';
             $room['last_message_time'] = $lastMsg ? $lastMsg['created_at'] : $room['created_at'];
-            $room['unread_count'] = $chatMessageModel->where('chat_room_id', $room['id'])->where('receiver_id', $userId)->where('is_read', 0)->countAllResults();
+            $room['unread_count']      = $chatMessageModel->where('chat_room_id', $room['id'])->where('receiver_id', $userId)->where('is_read', 0)->countAllResults();
         }
 
         // Open the first room by default (or the one from the URL if called via customerMessageThread)
@@ -1031,17 +1194,21 @@ class Profile extends BaseController
 
     /**
      * Customer: open or create the thread for a listing after an eligible booking exists.
+     *
+     * @param mixed $serviceId
      */
     public function startMessageForService($serviceId)
     {
-        if ($r = $this->requireCustomer()) return $r;
-        $user = $this->getUser();
-        $userId = (int) $user['id'];
+        if ($r = $this->requireCustomer()) {
+            return $r;
+        }
+        $user      = $this->getUser();
+        $userId    = (int) $user['id'];
         $serviceId = (int) $serviceId;
 
         $serviceModel = new ServiceModel();
-        $service = $serviceModel->find($serviceId);
-        if (!$service) {
+        $service      = $serviceModel->find($serviceId);
+        if (! $service) {
             return redirect()->to('/browse-services')->with('error', 'Service not found.');
         }
 
@@ -1050,34 +1217,38 @@ class Profile extends BaseController
         }
 
         $bookingItemModel = new BookingItemModel();
-        if (!$bookingItemModel->customerHasEligibleBookingForService($userId, $serviceId)) {
+        if (! $bookingItemModel->customerHasEligibleBookingForService($userId, $serviceId)) {
             return redirect()->back()->with('error', 'Messaging is available after you have booked this service.');
         }
 
         $chatRoomModel = new ChatRoomModel();
-        $roomId = $chatRoomModel->ensureRoom((int) $service['vendor_id'], $userId, $serviceId);
+        $roomId        = $chatRoomModel->ensureRoom((int) $service['vendor_id'], $userId, $serviceId);
 
         return redirect()->to('/profile/messages/' . $roomId);
     }
 
     /**
      * Vendor: open the thread for a booking line item (must own the service).
+     *
+     * @param mixed $bookingItemId
      */
     public function openThreadForBookingItem($bookingItemId)
     {
-        if ($r = $this->requireVendor()) return $r;
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
         $user = $this->getUser();
 
-        $vendorId = (int) $user['id'];
+        $vendorId         = (int) $user['id'];
         $bookingItemModel = new BookingItemModel();
-        $row = $bookingItemModel
+        $row              = $bookingItemModel
             ->select('booking_items.*, bookings.user_id as customer_user_id, services.vendor_id', false)
             ->join('bookings', 'bookings.id = booking_items.booking_id')
             ->join('services', 'services.id = booking_items.service_id')
             ->where('booking_items.id', (int) $bookingItemId)
             ->first();
 
-        if (!$row || (int) $row['vendor_id'] !== $vendorId) {
+        if (! $row || (int) $row['vendor_id'] !== $vendorId) {
             return redirect()->to('/profile/bookings')->with('error', 'Booking not found.');
         }
 
@@ -1086,10 +1257,10 @@ class Profile extends BaseController
         }
 
         $chatRoomModel = new ChatRoomModel();
-        $roomId = $chatRoomModel->ensureRoom(
+        $roomId        = $chatRoomModel->ensureRoom(
             $vendorId,
             (int) $row['customer_user_id'],
-            (int) $row['service_id']
+            (int) $row['service_id'],
         );
 
         return redirect()->to('/profile/messages/' . $roomId);
@@ -1097,61 +1268,65 @@ class Profile extends BaseController
 
     public function customerMessageThread($roomId)
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireLogin()) {
+            return $r;
+        }
         $user = $this->getUser();
-        if (!$user) {
+        if (! $user) {
             return redirect()->to('/')->with('error', 'User not found.');
         }
         if (($user['role'] ?? '') === 'admin') {
             return redirect()->to('/admin');
         }
-        $userId = $user['id'];
-        $chatRoomModel = new ChatRoomModel();
+        $userId           = $user['id'];
+        $chatRoomModel    = new ChatRoomModel();
         $chatMessageModel = new ChatMessageModel();
-        $userModel = new UserModel();
-        $serviceModel = new ServiceModel();
+        $userModel        = new UserModel();
+        $serviceModel     = new ServiceModel();
 
         $room = $chatRoomModel->find($roomId);
-        if (!$room || ((int) $room['customer_id'] !== (int) $userId && (int) $room['vendor_id'] !== (int) $userId)) {
+        if (! $room || ((int) $room['customer_id'] !== (int) $userId && (int) $room['vendor_id'] !== (int) $userId)) {
             return redirect()->to('/profile/messages')->with('error', 'Conversation not found.');
         }
 
         $chatMessageModel->where('chat_room_id', $roomId)->where('receiver_id', $userId)->set('is_read', 1)->update();
 
         $messages = $chatMessageModel->where('chat_room_id', $roomId)->orderBy('created_at', 'ASC')->findAll();
-        $peerId = ((int) $room['customer_id'] === (int) $userId) ? (int) $room['vendor_id'] : (int) $room['customer_id'];
-        $peer = $userModel->find($peerId);
-        $service = $serviceModel->find($room['service_id']);
+        $peerId   = ((int) $room['customer_id'] === (int) $userId) ? (int) $room['vendor_id'] : (int) $room['customer_id'];
+        $peer     = $userModel->find($peerId);
+        $service  = $serviceModel->find($room['service_id']);
 
         return view('dashboard/customer_message_thread', [
-            'user' => $user,
-            'room' => $room,
-            'messages' => $messages,
-            'peer_name' => $peer ? $peer['name'] : 'Unknown',
-            'vendor_name' => $peer ? $peer['name'] : 'Unknown',
+            'user'         => $user,
+            'room'         => $room,
+            'messages'     => $messages,
+            'peer_name'    => $peer ? $peer['name'] : 'Unknown',
+            'vendor_name'  => $peer ? $peer['name'] : 'Unknown',
             'service_name' => $service ? $service['title'] : '',
-            'currentTab' => 'messages',
+            'currentTab'   => 'messages',
         ]);
     }
 
     public function sendMessage()
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireLogin()) {
+            return $r;
+        }
         $user = $this->getUser();
-        if (!$user) {
+        if (! $user) {
             return redirect()->to('/')->with('error', 'User not found.');
         }
         if (($user['role'] ?? '') === 'admin') {
             return redirect()->to('/admin');
         }
-        $userId = (int) session()->get('user_id');
+        $userId           = (int) session()->get('user_id');
         $chatMessageModel = new ChatMessageModel();
-        $chatRoomModel = new ChatRoomModel();
+        $chatRoomModel    = new ChatRoomModel();
 
-        $roomId = (int) $this->request->getPost('chat_room_id');
+        $roomId  = (int) $this->request->getPost('chat_room_id');
         $message = $this->request->getPost('message');
-        $room = $chatRoomModel->find($roomId);
-        if (!$room) {
+        $room    = $chatRoomModel->find($roomId);
+        if (! $room) {
             return redirect()->to('/profile/messages');
         }
 
@@ -1176,7 +1351,7 @@ class Profile extends BaseController
         if (($row['moderation_status'] ?? '') === ChatModeration::STATUS_PENDING) {
             $response = $response->with(
                 'moderation_warning',
-                'Inappropriate language was detected. Your message was partially masked and flagged for admin review.'
+                'Inappropriate language was detected. Your message was partially masked and flagged for admin review.',
             );
         }
 
@@ -1185,57 +1360,61 @@ class Profile extends BaseController
 
     public function customerPayments()
     {
-        if ($r = $this->requireCustomer()) return $r;
-        $user = $this->getUser();
-        $userId = $user['id'];
-        $bookingModel = new BookingModel();
-        $paymentsModel = new PaymentsModel();
+        if ($r = $this->requireCustomer()) {
+            return $r;
+        }
+        $user             = $this->getUser();
+        $userId           = $user['id'];
+        $bookingModel     = new BookingModel();
+        $paymentsModel    = new PaymentsModel();
         $bookingItemModel = new BookingItemModel();
-        $serviceModel = new ServiceModel();
-        $eventModel = new EventModel();
+        $serviceModel     = new ServiceModel();
+        $eventModel       = new EventModel();
 
-        $bookings = $bookingModel->where('user_id', $userId)->findAll();
-        $payments = [];
-        $paymentsByEvent = [];
-        $totalPaid = 0;
+        $bookings         = $bookingModel->where('user_id', $userId)->findAll();
+        $payments         = [];
+        $paymentsByEvent  = [];
+        $totalPaid        = 0;
         $totalOutstanding = 0;
 
         foreach ($bookings as $booking) {
             $bookingPayments = $paymentsModel->where('booking_id', $booking['id'])->findAll();
-            $event = $eventModel->find($booking['event_id']);
-            $eid = (int) ($booking['event_id'] ?? 0);
-            $items = $bookingItemModel->select('booking_items.*, services.title as service_title, users.name as vendor_name')
+            $event           = $eventModel->find($booking['event_id']);
+            $eid             = (int) ($booking['event_id'] ?? 0);
+            $items           = $bookingItemModel->select('booking_items.*, services.title as service_title, users.name as vendor_name')
                 ->join('services', 'services.id = booking_items.service_id')
                 ->join('users', 'users.id = services.vendor_id')
                 ->where('booking_id', $booking['id'])->findAll();
 
             $itemsTotal = 0.0;
+
             foreach ($items as $item) {
                 $itemsTotal += (float) ($item['price'] ?? 0);
             }
             $paidForBooking = 0.0;
+
             foreach ($bookingPayments as $bp) {
                 $paidForBooking += (float) ($bp['amount_paid'] ?? 0);
             }
             $bookingOutstanding = max(0.0, $itemsTotal - $paidForBooking);
             $totalOutstanding += $bookingOutstanding;
 
-            if (!isset($paymentsByEvent[$eid])) {
+            if (! isset($paymentsByEvent[$eid])) {
                 $paymentsByEvent[$eid] = [
                     'event_title' => $event ? $event['title'] : 'Event',
-                    'event_date' => $event['date'] ?? null,
-                    'payments' => [],
+                    'event_date'  => $event['date'] ?? null,
+                    'payments'    => [],
                     'outstanding' => 0.0,
-                    'paid' => 0.0,
+                    'paid'        => 0.0,
                 ];
             }
             $paymentsByEvent[$eid]['outstanding'] += $bookingOutstanding;
 
             foreach ($bookingPayments as &$p) {
-                $p['event_name'] = $event ? $event['title'] : '';
-                $p['service_name'] = !empty($items) ? $items[0]['service_title'] : '';
-                $p['vendor_name'] = !empty($items) ? $items[0]['vendor_name'] : '';
-                $amt = (float) ($p['amount_paid'] ?? 0);
+                $p['event_name']   = $event ? $event['title'] : '';
+                $p['service_name'] = ! empty($items) ? $items[0]['service_title'] : '';
+                $p['vendor_name']  = ! empty($items) ? $items[0]['vendor_name'] : '';
+                $amt               = (float) ($p['amount_paid'] ?? 0);
                 $totalPaid += $amt;
                 $paymentsByEvent[$eid]['paid'] += $amt;
                 $paymentsByEvent[$eid]['payments'][] = $p;
@@ -1244,45 +1423,49 @@ class Profile extends BaseController
         }
 
         return view('dashboard/customer_payments', [
-            'user' => $user,
-            'payments' => $payments,
-            'paymentsByEvent' => $paymentsByEvent,
-            'totalPaid' => $totalPaid,
+            'user'             => $user,
+            'payments'         => $payments,
+            'paymentsByEvent'  => $paymentsByEvent,
+            'totalPaid'        => $totalPaid,
             'totalOutstanding' => $totalOutstanding,
-            'currentTab' => 'payments',
+            'currentTab'       => 'payments',
         ]);
     }
 
     public function customerFavourites()
     {
-        if ($r = $this->requireCustomer()) return $r;
-        $user = $this->getUser();
-        $userId = $user['id'];
-        $favouriteModel = new FavouriteModel();
-        $serviceModel = new ServiceModel();
+        if ($r = $this->requireCustomer()) {
+            return $r;
+        }
+        $user              = $this->getUser();
+        $userId            = $user['id'];
+        $favouriteModel    = new FavouriteModel();
+        $serviceModel      = new ServiceModel();
         $serviceImageModel = new ServiceImageModel();
-        $categoryModel = new CategoryModel();
-        $userModel = new UserModel();
+        $categoryModel     = new CategoryModel();
+        $userModel         = new UserModel();
 
-        $favs = $favouriteModel->where('user_id', $userId)->findAll();
+        $favs       = $favouriteModel->where('user_id', $userId)->findAll();
         $favourites = [];
 
         foreach ($favs as $fav) {
             $service = $serviceModel->find($fav['service_id']);
-            if (!$service) continue;
-            $vendor = $userModel->find($service['vendor_id']);
-            $images = $serviceImageModel->where('service_id', $service['id'])->where('is_primary', 1)->findAll();
+            if (! $service) {
+                continue;
+            }
+            $vendor       = $userModel->find($service['vendor_id']);
+            $images       = $serviceImageModel->where('service_id', $service['id'])->where('is_primary', 1)->findAll();
             $favourites[] = [
-                'favourite_id' => $fav['id'],
-                'service' => $service,
-                'vendor_name' => $vendor ? $vendor['name'] : 'Unknown',
+                'favourite_id'  => $fav['id'],
+                'service'       => $service,
+                'vendor_name'   => $vendor ? $vendor['name'] : 'Unknown',
                 'category_name' => $categoryModel->getServiceCategoryLabel($service),
-                'image' => !empty($images) ? $images[0]['thumbnail_path'] : null,
+                'image'         => ! empty($images) ? $images[0]['thumbnail_path'] : null,
             ];
         }
 
         return view('dashboard/customer_favourites', [
-            'user' => $user,
+            'user'       => $user,
             'favourites' => $favourites,
             'currentTab' => 'favourites',
         ]);
@@ -1290,12 +1473,15 @@ class Profile extends BaseController
 
     public function removeFavourite($id)
     {
-        if ($r = $this->requireCustomer()) return $r;
+        if ($r = $this->requireCustomer()) {
+            return $r;
+        }
         $favouriteModel = new FavouriteModel();
-        $fav = $favouriteModel->find($id);
-        if ($fav && $fav['user_id'] == session()->get('user_id')) {
+        $fav            = $favouriteModel->find($id);
+        if ($fav && $fav['user_id'] === session()->get('user_id')) {
             $favouriteModel->delete($id);
         }
+
         return redirect()->to('/profile/favourites')->with('success', 'Removed from favourites.');
     }
 
@@ -1305,23 +1491,25 @@ class Profile extends BaseController
 
     public function updateBookingStatus($bookingItemId)
     {
-        if ($r = $this->requireVendor()) return $r;
-        $user = $this->getUser();
+        if ($r = $this->requireVendor()) {
+            return $r;
+        }
+        $user     = $this->getUser();
         $vendorId = (int) $user['id'];
 
         $bookingItemModel = new BookingItemModel();
-        $bookingItem = $bookingItemModel
+        $bookingItem      = $bookingItemModel
             ->select('booking_items.*, services.vendor_id', false)
             ->join('services', 'services.id = booking_items.service_id')
             ->where('booking_items.id', (int) $bookingItemId)
             ->first();
 
-        if (!$bookingItem || (int) ($bookingItem['vendor_id'] ?? 0) !== $vendorId) {
+        if (! $bookingItem || (int) ($bookingItem['vendor_id'] ?? 0) !== $vendorId) {
             return redirect()->to('/profile/bookings')->with('error', 'Booking not found.');
         }
 
         $newStatus = $this->request->getPost('status');
-        if (!in_array($newStatus, ['pending', 'accepted', 'rejected', 'confirmed', 'cancelled'])) {
+        if (! in_array($newStatus, ['pending', 'accepted', 'rejected', 'confirmed', 'cancelled'], true)) {
             return redirect()->to('/profile/bookings')->with('error', 'Invalid status.');
         }
 
@@ -1338,24 +1526,25 @@ class Profile extends BaseController
         if ($r = $this->requireVendor()) {
             return $r;
         }
-        $user = $this->getUser();
-        $ids = $this->request->getPost('booking_item_ids') ?? [];
+        $user   = $this->getUser();
+        $ids    = $this->request->getPost('booking_item_ids') ?? [];
         $status = $this->request->getPost('status');
-        if (!is_array($ids) || !in_array($status, ['accepted', 'rejected'], true)) {
+        if (! is_array($ids) || ! in_array($status, ['accepted', 'rejected'], true)) {
             return redirect()->to('/profile/bookings')->with('error', 'Invalid bulk action.');
         }
 
         $bookingItemModel = new BookingItemModel();
-        $serviceModel = new ServiceModel();
-        $updated = 0;
+        $serviceModel     = new ServiceModel();
+        $updated          = 0;
+
         foreach ($ids as $rawId) {
-            $id = (int) $rawId;
+            $id  = (int) $rawId;
             $row = $bookingItemModel
                 ->select('booking_items.*, services.vendor_id')
                 ->join('services', 'services.id = booking_items.service_id')
                 ->where('booking_items.id', $id)
                 ->first();
-            if (!$row || (int) ($row['vendor_id'] ?? 0) !== (int) $user['id']) {
+            if (! $row || (int) ($row['vendor_id'] ?? 0) !== (int) $user['id']) {
                 continue;
             }
             $bookingItemModel->update($id, ['status' => $status]);
@@ -1370,25 +1559,25 @@ class Profile extends BaseController
         if ($r = $this->requireVendor()) {
             return $r;
         }
-        $user = $this->getUser();
-        $model = new VendorQuoteSettingsModel();
+        $user     = $this->getUser();
+        $model    = new VendorQuoteSettingsModel();
         $existing = $model->where('vendor_id', (int) $user['id'])->where('service_id', null)->first()
             ?: $model->where('vendor_id', (int) $user['id'])->where('service_id', 0)->first();
 
         if ($this->request->getMethod() === 'POST') {
             $allowed = $this->request->getPost('allowed_event_settings') ?? [];
-            if (!is_array($allowed)) {
+            if (! is_array($allowed)) {
                 $allowed = [];
             }
             $payload = [
-                'vendor_id' => (int) $user['id'],
-                'service_id' => null,
-                'auto_accept_enabled' => $this->request->getPost('auto_accept_enabled') ? 1 : 0,
-                'max_auto_accept_amount' => $this->request->getPost('max_auto_accept_amount') ?: null,
+                'vendor_id'                    => (int) $user['id'],
+                'service_id'                   => null,
+                'auto_accept_enabled'          => $this->request->getPost('auto_accept_enabled') ? 1 : 0,
+                'max_auto_accept_amount'       => $this->request->getPost('max_auto_accept_amount') ?: null,
                 'require_within_travel_radius' => $this->request->getPost('require_within_travel_radius') ? 1 : 0,
-                'min_lead_days' => (int) ($this->request->getPost('min_lead_days') ?? 0),
-                'allowed_event_settings' => json_encode(array_values($allowed)),
-                'blackout_respect' => $this->request->getPost('blackout_respect') ? 1 : 0,
+                'min_lead_days'                => (int) ($this->request->getPost('min_lead_days') ?? 0),
+                'allowed_event_settings'       => json_encode(array_values($allowed)),
+                'blackout_respect'             => $this->request->getPost('blackout_respect') ? 1 : 0,
             ];
             if ($existing) {
                 $model->update($existing['id'], $payload);
@@ -1400,8 +1589,8 @@ class Profile extends BaseController
         }
 
         return view('dashboard/vendor_quote_settings', [
-            'user' => $user,
-            'settings' => $existing,
+            'user'       => $user,
+            'settings'   => $existing,
             'currentTab' => 'bookings',
         ]);
     }
@@ -1412,7 +1601,7 @@ class Profile extends BaseController
             return $r;
         }
         $user = $this->getUser();
-        $db = \Config\Database::connect();
+        $db   = Database::connect();
         $rows = [];
         if ($db->tableExists('quote_analytics_daily')) {
             $rows = $db->table('quote_analytics_daily')
@@ -1424,8 +1613,8 @@ class Profile extends BaseController
         }
 
         return view('dashboard/vendor_quote_analytics', [
-            'user' => $user,
-            'metrics' => $rows,
+            'user'       => $user,
+            'metrics'    => $rows,
             'currentTab' => 'bookings',
         ]);
     }
@@ -1435,9 +1624,9 @@ class Profile extends BaseController
         if ($r = $this->requireVendor()) {
             return $r;
         }
-        $user = $this->getUser();
+        $user             = $this->getUser();
         $bookingItemModel = new BookingItemModel();
-        $item = $bookingItemModel
+        $item             = $bookingItemModel
             ->select('booking_items.*, services.vendor_id, services.title as service_title, events.title as event_title', false)
             ->join('services', 'services.id = booking_items.service_id')
             ->join('bookings', 'bookings.id = booking_items.booking_id')
@@ -1445,37 +1634,38 @@ class Profile extends BaseController
             ->where('booking_items.id', (int) $bookingItemId)
             ->first();
 
-        if (!$item || (int) ($item['vendor_id'] ?? 0) !== (int) $user['id']) {
+        if (! $item || (int) ($item['vendor_id'] ?? 0) !== (int) $user['id']) {
             return redirect()->to('/profile/bookings')->with('error', 'Booking not found.');
         }
 
         $vqModel = new VendorQuoteModel();
-        $draft = $vqModel->where('booking_item_id', (int) $bookingItemId)
+        $draft   = $vqModel->where('booking_item_id', (int) $bookingItemId)
             ->whereIn('status', ['draft', 'sent'])
             ->orderBy('id', 'DESC')
             ->first();
 
         $templates = (new VendorMessageTemplateModel())->where('vendor_id', (int) $user['id'])->findAll();
-        $original = json_decode($item['quote_breakdown'] ?? '', true);
+        $original  = json_decode($item['quote_breakdown'] ?? '', true);
 
         if ($this->request->getMethod() === 'POST') {
             $linesJson = $this->request->getPost('lines_json');
-            $lines = is_string($linesJson) ? json_decode($linesJson, true) : [];
-            if (!is_array($lines)) {
+            $lines     = is_string($linesJson) ? json_decode($linesJson, true) : [];
+            if (! is_array($lines)) {
                 $lines = [];
             }
             $total = 0.0;
+
             foreach ($lines as $ln) {
                 $total += (float) ($ln['amount'] ?? 0);
             }
             $payload = [
                 'booking_item_id' => (int) $bookingItemId,
-                'vendor_id' => (int) $user['id'],
-                'status' => 'draft',
-                'lines' => json_encode($lines, JSON_UNESCAPED_UNICODE),
-                'total' => round($total, 2),
-                'vendor_notes' => $this->request->getPost('vendor_notes'),
-                'expires_at' => date('Y-m-d H:i:s', strtotime('+7 days')),
+                'vendor_id'       => (int) $user['id'],
+                'status'          => 'draft',
+                'lines'           => json_encode($lines, JSON_UNESCAPED_UNICODE),
+                'total'           => round($total, 2),
+                'vendor_notes'    => $this->request->getPost('vendor_notes'),
+                'expires_at'      => date('Y-m-d H:i:s', strtotime('+7 days')),
             ];
             if ($draft) {
                 $vqModel->update($draft['id'], $payload);
@@ -1487,11 +1677,11 @@ class Profile extends BaseController
         }
 
         return view('dashboard/vendor_quote_edit', [
-            'user' => $user,
-            'item' => $item,
-            'draft' => $draft,
-            'original' => is_array($original) ? $original : null,
-            'templates' => $templates,
+            'user'       => $user,
+            'item'       => $item,
+            'draft'      => $draft,
+            'original'   => is_array($original) ? $original : null,
+            'templates'  => $templates,
             'currentTab' => 'bookings',
         ]);
     }
@@ -1505,11 +1695,11 @@ class Profile extends BaseController
             return $r;
         }
         $vqModel = new VendorQuoteModel();
-        $draft = $vqModel->where('booking_item_id', (int) $bookingItemId)
+        $draft   = $vqModel->where('booking_item_id', (int) $bookingItemId)
             ->where('status', 'draft')
             ->orderBy('id', 'DESC')
             ->first();
-        if (!$draft) {
+        if (! $draft) {
             return redirect()->to('/profile/vendor-quote/' . $bookingItemId)->with('error', 'No draft quote found.');
         }
         $vqModel->update($draft['id'], ['status' => 'sent']);
@@ -1525,30 +1715,30 @@ class Profile extends BaseController
         if ($r = $this->requireCustomer()) {
             return $r;
         }
-        $userId = (int) session()->get('user_id');
+        $userId           = (int) session()->get('user_id');
         $bookingItemModel = new BookingItemModel();
-        $item = $bookingItemModel
+        $item             = $bookingItemModel
             ->select('booking_items.*, bookings.user_id')
             ->join('bookings', 'bookings.id = booking_items.booking_id')
             ->where('booking_items.id', (int) $bookingItemId)
             ->first();
-        if (!$item || (int) ($item['user_id'] ?? 0) !== $userId) {
+        if (! $item || (int) ($item['user_id'] ?? 0) !== $userId) {
             return redirect()->to('/profile/my-bookings')->with('error', 'Booking not found.');
         }
 
         $vqModel = new VendorQuoteModel();
-        $vq = $vqModel->where('booking_item_id', (int) $bookingItemId)
+        $vq      = $vqModel->where('booking_item_id', (int) $bookingItemId)
             ->where('status', 'sent')
             ->orderBy('id', 'DESC')
             ->first();
-        if (!$vq) {
+        if (! $vq) {
             return redirect()->to('/profile/my-bookings')->with('error', 'No revised quote to accept.');
         }
 
         $bookingItemModel->update((int) $bookingItemId, [
-            'price' => $vq['total'],
+            'price'           => $vq['total'],
             'quote_breakdown' => $vq['lines'],
-            'status' => 'accepted',
+            'status'          => 'accepted',
         ]);
         $vqModel->update($vq['id'], ['status' => 'accepted']);
 
@@ -1557,9 +1747,11 @@ class Profile extends BaseController
 
     public function edit()
     {
-        if ($r = $this->requireLogin()) return $r;
+        if ($r = $this->requireLogin()) {
+            return $r;
+        }
         $user = $this->getUser();
-        if (!$user) {
+        if (! $user) {
             return redirect()->to('/')->with('error', 'User not found.');
         }
         if (($user['role'] ?? '') === 'admin') {
@@ -1569,10 +1761,11 @@ class Profile extends BaseController
         if ($this->request->getMethod() === 'POST') {
             $userModel = new UserModel();
             $userModel->update($user['id'], [
-                'name' => $this->request->getVar('name'),
+                'name'     => $this->request->getVar('name'),
                 'username' => $this->request->getVar('username'),
-                'email' => $this->request->getVar('email'),
+                'email'    => $this->request->getVar('email'),
             ]);
+
             return redirect()->to('/profile')->with('success', 'Profile updated.');
         }
 

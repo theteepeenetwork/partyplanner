@@ -62,6 +62,7 @@ $routes->get('/profile/calendar', 'Profile::vendorCalendar', ['filter' => 'vendo
 $routes->get('/profile/calendar-data', 'Profile::calendarData', ['filter' => 'vendorauth']);
 $routes->post('/profile/calendar/toggle-block', 'Profile::toggleBlockDate', ['filter' => 'vendorauth']);
 $routes->match(['GET', 'POST'], '/profile/host-profile', 'Profile::hostProfile', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/profile/my-site', 'Profile::mySite', ['filter' => 'vendorauth']);
 
 // Customer tabs
 $routes->get('/profile/events', 'Profile::customerEvents');

@@ -8,6 +8,7 @@ use App\Models\ServiceImageModel;
 use App\Models\ServiceModel;
 use App\Models\ServiceOptionalExtrasModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
+use Config\Database;
 
 /**
  * White-label storefront (T3): the customer-facing pages served on a vendor's
@@ -98,7 +99,7 @@ class TenantController extends BaseController
      */
     private function vendorTrust(int $vendorId, ?int $serviceId = null): array
     {
-        $db = \Config\Database::connect();
+        $db = Database::connect();
 
         $rating  = null;
         $reviews = 0;
