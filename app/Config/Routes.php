@@ -169,6 +169,8 @@ $routes->post('/event/store', 'EventController::store');
 $routes->match(['GET', 'POST'], '/event/add-to-event/(:num)', 'EventController::addToEvent/$1');
 $routes->match(['GET', 'POST'], '/event/add-to-basket/(:num)', 'EventController::addToBasket/$1');
 $routes->get('/event/quote-preview/(:num)/(:num)', 'EventController::quotePreview/$1/$2');
+// Anonymous travel estimate for the service page (postcode → travel line)
+$routes->get('/event/travel-preview/(:num)', 'EventController::travelPreview/$1');
 
 // Event Basket
 $routes->get('/event/basket/(:num)', 'EventController::basket/$1');

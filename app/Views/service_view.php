@@ -721,6 +721,22 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
 
               <!-- Estimated total -->
               <?php if (!$isCustomQuote && $initialPrice > 0): ?>
+              <!-- Travel estimate: server-priced via /event/travel-preview (Bug 3) -->
+              <div style="margin-top:18px;padding-top:16px;border-top:1px solid var(--line)">
+                <label for="sv-travel-postcode"
+                       style="display:block;font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin-bottom:6px">
+                  Your postcode <span style="font-weight:400;text-transform:none;letter-spacing:0">— for travel costs (optional)</span>
+                </label>
+                <input type="text" id="sv-travel-postcode" class="form-control" maxlength="10"
+                       placeholder="e.g. SK7 2AA" autocomplete="postal-code"
+                       data-service-id="<?= (int) $service['id'] ?>"
+                       style="font-size:14px">
+                <div id="sv-travel-line" style="display:none;margin-top:8px;font-size:13px;color:var(--ink)">
+                  <span id="sv-travel-label"></span>
+                  <span id="sv-travel-amt" style="float:right;font-weight:700"></span>
+                </div>
+                <div id="sv-travel-note" style="display:none;margin-top:6px;font-size:12.5px;color:var(--muted)"></div>
+              </div>
               <div class="sv-total-row" style="margin-top:20px;padding-top:18px;border-top:1px solid var(--line)">
                 <span class="lbl">Estimated total</span>
                 <span class="amt" id="sv-total-amt">£<?= number_format((int) $initialPrice) ?></span>
@@ -949,7 +965,11 @@ function svUpdateTotal() {
         extras += (perItem && guests > 0) ? extraPrice * guests : extraPrice;
     });
 
-    var total = base + extras;
+    // Server-priced travel fee (set by the postcode preview below); the
+    // amount comes from EventBookingQuote — never computed client-side.
+    var travel = (window.svTravel && typeof window.svTravel.amount === 'number') ? window.svTravel.amount : 0;
+
+    var total = base + extras + travel;
     var fmt = total > 0 ? '£' + total.toLocaleString('en-GB') : (svGuestTiers.length > 0 ? 'Select an event' : '—');
     var hdr = document.getElementById('sv-price-display');
     var amt = document.getElementById('sv-total-amt');
@@ -1036,6 +1056,70 @@ function svRunLiveQuote() {
         fetch('/profile/set-active-event/' + encodeURIComponent(this.value), {
             headers: { 'X-Requested-With': 'XMLHttpRequest' }
         }).catch(function() {});
+    });
+})();
+
+/* ── Travel estimate by postcode (Bug 3) ──────────────────────────────
+   Debounced lookup against /event/travel-preview: the server geocodes the
+   postcode and prices travel with EventBookingQuote (radius, per-km fee,
+   all-travel-included, strict radius). This block only renders the result. */
+(function() {
+    var input = document.getElementById('sv-travel-postcode');
+    if (!input) return;
+    var line  = document.getElementById('sv-travel-line');
+    var label = document.getElementById('sv-travel-label');
+    var amt   = document.getElementById('sv-travel-amt');
+    var note  = document.getElementById('sv-travel-note');
+    var timer = null;
+    var seq   = 0;
+
+    function reset() {
+        window.svTravel = null;
+        line.style.display = 'none';
+        note.style.display = 'none';
+        svUpdateTotal();
+    }
+
+    input.addEventListener('input', function() {
+        clearTimeout(timer);
+        var pc = input.value.trim();
+        if (pc.length < 3) { reset(); return; }
+        timer = setTimeout(function() {
+            var mySeq = ++seq;
+            fetch('/event/travel-preview/' + input.dataset.serviceId + '?postcode=' + encodeURIComponent(pc), {
+                headers: { 'X-Requested-With': 'XMLHttpRequest' }
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (mySeq !== seq) return; // a newer lookup superseded this one
+                if (!data.ok) {
+                    window.svTravel = null;
+                    line.style.display = 'none';
+                    note.textContent = data.error || 'Travel could not be estimated.';
+                    note.style.display = '';
+                    svUpdateTotal();
+                    return;
+                }
+                if (data.blocked || !data.travel) {
+                    // Out of strict radius (or unpriceable): show the engine's
+                    // own warning text instead of a fee line.
+                    window.svTravel = null;
+                    line.style.display = 'none';
+                    note.textContent = data.warning || 'This postcode is outside the supplier\'s service area.';
+                    note.style.display = '';
+                    svUpdateTotal();
+                    return;
+                }
+                window.svTravel = { amount: data.travel.amount };
+                label.textContent = 'Travel to ' + (data.postcode || pc.toUpperCase());
+                amt.textContent = data.travel.amount > 0 ? '£' + Number(data.travel.amount).toLocaleString('en-GB') : 'Free';
+                line.style.display = '';
+                note.textContent = data.warning || '';
+                note.style.display = data.warning ? '' : 'none';
+                svUpdateTotal();
+            })
+            .catch(function() { if (mySeq === seq) reset(); });
+        }, 500);
     });
 })();
 
