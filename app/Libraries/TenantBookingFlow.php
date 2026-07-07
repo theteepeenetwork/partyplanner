@@ -111,6 +111,95 @@ class TenantBookingFlow
     }
 
     /**
+     * "From £X" display price for landing cards/heros, derived from the
+     * cheapest tier of the service's pricing model. Display-only — real
+     * totals always come from EventQuoteBuilder.
+     *
+     * @param array<string,mixed> $service
+     *
+     * @return array{amount: float, per: string}
+     */
+    public function fromPrice(array $service): array
+    {
+        $serviceId = (int) ($service['id'] ?? 0);
+        $private   = (new ServicePrivatePricingModel())->where('service_id', $serviceId)->first();
+        $type      = (string) ($private['pricing_type'] ?? '');
+        $pid       = (int) ($private['id'] ?? 0);
+        $db        = Database::connect();
+
+        if ($type === 'guest_based_pricing' && $pid > 0) {
+            $row = $db->table('services_guest_based_pricing')->selectMin('guest_price')
+                ->where('private_event_pricing_id', $pid)->get()->getRowArray();
+            if (! empty($row['guest_price'])) {
+                return ['amount' => (float) $row['guest_price'], 'per' => 'guest'];
+            }
+        }
+
+        if ($type === 'custom_duration_pricing' && $pid > 0) {
+            $row = $db->table('services_custom_duration_pricing')
+                ->where('private_event_pricing_id', $pid)
+                ->orderBy('price', 'ASC')->get(1)->getRowArray();
+            if ($row !== null) {
+                return ['amount' => (float) $row['price'], 'per' => ($row['duration_type'] ?? '') === 'day' ? 'day' : ''];
+            }
+        }
+
+        if ($type === 'tiered_packages_pricing' && $pid > 0) {
+            $row = $db->table('services_tiered_packages_pricing')->selectMin('package_price')
+                ->where('private_event_pricing_id', $pid)->get()->getRowArray();
+            if (! empty($row['package_price'])) {
+                return ['amount' => (float) $row['package_price'], 'per' => ''];
+            }
+        }
+
+        if ($type === 'quantity_based_pricing' && $pid > 0) {
+            $row = $db->table('services_quantity_pricing')
+                ->where('private_event_pricing_id', $pid)
+                ->orderBy('unit_price', 'ASC')->get(1)->getRowArray();
+            if ($row !== null) {
+                return ['amount' => (float) $row['unit_price'], 'per' => trim((string) ($row['unit_label'] ?? ''))];
+            }
+        }
+
+        return ['amount' => (float) ($service['price'] ?? 0), 'per' => ''];
+    }
+
+    /**
+     * Nearest free dates around an unavailable one (handoff frame 1h): scan
+     * outwards day by day, closest first, never in the past, availability
+     * decided by the same ServiceAvailabilityChecker a real quote uses.
+     *
+     * @return list<array{date: string, label: string}>
+     */
+    public function nearestFreeDates(int $serviceId, int $vendorId, string $date, int $count = 3): array
+    {
+        $checker = new ServiceAvailabilityChecker();
+        $base    = strtotime($date);
+        $today   = strtotime(date('Y-m-d'));
+        $out     = [];
+
+        for ($offset = 1; $offset <= 21 && count($out) < $count; $offset++) {
+            foreach ([-1, 1] as $dir) {
+                $ts = $base + $dir * $offset * 86400;
+                if ($ts < $today) {
+                    continue;
+                }
+                $candidate = date('Y-m-d', $ts);
+                if ($checker->check($serviceId, $vendorId, $candidate) === []) {
+                    $out[] = ['date' => $candidate, 'label' => date('D j M', $ts)];
+                    if (count($out) >= $count) {
+                        break;
+                    }
+                }
+            }
+        }
+
+        usort($out, static fn ($a, $b) => strcmp($a['date'], $b['date']));
+
+        return $out;
+    }
+
+    /**
      * Persist a paid-or-processing tenant quote as a real booking. Creates
      * (or reuses, by email) a customer account for the guest, an event for
      * the date/location, then booking + booking_item + payments rows in the
