@@ -15,6 +15,10 @@ if (\App\Libraries\TenantHost::current() !== null) {
     $routes->group('', ['filter' => 'vendortenant'], static function ($routes) {
         $routes->get('/', 'TenantController::home');
         $routes->get('service/(:num)', 'TenantController::service/$1');
+        // Instant quote → 10% deposit → confirmation (guest checkout)
+        $routes->post('quote', 'TenantController::quote');
+        $routes->match(['GET', 'POST'], 'checkout', 'TenantController::checkout');
+        $routes->get('booked/(:num)', 'TenantController::booked/$1');
     });
 
     return;

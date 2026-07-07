@@ -127,3 +127,75 @@ ul.sf-trust { padding: 0; margin-top: 26px; }
 .sf-extras .x-price { font-weight: 800; color: var(--sf-primary); white-space: nowrap; }
 .sf-detail-cta { position: sticky; bottom: 0; background: var(--surface-page, #f6f3ec); padding: 16px 0; margin-top: 24px; border-top: 1px solid var(--line, rgba(0,0,0,.1)); }
 .sf-book-note { font-size: 13px; color: var(--ink-soft); text-align: center; margin: 10px 0 0; }
+
+/* ---- Instant quote form (screen 02) ---- */
+.sf-flash { border-radius: 12px; padding: 12px 16px; font-size: 14px; line-height: 1.5; margin: 14px 0; }
+.sf-flash.error { background: rgba(192,71,62,0.1); color: #a23a32; border: 1px solid rgba(192,71,62,0.25); }
+.sf-flash.info { background: color-mix(in srgb, var(--sf-primary) 8%, transparent); color: var(--ink); border: 1px solid color-mix(in srgb, var(--sf-primary) 20%, transparent); }
+.sf-quote-form {
+    background: var(--surface-elevated, #fff); border-radius: var(--r-card, 18px);
+    box-shadow: var(--shadow-soft, 0 10px 30px rgba(20,30,20,.06));
+    padding: clamp(20px, 3vw, 28px); margin-top: 28px;
+}
+.sf-form-title { font-family: var(--serif); font-weight: 500; font-size: 22px; margin: 0 0 2px; color: var(--ink); }
+.sf-form-sub { font-size: 13.5px; color: var(--ink-soft); margin: 0 0 18px; }
+.sf-field { display: block; margin-bottom: 14px; }
+.sf-field > span { display: block; font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 6px; }
+.sf-field input {
+    width: 100%; font: inherit; font-size: 15px; padding: 12px 14px;
+    border: 1.4px solid var(--line, rgba(0,0,0,.14)); border-radius: 12px;
+    background: #fff; color: var(--ink);
+}
+.sf-field input:focus { outline: none; border-color: var(--sf-primary); }
+.sf-field-row { display: grid; grid-template-columns: 1fr; gap: 0; }
+@media (min-width: 560px) { .sf-field-row { grid-template-columns: 1fr 1fr; gap: 14px; } }
+
+.sf-options { border: none; padding: 0; margin: 6px 0 16px; }
+.sf-options legend { font-size: 12px; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; color: var(--ink-soft); margin-bottom: 8px; padding: 0; }
+.sf-option {
+    display: flex; align-items: center; gap: 11px; padding: 12px 14px; margin-bottom: 8px;
+    border: 1.4px solid var(--line, rgba(0,0,0,.12)); border-radius: 12px; cursor: pointer;
+    transition: border-color .15s, background .15s;
+}
+.sf-option:hover { border-color: var(--sf-primary); }
+.sf-option:has(input:checked) { border-color: var(--sf-primary); background: color-mix(in srgb, var(--sf-primary) 5%, transparent); }
+.sf-option input[type=radio], .sf-option input[type=checkbox] { accent-color: var(--sf-primary); width: 17px; height: 17px; flex: none; }
+.sf-option .o-label { font-weight: 600; color: var(--ink); font-size: 14.5px; flex: 1; }
+.sf-option .o-price { font-weight: 800; color: var(--sf-primary); font-size: 14px; white-space: nowrap; }
+.sf-option .o-qty { width: 70px; font: inherit; font-size: 14px; padding: 6px 8px; border: 1.4px solid var(--line, rgba(0,0,0,.14)); border-radius: 8px; }
+
+/* ---- Quote result (screen 03) ---- */
+.sf-lines { list-style: none; padding: 0; margin: 0 0 20px; background: var(--surface-elevated, #fff); border-radius: var(--r-card, 18px); box-shadow: var(--shadow-soft, 0 10px 30px rgba(20,30,20,.06)); overflow: hidden; }
+.sf-lines li { display: flex; align-items: baseline; justify-content: space-between; gap: 14px; padding: 14px 18px; border-bottom: 1px solid var(--line-soft, rgba(0,0,0,.06)); }
+.sf-lines li:last-child { border-bottom: none; }
+.sf-lines .l-label { color: var(--ink); font-size: 14.5px; }
+.sf-lines .l-amount { font-weight: 700; color: var(--ink); white-space: nowrap; }
+.sf-lines .l-total { background: color-mix(in srgb, var(--sf-primary) 6%, transparent); }
+.sf-lines .l-total .l-label, .sf-lines .l-total .l-amount { font-weight: 800; font-size: 16px; color: var(--sf-primary); }
+
+.sf-deposit-box { background: color-mix(in srgb, var(--sf-primary) 8%, transparent); border-radius: var(--r-card, 18px); padding: 18px 20px; }
+.sf-deposit-box .d-headline { font-family: var(--serif); font-weight: 500; font-size: 20px; color: var(--sf-primary); margin: 0 0 4px; }
+.sf-deposit-box .d-sub { font-size: 13.5px; color: var(--ink-soft); margin: 0; }
+
+/* ---- Checkout (screen 04) ---- */
+.sf-card-box { background: var(--surface-elevated, #fff); border-radius: var(--r-card, 18px); box-shadow: var(--shadow-soft, 0 10px 30px rgba(20,30,20,.06)); padding: 18px; margin: 18px 0; }
+.sf-card-box-head { display: flex; align-items: baseline; justify-content: space-between; font-weight: 700; font-size: 14.5px; color: var(--ink); margin: 0 0 12px; }
+.sf-card-box-head span { font-size: 10px; font-weight: 800; letter-spacing: 0.1em; color: var(--ink-faint, rgba(0,0,0,.4)); }
+.sf-next { margin-top: 30px; }
+.sf-next h2 { font-family: var(--serif); font-weight: 500; font-size: 20px; margin: 0 0 12px; color: var(--ink); }
+.sf-next ol { padding-left: 0; margin: 0; list-style: none; counter-reset: sfnext; }
+.sf-next li { counter-increment: sfnext; position: relative; padding: 0 0 14px 40px; font-size: 14px; color: var(--ink-soft); }
+.sf-next li::before {
+    content: counter(sfnext); position: absolute; left: 0; top: -2px;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: color-mix(in srgb, var(--sf-primary) 10%, transparent); color: var(--sf-primary);
+    display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px;
+}
+.sf-next li b { color: var(--ink); }
+
+/* ---- Confirmation (screen 05) ---- */
+.sf-confirm-tick {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 56px; height: 56px; border-radius: 50%;
+    background: var(--sf-primary); color: #fff; font-size: 26px; font-weight: 800;
+}

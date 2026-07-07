@@ -113,16 +113,93 @@ if ((int) ($service['setup_minutes'] ?? 0) > 0) {
                 </ul>
             <?php endif; ?>
 
-            <!-- Booking CTA. The instant-quote + deposit flow is not wired on tenant
-                 sites yet; until it is, the storefront converts to a phone booking. -->
-            <div class="sf-detail-cta">
-                <?php if ($phone !== ''): ?>
-                    <a class="sf-btn block" href="<?= esc($phoneHref, 'attr') ?>"><i class="fas fa-phone" aria-hidden="true"></i> Call <?= esc($phone) ?> to book</a>
-                <?php else: ?>
-                    <a class="sf-btn block" href="/">Back to all services</a>
+            <!-- Instant quote (comp screen 02 → 03): date + location + options,
+                 priced by the same engine as the marketplace. -->
+            <?php if (session()->getFlashdata('error')): ?>
+                <div class="sf-flash error" role="alert"><?= esc(session()->getFlashdata('error')) ?></div>
+            <?php endif; ?>
+            <?php if (session()->getFlashdata('info')): ?>
+                <div class="sf-flash info"><?= esc(session()->getFlashdata('info')) ?></div>
+            <?php endif; ?>
+
+            <form class="sf-quote-form" method="post" action="/quote">
+                <?= csrf_field() ?>
+                <input type="hidden" name="service_id" value="<?= (int) $service['id'] ?>">
+
+                <h2 class="sf-form-title">Get an instant quote</h2>
+                <p class="sf-form-sub">A real price in seconds — no waiting for a call back.</p>
+
+                <div class="sf-field-row">
+                    <label class="sf-field">
+                        <span>Party date</span>
+                        <input type="date" name="event_date" required min="<?= date('Y-m-d') ?>">
+                    </label>
+                    <label class="sf-field">
+                        <span>Postcode</span>
+                        <input type="text" name="postcode" maxlength="10" placeholder="e.g. SK7 2AA" autocomplete="postal-code">
+                    </label>
+                </div>
+
+                <?php if (! empty($pricing['needsGuests'])): ?>
+                    <label class="sf-field">
+                        <span>Guests</span>
+                        <input type="number" name="guest_count" min="1" max="10000" required placeholder="e.g. 45">
+                    </label>
                 <?php endif; ?>
-                <p class="sf-book-note">10% deposit holds your date · free 14-day cancellation</p>
-            </div>
+
+                <?php if (! empty($pricing['needsQuantity'])): ?>
+                    <label class="sf-field">
+                        <span>How many?</span>
+                        <input type="number" name="order_quantity" min="<?= (int) $pricing['minQuantity'] ?>" max="100000"
+                            value="<?= (int) $pricing['minQuantity'] ?>" required>
+                    </label>
+                <?php endif; ?>
+
+                <?php if (! empty($pricing['options'])): ?>
+                    <fieldset class="sf-options">
+                        <legend>Pick your option</legend>
+                        <?php foreach ($pricing['options'] as $i => $opt): ?>
+                            <label class="sf-option">
+                                <input type="radio" name="pricing_option" value="<?= esc($opt['token'], 'attr') ?>" <?= $i === 0 ? 'checked' : '' ?>>
+                                <span class="o-label"><?= esc($opt['label']) ?></span>
+                                <span class="o-price"><?= esc($opt['sub']) ?></span>
+                            </label>
+                        <?php endforeach; ?>
+                    </fieldset>
+                <?php endif; ?>
+
+                <?php if (! empty($extras)): ?>
+                    <fieldset class="sf-options">
+                        <legend>Add extras</legend>
+                        <?php foreach ($extras as $x):
+                            $xp      = isset($x['price']) && $x['price'] !== null ? (float) $x['price'] : null;
+                            $perItem = strtolower((string) ($x['pricing_type'] ?? 'flat')) === 'per_item';
+                        ?>
+                            <label class="sf-option">
+                                <input type="checkbox" name="extras[]" value="<?= (int) $x['id'] ?>">
+                                <span class="o-label"><?= esc($x['name'] ?? 'Extra') ?></span>
+                                <?php if ($xp !== null): ?>
+                                    <span class="o-price">+£<?= esc(number_format($xp, ($xp == (int) $xp) ? 0 : 2)) ?><?= $perItem && ! empty($x['unit_label']) ? '/' . esc($x['unit_label']) : '' ?></span>
+                                <?php endif; ?>
+                                <?php if ($perItem): ?>
+                                    <input class="o-qty" type="number" name="extra_qty[<?= (int) $x['id'] ?>]"
+                                        min="<?= max(1, (int) ($x['min_quantity'] ?? 1)) ?>"
+                                        value="<?= max(1, (int) ($x['min_quantity'] ?? 1)) ?>" aria-label="Quantity">
+                                <?php endif; ?>
+                            </label>
+                        <?php endforeach; ?>
+                    </fieldset>
+                <?php endif; ?>
+
+                <button type="submit" class="sf-btn block">Get instant quote</button>
+                <p class="sf-book-note"><?= (int) $depositPercent ?>% deposit holds your date · free 14-day cancellation</p>
+            </form>
+
+            <?php if ($phone !== ''): ?>
+                <p class="sf-book-note" style="margin-top: 14px;">Prefer to talk it through?
+                    <a href="<?= esc($phoneHref, 'attr') ?>" style="color: var(--sf-primary); font-weight: 700;"><?= esc($phone) ?></a>
+                </p>
+            <?php endif; ?>
         </div>
     </section>
 </main>
