@@ -1,73 +1,138 @@
+<?php
+/**
+ * Checkout (frames 1i/1j) — the anxiety-peak screen. Deposit only, guest
+ * checkout mandatory, refund tiers in plain English, "held by PartySmith"
+ * escrow copy. Payment wiring (Stripe PaymentElement / simulated) unchanged.
+ */
+?>
 <?= $this->include('tenant_header') ?>
 <?php
-$total   = (float) $quote['total'];
-$dateStr = ! empty($quote['event']['date']) ? date('D j M', strtotime($quote['event']['date'])) : 'your date';
-$where   = trim((string) ($quote['event']['location'] ?? ''));
+$bn        = $site['business_name'] ?? 'Storefront';
+$total     = (float) $quote['total'];
+$balance   = max(0, round($total - $deposit, 2));
+$dateLabel = ! empty($quote['event']['date']) ? date('D j M Y', strtotime($quote['event']['date'])) : 'your date';
+$dateShort = ! empty($quote['event']['date']) ? date('D j M', strtotime($quote['event']['date'])) : 'your date';
+$where     = trim((string) ($quote['event']['postcode'] ?? ''));
+$firstWord = strtok($bn, ' ');
 ?>
 
-<div class="ps-storefront">
-<main>
-    <section class="sf-sec" style="padding-top: clamp(20px, 3vw, 32px);">
-        <div class="container" style="max-width: 640px;">
-            <a class="sf-back" href="/service/<?= (int) $service['id'] ?>"><span aria-hidden="true">‹</span> Back</a>
+<?php
+$editHref = '/service/' . (int) $service['id'] . '?' . http_build_query(array_filter([
+    'date'     => $quote['event']['date'] ?? '',
+    'postcode' => $where,
+    'guests'   => $quote['event']['guest_count'] ?? null,
+]));
+?>
+<div class="sf-shell" style="padding-top: 18px;">
+    <?php // Responsive heading per the frames: 1i mobile = compact "Hold your date"
+          // bar with back arrow + lock; 1j laptop = full sentence with date+deposit.
+          // Breakpoint-exclusive via display:none, so one h1 in the a11y tree.?>
+    <div class="sf-only-mobile" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px;">
+        <span style="display: inline-flex; align-items: center; gap: 10px;">
+            <a href="<?= esc($editHref, 'attr') ?>" aria-label="Back to <?= esc($service['title'], 'attr') ?>" style="color: var(--sf-ink);"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+            <h1 style="font-size: 19px; font-weight: 700; margin: 0; letter-spacing: -0.01em;">Hold your date</h1>
+        </span>
+        <span class="sf-lockline"><i class="fas fa-lock" aria-hidden="true"></i>Secure checkout</span>
+    </div>
+    <div class="sf-only-laptop" style="margin-bottom: 16px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h1 style="font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.015em;">Hold <?= esc($dateShort) ?> with a £<?= esc(number_format($deposit, 2)) ?> deposit</h1>
+            <span class="sf-lockline"><i class="fas fa-lock" aria-hidden="true"></i>Secure checkout</span>
+        </div>
+        <p style="font-size: 13.5px; color: var(--sf-muted); margin: 6px 0 0;">
+            No account needed — you can create one after payment to track your booking.
+        </p>
+    </div>
 
-            <h1 class="heading" style="font-size: clamp(26px,4vw,36px); margin: 6px 0 4px;">Pay your deposit</h1>
-            <p class="lead" style="margin-bottom: 18px;">
-                <?= esc($service['title']) ?> · <?= esc($dateStr) ?><?php if ($where !== ''): ?> · <?= esc($where) ?><?php endif; ?>
-                · £<?= esc(number_format($total, 2)) ?> total
-            </p>
+    <?php if (session()->getFlashdata('error')): ?>
+        <div class="sf-flash error" role="alert"><?= esc(session()->getFlashdata('error')) ?></div>
+    <?php endif; ?>
 
-            <?php if (session()->getFlashdata('error')): ?>
-                <div class="sf-flash error" role="alert"><?= esc(session()->getFlashdata('error')) ?></div>
-            <?php endif; ?>
+    <div class="sf-cols sf-cols-checkout">
+        <div>
 
-            <div class="sf-deposit-box" style="margin-bottom: 20px;">
-                <p class="d-headline">Due today · £<?= esc(number_format($deposit, 2)) ?></p>
-                <p class="d-sub"><?= (int) $depositPercent ?>% deposit — the rest is settled with <?= esc($site['business_name']) ?> after the event.</p>
-            </div>
-
-            <form method="post" action="/checkout" id="tenantCheckoutForm">
+            <form method="post" action="/checkout" id="sfCheckoutForm">
                 <?= csrf_field() ?>
                 <input type="hidden" name="payment_intent_id" id="payment_intent_id" value="">
 
+                <h2 class="sf-sec-h" style="margin-bottom: 10px;">Your details <span style="font-weight: 400; color: var(--sf-muted); font-size: 12.5px;">— no account needed</span></h2>
+                <div class="sf-2col">
+                    <label class="sf-field">
+                        <span>Your name</span>
+                        <input class="sf-input" type="text" name="guest_name" required maxlength="100" autocomplete="name">
+                    </label>
+                    <label class="sf-field">
+                        <span>Mobile — for the confirmation text</span>
+                        <input class="sf-input" type="tel" name="guest_phone" maxlength="32" autocomplete="tel">
+                    </label>
+                </div>
                 <label class="sf-field">
-                    <span>Your name</span>
-                    <input type="text" name="guest_name" required maxlength="100" autocomplete="name">
-                </label>
-                <label class="sf-field">
-                    <span>Email — your confirmation goes here</span>
-                    <input type="email" name="guest_email" required maxlength="255" autocomplete="email">
-                </label>
-                <label class="sf-field">
-                    <span>Mobile (optional)</span>
-                    <input type="tel" name="guest_phone" maxlength="32" autocomplete="tel">
+                    <span>Email — your receipt goes here</span>
+                    <input class="sf-input" type="email" name="guest_email" required maxlength="255" autocomplete="email">
                 </label>
 
-                <div class="sf-card-box">
-                    <p class="sf-card-box-head">Card details <span>POWERED BY STRIPE</span></p>
+                <h2 class="sf-sec-h" style="margin: 18px 0 10px;">Card</h2>
+                <div class="sf-card" style="padding: 14px;">
                     <?php if (! empty($stripeEnabled) && ! empty($stripeClientSecret)): ?>
                         <div id="payment-element"></div>
-                        <p class="sf-book-note" style="text-align: left;">Secure payment — your card details never touch our servers.</p>
+                        <p class="sf-microcopy" style="text-align: left;">Secure payment — your card details never touch our servers.</p>
                     <?php else: ?>
-                        <p class="sf-book-note" style="text-align: left;">Payment processing is simulated (Stripe not configured on this environment).</p>
+                        <p class="sf-microcopy" style="text-align: left; margin: 0;">Payment processing is simulated (Stripe not configured on this environment).</p>
                     <?php endif; ?>
                     <div id="payment-errors" class="sf-flash error" style="display: none;" role="alert"></div>
                 </div>
 
-                <button type="submit" class="sf-btn block" id="payBtn">Pay £<?= esc(number_format($deposit, 2)) ?> deposit</button>
+                <button type="submit" class="sf-btn block" id="payBtn" style="margin-top: 16px;">
+                    <i class="fas fa-lock" aria-hidden="true"></i>&nbsp;Pay £<?= esc(number_format($deposit, 2)) ?> &amp; hold the date
+                </button>
+                <p class="sf-microcopy">
+                    <?= esc($firstWord) ?> confirms your booking — you get a text.<br>
+                    Deposit held by PartySmith until they do.
+                </p>
             </form>
-
-            <div class="sf-next">
-                <h2>What happens next</h2>
-                <ol>
-                    <li><b>Instant confirmation</b> by email — your date is locked.</li>
-                    <li><b><?= esc($site['business_name']) ?> gets in touch</b> to agree the details.</li>
-                    <li><b>Pay the rest after the event</b> — £<?= esc(number_format(max(0, $total - $deposit), 2)) ?>, direct with them.</li>
-                </ol>
-            </div>
         </div>
-    </section>
-</main>
+
+        <aside>
+            <div class="sf-panel">
+                <div class="sf-summary">
+                    <?php if (! empty($thumbUrl)): ?><img src="<?= esc($thumbUrl, 'attr') ?>" alt=""><?php endif; ?>
+                    <div style="min-width: 0;">
+                        <p class="t"><?= esc($service['title']) ?></p>
+                        <p class="s"><?= esc($dateLabel) ?><?= $where !== '' ? ' · ' . esc($where) : '' ?> · <?= esc($bn) ?></p>
+                    </div>
+                    <a class="edit" href="<?= esc($editHref, 'attr') ?>">Edit</a>
+                </div>
+
+                <div class="sf-quote-card" style="margin: 14px 0 0;">
+                    <?php foreach ($quote['lines'] as $line): ?>
+                        <?php if (($line['code'] ?? '') === 'platform_commission') {
+                            continue;
+                        } ?>
+                        <div class="row">
+                            <span class="l"><?= esc($line['label']) ?></span>
+                            <span class="a"><?= (float) $line['amount'] > 0 ? '£' . esc(number_format((float) $line['amount'], 2)) : 'Free' ?></span>
+                        </div>
+                    <?php endforeach; ?>
+                    <div class="row total"><span class="l">Total</span><span class="a">£<?= esc(number_format($total, 2)) ?></span></div>
+                </div>
+
+                <div class="sf-plan" style="margin-top: 14px;">
+                    <div class="top">
+                        <i class="fas fa-shield-halved" aria-hidden="true"></i>
+                        <div>
+                            <div class="amt">£<?= esc(number_format($deposit, 2)) ?> today</div>
+                            <div class="sub"><?= (int) $depositPercent ?>% deposit — holds <?= esc($dateShort) ?> for you</div>
+                        </div>
+                    </div>
+                    <div class="bal"><span>Balance — due after the event</span><span class="a">£<?= esc(number_format($balance, 2)) ?></span></div>
+                    <div class="sf-refunds">
+                        <b>If you cancel:</b> full refund up to 14 days before the event · 50% refund within 14 days ·
+                        full refund any time if the vendor cancels or can't deliver.
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </div>
 </div>
 
 <?php if (! empty($stripeEnabled) && ! empty($stripeClientSecret) && ! empty($stripePublishableKey)): ?>
@@ -79,22 +144,19 @@ $where   = trim((string) ($quote['event']['location'] ?? ''));
     const paymentElement = elements.create('payment');
     paymentElement.mount('#payment-element');
 
-    const form = document.getElementById('tenantCheckoutForm');
+    const form = document.getElementById('sfCheckoutForm');
     const btn = document.getElementById('payBtn');
     const errBox = document.getElementById('payment-errors');
     let confirmed = false;
 
     form.addEventListener('submit', async function (e) {
-        if (confirmed) return; // second pass: post to the server with the PI id
+        if (confirmed) return;
         e.preventDefault();
         if (!form.reportValidity()) return;
         btn.disabled = true;
         errBox.style.display = 'none';
 
-        const { error, paymentIntent } = await stripe.confirmPayment({
-            elements,
-            redirect: 'if_required'
-        });
+        const { error, paymentIntent } = await stripe.confirmPayment({ elements, redirect: 'if_required' });
 
         if (error) {
             errBox.textContent = error.message || 'Payment failed — please try again.';

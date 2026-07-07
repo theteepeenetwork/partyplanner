@@ -1,15 +1,23 @@
 <?php
 
 /**
- * White-label tenant layout — header (T4).
+ * White-label tenant layout — header (Storefront System handoff, frames 1a–1n).
  *
- * Expects $site (vendor_sites row) from TenantController; falls back to the
- * shared tenant service. Optional: $pageTitle (prefixed to the business name).
+ * Neutral SaaS chrome: tenant pages load ONLY the storefront stylesheet +
+ * Instrument Sans + Font Awesome — no marketplace CSS, no PartySmith branding
+ * (the sole PartySmith reference is the muted "Powered by" line in the
+ * footer). Vendor theming = two injected custom properties (--sf-primary,
+ * --sf-accent) + tints derived in CSS.
  *
- * Branding: primary_color/secondary_color are injected as CSS custom
- * properties over the :root palette that style.css defines and the .ps-app
- * design system consumes. No marketplace nav and no PartySmith branding here
- * — the only PartySmith reference is the "Powered by" line in tenant_footer.
+ * Handoff rules enforced here:
+ *  - phone appears exactly once in the header (icon button, 44px hit area)
+ *  - logo below 128px wide is never scaled up → monogram tile instead
+ *  - vendor colours are contrast-checked; a primary too light to carry white
+ *    text falls back to its darkened form (vendor colour never carries body
+ *    text — the stylesheet keeps all body copy neutral)
+ *
+ * Expects $site (vendor_sites row); optional $pageTitle, $metaDescription,
+ * $hasStickyBar (adds bottom padding so content clears the fixed bar).
  */
 $site ??= service('tenant')->site() ?? [];
 
@@ -30,8 +38,7 @@ if (! function_exists('tenant_hex_color')) {
     }
 
     /**
-     * Darken a hex colour by $amount (0–1) — derives the deep/darkest tones
-     * (button hover, footer ground) from the vendor's primary colour.
+     * Darken a hex colour by $amount (0–1).
      */
     function tenant_darken_hex(string $hex, float $amount): string
     {
@@ -48,18 +55,53 @@ if (! function_exists('tenant_hex_color')) {
 
         return $out;
     }
+
+    /**
+     * Handoff contrast rule: the primary must carry white CTA text. If its
+     * YIQ luminance is too high, fall back to a darkened form (repeatedly,
+     * for pathological near-white picks).
+     */
+    function tenant_contrast_safe(string $hex): string
+    {
+        for ($i = 0; $i < 4; $i++) {
+            $h = ltrim($hex, '#');
+            if (strlen($h) === 3) {
+                $h = $h[0] . $h[0] . $h[1] . $h[1] . $h[2] . $h[2];
+            }
+            [$r, $g, $b] = [hexdec(substr($h, 0, 2)), hexdec(substr($h, 2, 2)), hexdec(substr($h, 4, 2))];
+            $yiq          = ($r * 299 + $g * 587 + $b * 114) / 1000;
+            if ($yiq <= 170) {
+                return $hex;
+            }
+            $hex = tenant_darken_hex($hex, 0.25);
+        }
+
+        return $hex;
+    }
 }
 
-$primaryColor   = tenant_hex_color($site['primary_color'] ?? null);
-$secondaryColor = tenant_hex_color($site['secondary_color'] ?? null);
+$rawPrimary   = tenant_hex_color($site['primary_color'] ?? null);
+$primary      = $rawPrimary !== null ? tenant_contrast_safe($rawPrimary) : null;
+$accent       = tenant_hex_color($site['secondary_color'] ?? null);
 
 $phone     = trim((string) ($site['phone'] ?? ''));
 $phoneHref = $phone !== '' ? 'tel:' . preg_replace('/[^0-9+]/', '', $phone) : '';
 
+// Logo fallback: missing OR too small (<128px wide) → monogram tile.
 $logoPath = trim((string) ($site['logo_path'] ?? ''));
-$logoUrl  = $logoPath !== '' ? '/' . ltrim($logoPath, '/') : '';
+$logoUrl  = '';
+if ($logoPath !== '') {
+    $abs = FCPATH . ltrim($logoPath, '/');
+    if (is_file($abs)) {
+        $dim = @getimagesize($abs);
+        if ($dim === false || (int) $dim[0] >= 128) {
+            $logoUrl = '/' . ltrim($logoPath, '/');
+        }
+    } else {
+        $logoUrl = '/' . ltrim($logoPath, '/');
+    }
+}
 
-// Monogram fallback (first letters of the first two words) when there's no logo.
 $initials = '';
 foreach (preg_split('/\s+/', $businessName) as $word) {
     if ($word !== '' && strlen($initials) < 2) {
@@ -69,13 +111,15 @@ foreach (preg_split('/\s+/', $businessName) as $word) {
 if ($initials === '') {
     $initials = 'P';
 }
+
+$headSub = trim((string) ($headerSubline ?? ''));
 ?>
 <!DOCTYPE html>
 <html lang="en">
 
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title><?= esc($headTitle) ?></title>
     <?php if (! empty($metaDescription)): ?>
         <meta name="description" content="<?= esc($metaDescription) ?>">
@@ -83,70 +127,52 @@ if ($initials === '') {
 
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;1,16..72,400;1,16..72,500&display=swap" rel="stylesheet" media="print" onload="this.media='all'">
-    <noscript>
-        <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800&family=Newsreader:ital,opsz,wght@0,16..72,400;0,16..72,500;0,16..72,600;1,16..72,400;1,16..72,500&display=swap" rel="stylesheet">
-    </noscript>
-
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet"
-        integrity="sha384-EVSTQN3/azprG1Anm3QDgpJLIm9Nao0Yz1ztcQTwFspd3yD65VohhpuuCOmLASjC" crossorigin="anonymous">
+    <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 
-    <link rel="stylesheet" href="/assets/css/style.css">
-    <!-- Partysmith design system, scoped under .ps-app -->
-    <link rel="stylesheet" href="/assets/css/partysmith-app.css">
-    <!-- White-label storefront components, themed by the palette below -->
     <link rel="stylesheet" href="/assets/css/tenant-storefront.css">
 
-    <?php if ($primaryColor !== null || $secondaryColor !== null): ?>
-    <!-- Tenant brand palette: overrides the :root tokens the design system reads -->
+    <?php if ($primary !== null || $accent !== null): ?>
     <style>
         :root {
-            <?php if ($primaryColor !== null): ?>
-            --green: <?= $primaryColor ?>;
-            --green-bright: <?= $primaryColor ?>;
-            --green-deep: <?= tenant_darken_hex($primaryColor, 0.18) ?>;
-            --green-darkest: <?= tenant_darken_hex($primaryColor, 0.38) ?>;
-            --bs-primary: <?= $primaryColor ?>;
+            <?php if ($primary !== null): ?>
+            --sf-primary: <?= $primary ?>;
+            --sf-primary-deep: <?= tenant_darken_hex($primary, 0.18) ?>;
             <?php endif; ?>
-            <?php if ($secondaryColor !== null): ?>
-            --gold: <?= $secondaryColor ?>;
-            --gold-bright: <?= $secondaryColor ?>;
+            <?php if ($accent !== null): ?>
+            --sf-accent: <?= $accent ?>;
             <?php endif; ?>
         }
     </style>
     <?php endif; ?>
 </head>
 
-<body>
+<body class="sf-body<?= ! empty($hasStickyBar) ? ' sf-has-stickybar' : '' ?>">
 
-    <a href="#main-content" class="skip-link">Skip to main content</a>
+    <a href="#sf-main" class="sf-skip">Skip to main content</a>
 
-    <header>
-        <nav class="navbar fixed-top shadow-sm">
-            <div class="container d-flex align-items-center justify-content-between flex-nowrap">
-                <a class="sf-brandwrap" href="/">
-                    <?php if ($logoUrl !== ''): ?>
-                        <img src="<?= esc($logoUrl, 'attr') ?>" alt="<?= esc($businessName, 'attr') ?>" style="height: 44px; width: auto;">
-                    <?php else: ?>
-                        <span class="sf-monogram" aria-hidden="true"><?= esc($initials) ?></span>
-                    <?php endif; ?>
-                    <span>
-                        <span class="sf-bn"><?= esc($businessName) ?></span>
-                        <?php if ($phone !== ''): ?>
-                            <span class="sf-bsub d-none d-sm-block"><?= esc($phone) ?></span>
-                        <?php endif; ?>
-                    </span>
-                </a>
-
-                <?php if ($phone !== ''): ?>
-                    <a class="btn btn-nav-cta" href="<?= esc($phoneHref, 'attr') ?>">
-                        <i class="fas fa-phone" aria-hidden="true"></i>&nbsp;<?= esc($phone) ?>
-                    </a>
+    <header class="sf-head">
+        <div class="sf-shell sf-head-in">
+            <a class="sf-brand" href="/">
+                <?php if ($logoUrl !== ''): ?>
+                    <img class="sf-logo" src="<?= esc($logoUrl, 'attr') ?>" alt="<?= esc($businessName, 'attr') ?>">
+                <?php else: ?>
+                    <span class="sf-mono" aria-hidden="true"><?= esc($initials) ?></span>
                 <?php endif; ?>
-            </div>
-        </nav>
+                <span style="min-width: 0;">
+                    <span class="sf-bname"><?= esc($businessName) ?></span>
+                    <?php if ($headSub !== ''): ?>
+                        <span class="sf-bsub"><?= esc($headSub) ?></span>
+                    <?php endif; ?>
+                </span>
+            </a>
+
+            <?php if ($phone !== ''): ?>
+                <a class="sf-phonebtn" href="<?= esc($phoneHref, 'attr') ?>" aria-label="Call <?= esc($businessName, 'attr') ?> on <?= esc($phone, 'attr') ?>">
+                    <i class="fas fa-phone" aria-hidden="true"></i><span class="num"><?= esc($phone) ?></span>
+                </a>
+            <?php endif; ?>
+        </div>
     </header>
 
-    <div id="main-content" tabindex="-1">
-    <div class="ps-app">
+    <main id="sf-main" tabindex="-1">

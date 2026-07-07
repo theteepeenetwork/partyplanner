@@ -170,16 +170,36 @@ final class TenantCheckoutTest extends CIUnitTestCase
         ]));
     }
 
-    public function testQuoteShowsTotalAndTenPercentDeposit(): void
+    public function testQuotePricesAndGoesStraightToCheckout(): void
     {
+        // New funnel (Storefront System board): the itemised quote lives on
+        // the service page; "Book this date" stores the server-priced quote
+        // and redirects straight to checkout.
         $result = $this->postQuote();
 
+        $result->assertRedirectTo('http://money.' . self::BASE_DOMAIN . '/checkout');
+        $quote = session()->get('tenant_quote');
+        $this->assertIsArray($quote);
+        $this->assertSame(975.00, (float) $quote['total']); // 45 × £19 + £120
+        $this->assertSame(97.50, DepositCalculator::forTotal((float) $quote['total']));
+    }
+
+    public function testQuoteLiveReturnsItemisedJson(): void
+    {
+        $this->onTenant();
+        $result = $this->get('/quote-live?' . http_build_query([
+            'service_id'  => $this->serviceId,
+            'event_date'  => date('Y-m-d', strtotime('+30 days')),
+            'guest_count' => 45,
+            'extras'      => [$this->extraId()],
+        ]));
+
         $result->assertStatus(200);
-        $result->assertSee('Your quote');
-        $result->assertSee('975.00');           // 45 × £19 + £120
-        $result->assertSee('97.50');            // 10% deposit
-        $result->assertSee('877.50');           // balance
-        $this->assertSame(97.50, DepositCalculator::forTotal(975.00));
+        $json = json_decode((string) $result->response()->getBody(), true);
+        $this->assertTrue($json['ok']);
+        $this->assertSame(975.00, (float) $json['total']);
+        $this->assertSame(97.50, (float) $json['deposit']);
+        $this->assertNotEmpty($json['lines']);
     }
 
     public function testQuoteForForeignServiceIs404(): void
@@ -195,12 +215,12 @@ final class TenantCheckoutTest extends CIUnitTestCase
     public function testCheckoutWithoutQuoteRedirectsHome(): void
     {
         $this->onTenant();
-        $this->get('/checkout')->assertRedirectTo('/');
+        $this->get('/checkout')->assertRedirectTo('http://money.' . self::BASE_DOMAIN . '/');
     }
 
     public function testFullGuestCheckoutCreatesMarketplaceShapedRecords(): void
     {
-        $this->postQuote()->assertStatus(200);
+        $this->postQuote()->assertRedirectTo('http://money.' . self::BASE_DOMAIN . '/checkout');
         // Feature-test requests reset $_SESSION — carry the quote forward
         // the way a real browser session would.
         $quote = session()->get('tenant_quote');
@@ -210,7 +230,7 @@ final class TenantCheckoutTest extends CIUnitTestCase
         $this->onTenant();
         $checkout = $this->withSession(['tenant_quote' => $quote])->get('/checkout');
         $checkout->assertStatus(200);
-        $checkout->assertSee('Pay your deposit');
+        $checkout->assertSee('Hold your date');
         $checkout->assertSee('97.50');
         $checkout->assertSee('simulated');
 
@@ -222,7 +242,8 @@ final class TenantCheckoutTest extends CIUnitTestCase
             'guest_phone' => '07700 900456',
         ]));
         $done->assertRedirect();
-        $bookingId = (int) preg_replace('/\D/', '', (string) $done->getRedirectUrl());
+        preg_match('#/booked/(\d+)#', (string) $done->getRedirectUrl(), $m); // path only — baseURL may contain digits (e.g. a port)
+        $bookingId = (int) ($m[1] ?? 0);
         $this->assertGreaterThan(0, $bookingId);
 
         // Customer account created for the guest email.
@@ -258,8 +279,8 @@ final class TenantCheckoutTest extends CIUnitTestCase
         $this->onTenant();
         $confirm = $this->withSession(['tenant_bookings' => $mine, 'tenant_guest_name' => 'Sarah'])->get('/booked/' . $bookingId);
         $confirm->assertStatus(200);
-        $confirm->assertSee("You're booked");
-        $confirm->assertSee('MT-' . $bookingId); // Money Test → MT reference
+        $confirm->assertSee('Date held');
+        $confirm->assertSee('PS-' . $bookingId); // platform reference (frame 1k)
         $confirm->assertSee('97.50');
         $confirm->assertSee('877.50');
     }
@@ -274,7 +295,8 @@ final class TenantCheckoutTest extends CIUnitTestCase
             'guest_name'  => 'Emma Wright',
             'guest_email' => 'emma.wright@example.test',
         ]));
-        $bookingId = (int) preg_replace('/\D/', '', (string) $done->getRedirectUrl());
+        preg_match('#/booked/(\d+)#', (string) $done->getRedirectUrl(), $m); // path only — baseURL may contain digits (e.g. a port)
+        $bookingId = (int) ($m[1] ?? 0);
 
         // …then pretend to be a different visitor (no tenant_bookings in session).
         session()->remove('tenant_bookings');

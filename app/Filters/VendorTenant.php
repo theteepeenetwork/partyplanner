@@ -46,6 +46,10 @@ class VendorTenant implements FilterInterface
         }
 
         service('tenant')->activate($site, $vendor);
+        // NB: redirects inside tenant controllers must be built from the
+        // request Host (TenantContext::url()) — site_url()/redirect() resolve
+        // against the marketplace baseURL because the tenant subdomain is not
+        // an allowedHostname, so a bare redirect()->to('/x') hops domains.
     }
 
     public function after(RequestInterface $request, ResponseInterface $response, $arguments = null)
