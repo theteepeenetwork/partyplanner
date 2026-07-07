@@ -17,4 +17,7 @@
     <li class="nav-item">
         <a class="nav-link <?= ($currentTab ?? '') === 'host-profile' ? 'active' : '' ?>" href="/profile/host-profile">Host profile</a>
     </li>
+    <li class="nav-item">
+        <a class="nav-link <?= ($currentTab ?? '') === 'my-site' ? 'active' : '' ?>" href="/profile/my-site">My site</a>
+    </li>
 </ul>

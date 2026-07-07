@@ -29,4 +29,17 @@ class Services extends BaseService
      *     return new \CodeIgniter\Example();
      * }
      */
+
+    /**
+     * White-label tenant context for the current request. Activated by the
+     * VendorTenant filter on tenant subdomains; inactive on the marketplace.
+     */
+    public static function tenant(bool $getShared = true): \App\Libraries\TenantContext
+    {
+        if ($getShared) {
+            return static::getSharedInstance('tenant');
+        }
+
+        return new \App\Libraries\TenantContext();
+    }
 }

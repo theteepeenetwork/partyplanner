@@ -4,6 +4,26 @@ use CodeIgniter\Router\RouteCollection;
 /**
  * @var RouteCollection $routes
  */
+
+// ── White-label tenant hosts ─────────────────────────────────────────────
+// A vendor subdomain (<slug>.<tenant.baseDomain>) gets ONLY the tenant
+// storefront routes; every marketplace URL 404s there, so tenant traffic
+// can never wander into cross-vendor surfaces. Any other host — the main
+// domain, www, partyplanner.home, CLI (`spark`) — skips this block and the
+// marketplace routes below are registered exactly as before.
+if (\App\Libraries\TenantHost::current() !== null) {
+    $routes->group('', ['filter' => 'vendortenant'], static function ($routes) {
+        $routes->get('/', 'TenantController::home');
+        $routes->get('service/(:num)', 'TenantController::service/$1');
+        // Instant quote → 10% deposit → confirmation (guest checkout)
+        $routes->post('quote', 'TenantController::quote');
+        $routes->match(['GET', 'POST'], 'checkout', 'TenantController::checkout');
+        $routes->get('booked/(:num)', 'TenantController::booked/$1');
+    });
+
+    return;
+}
+
 $routes->get('/', 'Home::index');
 
 // User Routes
@@ -46,6 +66,7 @@ $routes->get('/profile/calendar', 'Profile::vendorCalendar', ['filter' => 'vendo
 $routes->get('/profile/calendar-data', 'Profile::calendarData', ['filter' => 'vendorauth']);
 $routes->post('/profile/calendar/toggle-block', 'Profile::toggleBlockDate', ['filter' => 'vendorauth']);
 $routes->match(['GET', 'POST'], '/profile/host-profile', 'Profile::hostProfile', ['filter' => 'vendorauth']);
+$routes->match(['GET', 'POST'], '/profile/my-site', 'Profile::mySite', ['filter' => 'vendorauth']);
 
 // Customer tabs
 $routes->get('/profile/events', 'Profile::customerEvents');

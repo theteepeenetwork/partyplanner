@@ -246,19 +246,7 @@ class Service_Controller extends BaseController
      */
     private function applyPublicServiceCatalogFilters(ServiceModel $serviceModel, array $cols): ServiceModel
     {
-        $builder = $serviceModel;
-        if (in_array('status', $cols, true)) {
-            $builder = $builder->where('status', 'active');
-        }
-        if (in_array('deleted_at', $cols, true)) {
-            $builder = $builder->where('deleted_at', null);
-        }
-
-        // A rejected/pending vendor's services must never surface on public
-        // listings, even while the listing row itself is still 'active'.
-        $builder = $builder->approvedVendorOnly();
-
-        return $builder;
+        return $serviceModel->publicCatalogue($cols);
     }
 
     /**
