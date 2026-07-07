@@ -231,7 +231,10 @@ $fallback = base_url('assets/images/fallback-service-card.jpg');
     $thumb2     = $images[2] ?? null;
     $extraCount = max(0, count($images) - 3);
     ?>
-    <div class="sv-gallery-grid" style="display:grid;grid-template-columns:2fr 1fr;gap:12px;height:420px;margin-bottom:44px">
+    <?php // grid-template-rows:100% pins the single row to the 420px box; without it the
+          // implicit row sizes to the image's natural height, the gallery overflows under
+          // .sv-split and the booking panel swallows clicks meant for the thumbnails. ?>
+    <div class="sv-gallery-grid" style="display:grid;grid-template-columns:2fr 1fr;grid-template-rows:100%;gap:12px;height:420px;margin-bottom:44px">
       <div class="sv-gallery-main" style="height:100%">
         <img id="sv-main-img"
              src="<?= base_url(esc($primaryImage['image_path'])) ?>"
