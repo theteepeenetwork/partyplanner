@@ -26,31 +26,40 @@ $ctxBits   = array_filter([$catShort, $dateLabel, $ctxPostcode]);
     <?php endif; ?>
 </div>
 
-<!-- Gallery -->
+<!-- Gallery. Photo layout branches on count via photoContext() (1 → framed
+     hero, 2–3 → filmstrip, 4+ → snap-strip + mosaic), matching the 1n
+     fallback rules. Strip and mosaic render the SAME $urls; only one is in the
+     a11y tree per breakpoint (the other is display:none), so numbered alt text
+     is not double-announced. Descriptive alt names the service + photo index. -->
+<?php
+$galAlt = static fn (int $i): string => $i === 0
+    ? (string) ($service['title'] ?? 'Service photo')
+    : ($service['title'] ?? 'Service') . ' — photo ' . ($i + 1);
+?>
 <?php if ($urls !== []): ?>
     <?php if ($photos['mode'] === 'framed'): ?>
-        <div class="sf-framed-hero"><img src="<?= esc($urls[0], 'attr') ?>" alt="<?= esc($service['title'], 'attr') ?>"></div>
+        <div class="sf-framed-hero"><img src="<?= esc($urls[0], 'attr') ?>" alt="<?= esc($galAlt(0), 'attr') ?>"></div>
     <?php elseif ($photos['mode'] === 'filmstrip'): ?>
         <div class="sf-shell" style="padding-top: 10px;"><div class="sf-filmstrip">
-            <?php foreach ($urls as $u): ?><img src="<?= esc($u, 'attr') ?>" alt=""><?php endforeach; ?>
+            <?php foreach ($urls as $i => $u): ?><img src="<?= esc($u, 'attr') ?>" alt="<?= esc($galAlt($i), 'attr') ?>"><?php endforeach; ?>
         </div></div>
     <?php else: ?>
         <div class="sf-shell" style="padding-top: 10px;">
             <div class="sf-gal">
                 <div class="sf-gal-strip" id="sfGal">
-                    <?php foreach ($urls as $u): ?><img src="<?= esc($u, 'attr') ?>" alt=""><?php endforeach; ?>
+                    <?php foreach ($urls as $i => $u): ?><img src="<?= esc($u, 'attr') ?>" alt="<?= esc($galAlt($i), 'attr') ?>"><?php endforeach; ?>
                 </div>
-                <span class="sf-counter-chip"><span id="sfGalN">1</span>/<?= count($urls) ?></span>
-                <div class="sf-gal-dots" id="sfGalDots">
+                <span class="sf-counter-chip" aria-hidden="true"><span id="sfGalN">1</span>/<?= count($urls) ?></span>
+                <div class="sf-gal-dots" id="sfGalDots" aria-hidden="true">
                     <?php foreach ($urls as $i => $u): ?><span<?= $i === 0 ? ' class="on"' : '' ?>></span><?php endforeach; ?>
                 </div>
                 <div class="sf-mosaic">
-                    <div class="cell big"><img src="<?= esc($urls[0], 'attr') ?>" alt=""></div>
-                    <?php if (isset($urls[1])): ?><div class="cell"><img src="<?= esc($urls[1], 'attr') ?>" alt=""></div><?php endif; ?>
+                    <div class="cell big"><img src="<?= esc($urls[0], 'attr') ?>" alt="<?= esc($galAlt(0), 'attr') ?>"></div>
+                    <?php if (isset($urls[1])): ?><div class="cell"><img src="<?= esc($urls[1], 'attr') ?>" alt="<?= esc($galAlt(1), 'attr') ?>"></div><?php endif; ?>
                     <?php if (isset($urls[2])): ?>
                         <div class="cell">
-                            <img src="<?= esc($urls[2], 'attr') ?>" alt="">
-                            <?php if ($photos['extra'] > 0): ?><span class="more">+<?= (int) $photos['extra'] ?> photos</span><?php endif; ?>
+                            <img src="<?= esc($urls[2], 'attr') ?>" alt="<?= esc($galAlt(2), 'attr') ?>">
+                            <?php if ($photos['extra'] > 0): ?><span class="more"><span aria-hidden="true">+<?= (int) $photos['extra'] ?> photos</span><span class="sf-sr-only"><?= (int) $photos['extra'] ?> more photos of <?= esc($service['title']) ?></span></span><?php endif; ?>
                         </div>
                     <?php endif; ?>
                 </div>

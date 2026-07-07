@@ -16,7 +16,7 @@ $bookCnt = (int) ($trust['bookings'] ?? 0);
 
 <?php if ($heroImage !== ''): ?>
     <div class="sf-hero">
-        <img src="<?= esc($heroImage, 'attr') ?>" alt="">
+        <img src="<?= esc($heroImage, 'attr') ?>" alt="<?= esc($bn, 'attr') ?> — event services">
         <div class="sf-hero-scrim">
             <div class="sf-shell" style="width: 100%;">
                 <h1 class="sf-hero-h"><?= esc($bn) ?></h1>
@@ -61,6 +61,8 @@ $bookCnt = (int) ($trust['bookings'] ?? 0);
                         <span class="sf-badge-most">Most booked</span>
                     <?php endif; ?>
                     <span class="img">
+                        <?php // Decorative: the card is one link whose text already names the
+                              // service, so alt here would double-announce (WCAG H67). ?>
                         <?php if ($img !== ''): ?>
                             <img src="<?= esc($img, 'attr') ?>" alt="" loading="lazy">
                         <?php else: ?>

@@ -29,14 +29,14 @@ $catShort  = trim(explode('·', (string) ($categoryName ?? ''))[0] ?? '');
 <?php elseif ($photos['mode'] === 'filmstrip'): ?>
     <div class="sf-shell" style="padding-top: 12px;">
         <div class="sf-filmstrip">
-            <?php foreach ($photos['urls'] as $u): ?>
-                <img src="<?= esc($u, 'attr') ?>" alt="">
+            <?php foreach ($photos['urls'] as $i => $u): ?>
+                <img src="<?= esc($u, 'attr') ?>" alt="<?= esc($i === 0 ? $service['title'] : $service['title'] . ' — photo ' . ($i + 1), 'attr') ?>">
             <?php endforeach; ?>
         </div>
     </div>
 <?php elseif ($photos['mode'] !== 'none'): ?>
     <div class="sf-hero">
-        <img src="<?= esc($photos['urls'][0], 'attr') ?>" alt="">
+        <img src="<?= esc($photos['urls'][0], 'attr') ?>" alt="<?= esc($service['title'], 'attr') ?>">
         <div class="sf-hero-scrim">
             <div class="sf-shell" style="width: 100%;">
                 <h1 class="sf-hero-h"><?= esc($service['title']) ?></h1>

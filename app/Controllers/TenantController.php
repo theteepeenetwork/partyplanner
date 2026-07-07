@@ -33,6 +33,15 @@ use Config\Database;
  */
 class TenantController extends BaseController
 {
+    /**
+     * "Most booked" badge threshold: the leading service must have at least
+     * this many CONFIRMED bookings before the badge is shown. Without a floor
+     * the badge would appear on near-empty vendors and mean nothing (report
+     * §3). Only accepted/confirmed bookings count — the same states that make
+     * a booking a "verified booking" elsewhere.
+     */
+    private const MOST_BOOKED_MIN = 3;
+
     public function home()
     {
         $tenant = $this->requireTenant();
@@ -748,11 +757,12 @@ class TenantController extends BaseController
             ->select('booking_items.service_id, COUNT(*) AS cnt')
             ->join('services', 'services.id = booking_items.service_id')
             ->where('services.vendor_id', $vendorId)
+            ->whereIn('booking_items.status', ['accepted', 'confirmed'])
             ->groupBy('booking_items.service_id')
             ->orderBy('cnt', 'DESC')
             ->get(1)->getRowArray();
 
-        return $row ? (int) $row['service_id'] : null;
+        return ($row && (int) $row['cnt'] >= self::MOST_BOOKED_MIN) ? (int) $row['service_id'] : null;
     }
 
     /**
