@@ -222,7 +222,8 @@ final class TenantCheckoutTest extends CIUnitTestCase
             'guest_phone' => '07700 900456',
         ]));
         $done->assertRedirect();
-        $bookingId = (int) preg_replace('/\D/', '', (string) $done->getRedirectUrl());
+        preg_match('#/booked/(\d+)#', (string) $done->getRedirectUrl(), $m); // path only — baseURL may contain digits (e.g. a port)
+        $bookingId = (int) ($m[1] ?? 0);
         $this->assertGreaterThan(0, $bookingId);
 
         // Customer account created for the guest email.
@@ -274,7 +275,8 @@ final class TenantCheckoutTest extends CIUnitTestCase
             'guest_name'  => 'Emma Wright',
             'guest_email' => 'emma.wright@example.test',
         ]));
-        $bookingId = (int) preg_replace('/\D/', '', (string) $done->getRedirectUrl());
+        preg_match('#/booked/(\d+)#', (string) $done->getRedirectUrl(), $m); // path only — baseURL may contain digits (e.g. a port)
+        $bookingId = (int) ($m[1] ?? 0);
 
         // …then pretend to be a different visitor (no tenant_bookings in session).
         session()->remove('tenant_bookings');
