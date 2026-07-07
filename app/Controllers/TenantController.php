@@ -676,8 +676,12 @@ class TenantController extends BaseController
     }
 
     /**
-     * Photo fallback rules (frame 1n): 0 photos → tinted placeholder;
-     * 1 → framed-on-tint hero; 2–3 → filmstrip; 4+ → grid/mosaic.
+     * Photo fallback rules, per the design FRAMES (1b/1c/1f/1g/1m — the
+     * authoritative source; the 1n text's "filmstrip" line contradicts them
+     * and was dropped): 0 → nothing; 1 → framed-on-tint hero; 2+ → gallery
+     * (mobile swipe strip / laptop 2fr-1fr mosaic). "No sparse grid" is
+     * honoured by the views: at 2 photos both mosaic tiles run full height,
+     * so the grid never shows an empty cell.
      *
      * @return array{mode: string, urls: list<string>, extra: int}
      */
@@ -695,8 +699,7 @@ class TenantController extends BaseController
         $mode = match (true) {
             $urls === []       => 'none',
             count($urls) === 1 => 'framed',
-            count($urls) < 4   => 'filmstrip',
-            default            => 'mosaic',
+            default            => 'gallery',
         };
 
         return ['mode' => $mode, 'urls' => $urls, 'extra' => max(0, count($urls) - 3)];

@@ -26,11 +26,13 @@ $ctxBits   = array_filter([$catShort, $dateLabel, $ctxPostcode]);
     <?php endif; ?>
 </div>
 
-<!-- Gallery. Photo layout branches on count via photoContext() (1 → framed
-     hero, 2–3 → filmstrip, 4+ → snap-strip + mosaic), matching the 1n
-     fallback rules. Strip and mosaic render the SAME $urls; only one is in the
-     a11y tree per breakpoint (the other is display:none), so numbered alt text
-     is not double-announced. Descriptive alt names the service + photo index. -->
+<!-- Gallery, per the design FRAMES (1f mobile swipe / 1g laptop mosaic /
+     1m framed hero): 1 photo → framed-on-tint hero; 2+ → swipe strip on
+     mobile + 2fr-1fr mosaic on laptop. At exactly 2 photos the mosaic gets
+     the `two` variant (both tiles full height) so the grid is never sparse.
+     Strip and mosaic render the SAME $urls; only one is in the a11y tree per
+     breakpoint (the other is display:none), so numbered alt text is not
+     double-announced. Counter, dots and "+N" all derive from count($urls). -->
 <?php
 $galAlt = static fn (int $i): string => $i === 0
     ? (string) ($service['title'] ?? 'Service photo')
@@ -39,10 +41,6 @@ $galAlt = static fn (int $i): string => $i === 0
 <?php if ($urls !== []): ?>
     <?php if ($photos['mode'] === 'framed'): ?>
         <div class="sf-framed-hero"><img src="<?= esc($urls[0], 'attr') ?>" alt="<?= esc($galAlt(0), 'attr') ?>"></div>
-    <?php elseif ($photos['mode'] === 'filmstrip'): ?>
-        <div class="sf-shell" style="padding-top: 10px;"><div class="sf-filmstrip">
-            <?php foreach ($urls as $i => $u): ?><img src="<?= esc($u, 'attr') ?>" alt="<?= esc($galAlt($i), 'attr') ?>"><?php endforeach; ?>
-        </div></div>
     <?php else: ?>
         <div class="sf-shell" style="padding-top: 10px;">
             <div class="sf-gal">
@@ -53,7 +51,7 @@ $galAlt = static fn (int $i): string => $i === 0
                 <div class="sf-gal-dots" id="sfGalDots" aria-hidden="true">
                     <?php foreach ($urls as $i => $u): ?><span<?= $i === 0 ? ' class="on"' : '' ?>></span><?php endforeach; ?>
                 </div>
-                <div class="sf-mosaic">
+                <div class="sf-mosaic<?= count($urls) === 2 ? ' two' : '' ?>">
                     <div class="cell big"><img src="<?= esc($urls[0], 'attr') ?>" alt="<?= esc($galAlt(0), 'attr') ?>"></div>
                     <?php if (isset($urls[1])): ?><div class="cell"><img src="<?= esc($urls[1], 'attr') ?>" alt="<?= esc($galAlt(1), 'attr') ?>"></div><?php endif; ?>
                     <?php if (isset($urls[2])): ?>
@@ -313,7 +311,7 @@ $galAlt = static fn (int $i): string => $i === 0
 })();
 </script>
 
-<?php if ($photos['mode'] === 'mosaic'): ?>
+<?php if ($photos['mode'] === 'gallery'): ?>
 <script>
 (function () {
     var strip = document.getElementById('sfGal') ? document.getElementById('sfGal') : null;

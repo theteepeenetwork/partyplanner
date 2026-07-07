@@ -22,21 +22,22 @@ $included  = array_values(array_filter(array_map('trim', preg_split('/\n+/', (st
 $catShort  = trim(explode('·', (string) ($categoryName ?? ''))[0] ?? '');
 ?>
 
+<?php
+// Gallery per the design frames: 1 photo → framed-on-tint hero (1m);
+// 2+ → mobile full-bleed scrim hero (1b) + laptop tile grid (1c). Scrim hero
+// and laptop tiles/title are breakpoint-exclusive (display:none removes the
+// hidden one from the a11y tree, so only one h1 is ever exposed).
+$galAlt = static fn (int $i): string => $i === 0
+    ? (string) ($service['title'] ?? 'Service photo')
+    : ($service['title'] ?? 'Service') . ' — photo ' . ($i + 1);
+?>
 <?php if ($photos['mode'] === 'framed'): ?>
     <div class="sf-framed-hero">
-        <img src="<?= esc($photos['urls'][0], 'attr') ?>" alt="<?= esc($service['title'], 'attr') ?>">
+        <img src="<?= esc($photos['urls'][0], 'attr') ?>" alt="<?= esc($galAlt(0), 'attr') ?>">
     </div>
-<?php elseif ($photos['mode'] === 'filmstrip'): ?>
-    <div class="sf-shell" style="padding-top: 12px;">
-        <div class="sf-filmstrip">
-            <?php foreach ($photos['urls'] as $i => $u): ?>
-                <img src="<?= esc($u, 'attr') ?>" alt="<?= esc($i === 0 ? $service['title'] : $service['title'] . ' — photo ' . ($i + 1), 'attr') ?>">
-            <?php endforeach; ?>
-        </div>
-    </div>
-<?php elseif ($photos['mode'] !== 'none'): ?>
-    <div class="sf-hero">
-        <img src="<?= esc($photos['urls'][0], 'attr') ?>" alt="<?= esc($service['title'], 'attr') ?>">
+<?php elseif ($photos['mode'] === 'gallery'): ?>
+    <div class="sf-hero sf-only-mobile">
+        <img src="<?= esc($photos['urls'][0], 'attr') ?>" alt="<?= esc($galAlt(0), 'attr') ?>">
         <div class="sf-hero-scrim">
             <div class="sf-shell" style="width: 100%;">
                 <h1 class="sf-hero-h"><?= esc($service['title']) ?></h1>
@@ -56,24 +57,41 @@ $catShort  = trim(explode('·', (string) ($categoryName ?? ''))[0] ?? '');
 <div class="sf-shell">
     <div class="sf-cols">
         <div>
-            <?php if ($photos['mode'] === 'framed' || $photos['mode'] === 'filmstrip' || $photos['mode'] === 'none'): ?>
-                <div class="sf-sec" style="padding-bottom: 0;">
-                    <?php if ($catShort !== ''): ?><p class="sf-eyebrow"><?= esc($catShort) ?></p><?php endif; ?>
-                    <h1 style="font-size: 20px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em;"><?= esc($service['title']) ?></h1>
-                    <?php if ($rating !== null): ?>
-                        <span class="sf-rating-chip" style="color: var(--sf-ink);"><i class="fas fa-star" aria-hidden="true"></i><?= esc(number_format($rating, 1)) ?> · <?= $bookCnt ?> booking<?= $bookCnt === 1 ? '' : 's' ?></span>
-                    <?php elseif (! empty($newVendor['isNew'])): ?>
-                        <span class="sf-newbadge"><i class="fas fa-seedling" aria-hidden="true"></i>New on PartySmith</span>
-                    <?php endif; ?>
+            <?php if ($photos['mode'] === 'gallery'): ?>
+                <!-- 1c laptop tile grid (left column) -->
+                <div class="sf-only-laptop" style="padding-top: 18px;">
+                    <?php /* .sf-mosaic is display:none <980px by its own rule — no inline display,
+                             or it would override the breakpoint and leak onto mobile. */ ?>
+                    <div class="sf-mosaic<?= count($photos['urls']) === 2 ? ' two' : '' ?>">
+                        <div class="cell big"><img src="<?= esc($photos['urls'][0], 'attr') ?>" alt="<?= esc($galAlt(0), 'attr') ?>"></div>
+                        <?php if (isset($photos['urls'][1])): ?><div class="cell"><img src="<?= esc($photos['urls'][1], 'attr') ?>" alt="<?= esc($galAlt(1), 'attr') ?>"></div><?php endif; ?>
+                        <?php if (isset($photos['urls'][2])): ?>
+                            <div class="cell">
+                                <img src="<?= esc($photos['urls'][2], 'attr') ?>" alt="<?= esc($galAlt(2), 'attr') ?>">
+                                <?php if ($photos['extra'] > 0): ?><span class="more"><span aria-hidden="true">+<?= (int) $photos['extra'] ?> photos</span><span class="sf-sr-only"><?= (int) $photos['extra'] ?> more photos of <?= esc($service['title']) ?></span></span><?php endif; ?>
+                            </div>
+                        <?php endif; ?>
+                    </div>
                 </div>
             <?php endif; ?>
+
+            <div class="sf-sec<?= $photos['mode'] === 'gallery' ? ' sf-only-laptop' : '' ?>" style="padding-bottom: 0;">
+                <?php if ($catShort !== ''): ?><p class="sf-eyebrow"><?= esc($catShort) ?></p><?php endif; ?>
+                <h1 style="font-size: 20px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em;"><?= esc($service['title']) ?></h1>
+                <?php if ($rating !== null): ?>
+                    <span class="sf-rating-chip" style="color: var(--sf-ink);"><i class="fas fa-star" aria-hidden="true"></i><?= esc(number_format($rating, 1)) ?> · <?= $bookCnt ?> booking<?= $bookCnt === 1 ? '' : 's' ?></span>
+                <?php elseif (! empty($newVendor['isNew'])): ?>
+                    <span class="sf-newbadge"><i class="fas fa-seedling" aria-hidden="true"></i>New on PartySmith</span>
+                <?php endif; ?>
+            </div>
 
             <?php if (session()->getFlashdata('error')): ?>
                 <div class="sf-flash error" role="alert"><?= esc(session()->getFlashdata('error')) ?></div>
             <?php endif; ?>
 
-            <!-- Availability checker (submits to the service page = real quote) -->
-            <form class="sf-check-card" method="get" action="<?= esc($checkHref, 'attr') ?>" style="margin-top: <?= $photos['mode'] === 'mosaic' || ($photos['mode'] !== 'none' && $photos['mode'] !== 'framed' && $photos['mode'] !== 'filmstrip') ? '-12px' : '14px' ?>;">
+            <!-- Availability checker (mobile; on laptop the sticky panel carries it, per 1c).
+                 Overlaps the scrim hero by −12px when the hero renders above it. -->
+            <form class="sf-check-card sf-only-mobile" method="get" action="<?= esc($checkHref, 'attr') ?>" style="margin-top: <?= $photos['mode'] === 'gallery' ? '-12px' : '14px' ?>;">
                 <h2>Check your date</h2>
                 <div class="sf-2col">
                     <label class="sf-field">
@@ -95,8 +113,11 @@ $catShort  = trim(explode('·', (string) ($categoryName ?? ''))[0] ?? '');
                 <span class="sf-chip"><i class="fas fa-rotate-left" aria-hidden="true"></i>Free 14-day cancellation</span>
             </div>
 
-            <?php if (! empty($newVendor['isNew']) && $photos['mode'] !== 'framed' && $rating === null): ?>
-                <p style="margin: 0 0 14px;"><span class="sf-newbadge"><i class="fas fa-seedling" aria-hidden="true"></i>New on PartySmith</span></p>
+            <?php // Mobile-only in gallery mode: the (laptop-only) title block above
+                  // already carries the badge there; framed/none modes get it from
+                  // that block at every width. ?>
+            <?php if (! empty($newVendor['isNew']) && $photos['mode'] === 'gallery' && $rating === null): ?>
+                <p class="sf-only-mobile" style="margin: 0 0 14px;"><span class="sf-newbadge"><i class="fas fa-seedling" aria-hidden="true"></i>New on PartySmith</span></p>
             <?php endif; ?>
 
             <?php if ($included !== []): ?>
