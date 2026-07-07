@@ -53,9 +53,9 @@ $galAlt = static fn (int $i): string => $i === 0
                 </div>
                 <div class="sf-mosaic<?= count($urls) === 2 ? ' two' : '' ?>">
                     <div class="cell big"><img src="<?= esc($urls[0], 'attr') ?>" alt="<?= esc($galAlt(0), 'attr') ?>"></div>
-                    <?php if (isset($urls[1])): ?><div class="cell"><img src="<?= esc($urls[1], 'attr') ?>" alt="<?= esc($galAlt(1), 'attr') ?>"></div><?php endif; ?>
+                    <?php if (isset($urls[1])): ?><div class="cell" role="button" tabindex="0" aria-label="Show this photo larger"><img src="<?= esc($urls[1], 'attr') ?>" alt="<?= esc($galAlt(1), 'attr') ?>"></div><?php endif; ?>
                     <?php if (isset($urls[2])): ?>
-                        <div class="cell">
+                        <div class="cell" role="button" tabindex="0" aria-label="Show this photo larger">
                             <img src="<?= esc($urls[2], 'attr') ?>" alt="<?= esc($galAlt(2), 'attr') ?>">
                             <?php if ($photos['extra'] > 0): ?><span class="more"><span aria-hidden="true">+<?= (int) $photos['extra'] ?> photos</span><span class="sf-sr-only"><?= (int) $photos['extra'] ?> more photos of <?= esc($service['title']) ?></span></span><?php endif; ?>
                         </div>

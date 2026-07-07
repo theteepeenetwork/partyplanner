@@ -298,6 +298,11 @@ textarea.sf-input { height: auto; padding: 10px 12px; }
   .sf-mosaic .cell { position: relative; border-radius: 14px; overflow: hidden; }
   .sf-mosaic .cell.big { grid-row: span 2; }
   .sf-mosaic .cell img { width: 100%; height: 100%; object-fit: cover; }
+  /* Small tiles are actionable: click/Enter promotes the photo to the big cell */
+  .sf-mosaic .cell:not(.big) { cursor: pointer; }
+  .sf-mosaic .cell:not(.big):hover img { transform: scale(1.03); }
+  .sf-mosaic .cell:not(.big) img { transition: transform 0.2s; }
+  .sf-mosaic .cell:not(.big):focus-visible { outline: 3px solid var(--sf-primary); outline-offset: 2px; }
   /* Exactly 2 photos: one row, both tiles full height — the mosaic is never
      sparse (the intent behind the design's "no sparse grid" rule). */
   .sf-mosaic.two { grid-template-rows: 380px; }

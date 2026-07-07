@@ -18,6 +18,32 @@ $poweredByUrl = 'https://www.' . TenantHost::baseDomain();
 ?>
     </main>
 
+    <script>
+    /* Gallery mosaic: clicking (or Enter/Space on) a small tile promotes its
+       photo to the big cell by swapping src+alt with the current big image.
+       Delegated once here so every tenant page's mosaic gets the behaviour. */
+    (function () {
+        function swap(cell) {
+            var mosaic = cell.closest('.sf-mosaic');
+            var bigImg = mosaic && mosaic.querySelector('.cell.big img');
+            var img = cell.querySelector('img');
+            if (!bigImg || !img || bigImg === img) return;
+            var src = bigImg.src, alt = bigImg.alt;
+            bigImg.src = img.src; bigImg.alt = img.alt;
+            img.src = src; img.alt = alt;
+        }
+        document.addEventListener('click', function (e) {
+            var cell = e.target.closest('.sf-mosaic .cell:not(.big)');
+            if (cell) swap(cell);
+        });
+        document.addEventListener('keydown', function (e) {
+            if (e.key !== 'Enter' && e.key !== ' ') return;
+            var cell = e.target.closest ? e.target.closest('.sf-mosaic .cell:not(.big)') : null;
+            if (cell) { e.preventDefault(); swap(cell); }
+        });
+    })();
+    </script>
+
     <footer class="sf-foot">
         <div class="sf-shell sf-foot-in">
             <p style="margin: 0;">

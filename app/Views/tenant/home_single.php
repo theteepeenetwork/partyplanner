@@ -64,9 +64,9 @@ $galAlt = static fn (int $i): string => $i === 0
                              or it would override the breakpoint and leak onto mobile. */ ?>
                     <div class="sf-mosaic<?= count($photos['urls']) === 2 ? ' two' : '' ?>">
                         <div class="cell big"><img src="<?= esc($photos['urls'][0], 'attr') ?>" alt="<?= esc($galAlt(0), 'attr') ?>"></div>
-                        <?php if (isset($photos['urls'][1])): ?><div class="cell"><img src="<?= esc($photos['urls'][1], 'attr') ?>" alt="<?= esc($galAlt(1), 'attr') ?>"></div><?php endif; ?>
+                        <?php if (isset($photos['urls'][1])): ?><div class="cell" role="button" tabindex="0" aria-label="Show this photo larger"><img src="<?= esc($photos['urls'][1], 'attr') ?>" alt="<?= esc($galAlt(1), 'attr') ?>"></div><?php endif; ?>
                         <?php if (isset($photos['urls'][2])): ?>
-                            <div class="cell">
+                            <div class="cell" role="button" tabindex="0" aria-label="Show this photo larger">
                                 <img src="<?= esc($photos['urls'][2], 'attr') ?>" alt="<?= esc($galAlt(2), 'attr') ?>">
                                 <?php if ($photos['extra'] > 0): ?><span class="more"><span aria-hidden="true">+<?= (int) $photos['extra'] ?> photos</span><span class="sf-sr-only"><?= (int) $photos['extra'] ?> more photos of <?= esc($service['title']) ?></span></span><?php endif; ?>
                             </div>
