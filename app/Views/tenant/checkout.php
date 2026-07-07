@@ -16,21 +16,40 @@ $where     = trim((string) ($quote['event']['postcode'] ?? ''));
 $firstWord = strtok($bn, ' ');
 ?>
 
+<?php
+$editHref = '/service/' . (int) $service['id'] . '?' . http_build_query(array_filter([
+    'date'     => $quote['event']['date'] ?? '',
+    'postcode' => $where,
+    'guests'   => $quote['event']['guest_count'] ?? null,
+]));
+?>
 <div class="sf-shell" style="padding-top: 18px;">
-    <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px;">
-        <h1 style="font-size: 19px; font-weight: 700; margin: 0; letter-spacing: -0.01em;">Hold your date</h1>
+    <?php // Responsive heading per the frames: 1i mobile = compact "Hold your date"
+          // bar with back arrow + lock; 1j laptop = full sentence with date+deposit.
+          // Breakpoint-exclusive via display:none, so one h1 in the a11y tree.?>
+    <div class="sf-only-mobile" style="display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px;">
+        <span style="display: inline-flex; align-items: center; gap: 10px;">
+            <a href="<?= esc($editHref, 'attr') ?>" aria-label="Back to <?= esc($service['title'], 'attr') ?>" style="color: var(--sf-ink);"><i class="fas fa-arrow-left" aria-hidden="true"></i></a>
+            <h1 style="font-size: 19px; font-weight: 700; margin: 0; letter-spacing: -0.01em;">Hold your date</h1>
+        </span>
         <span class="sf-lockline"><i class="fas fa-lock" aria-hidden="true"></i>Secure checkout</span>
+    </div>
+    <div class="sf-only-laptop" style="margin-bottom: 16px;">
+        <div style="display: flex; align-items: baseline; justify-content: space-between; gap: 12px;">
+            <h1 style="font-size: 26px; font-weight: 700; margin: 0; letter-spacing: -0.015em;">Hold <?= esc($dateShort) ?> with a £<?= esc(number_format($deposit, 2)) ?> deposit</h1>
+            <span class="sf-lockline"><i class="fas fa-lock" aria-hidden="true"></i>Secure checkout</span>
+        </div>
+        <p style="font-size: 13.5px; color: var(--sf-muted); margin: 6px 0 0;">
+            No account needed — you can create one after payment to track your booking.
+        </p>
     </div>
 
     <?php if (session()->getFlashdata('error')): ?>
         <div class="sf-flash error" role="alert"><?= esc(session()->getFlashdata('error')) ?></div>
     <?php endif; ?>
 
-    <div class="sf-cols">
+    <div class="sf-cols sf-cols-checkout">
         <div>
-            <p style="font-size: 13px; color: var(--sf-muted); margin: 0 0 16px;">
-                No account needed — you can create one after payment to track your booking.
-            </p>
 
             <form method="post" action="/checkout" id="sfCheckoutForm">
                 <?= csrf_field() ?>
@@ -81,12 +100,14 @@ $firstWord = strtok($bn, ' ');
                         <p class="t"><?= esc($service['title']) ?></p>
                         <p class="s"><?= esc($dateLabel) ?><?= $where !== '' ? ' · ' . esc($where) : '' ?> · <?= esc($bn) ?></p>
                     </div>
-                    <a class="edit" href="/service/<?= (int) $service['id'] ?>?<?= esc(http_build_query(array_filter(['date' => $quote['event']['date'] ?? '', 'postcode' => $where, 'guests' => $quote['event']['guest_count'] ?? null])), 'attr') ?>">Edit</a>
+                    <a class="edit" href="<?= esc($editHref, 'attr') ?>">Edit</a>
                 </div>
 
                 <div class="sf-quote-card" style="margin: 14px 0 0;">
                     <?php foreach ($quote['lines'] as $line): ?>
-                        <?php if (($line['code'] ?? '') === 'platform_commission') { continue; } ?>
+                        <?php if (($line['code'] ?? '') === 'platform_commission') {
+                            continue;
+                        } ?>
                         <div class="row">
                             <span class="l"><?= esc($line['label']) ?></span>
                             <span class="a"><?= (float) $line['amount'] > 0 ? '£' . esc(number_format((float) $line['amount'], 2)) : 'Free' ?></span>

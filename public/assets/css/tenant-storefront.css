@@ -392,6 +392,12 @@ textarea.sf-input { height: auto; padding: 10px 12px; }
 @media (min-width: 980px) { .sf-stickybar { display: none; } body.sf-body.sf-has-stickybar { padding-bottom: 0; } }
 
 /* ── Checkout ───────────────────────────────────────────────────────────── */
+/* 1i: on mobile the order summary + deposit/refund card come BEFORE the
+   form (the deposit ask is the anxiety peak — reassure first). Laptop (1j)
+   keeps form left, summary right. Grid `order` only affects visual order;
+   DOM/tab order stays form-first, which matches the laptop reading. */
+.sf-cols-checkout aside { order: -1; }
+@media (min-width: 980px) { .sf-cols-checkout aside { order: 0; } }
 .sf-lockline { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; font-weight: 600; color: var(--sf-muted); }
 .sf-lockline i { font-size: 11px; color: var(--sf-good); }
 .sf-summary { display: flex; align-items: center; gap: 12px; }
