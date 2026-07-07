@@ -72,7 +72,7 @@
 
                         <label class="mysite-label" style="margin-top:22px;">Logo</label>
                         <div class="mysite-logo-row">
-                            <div class="mysite-logo-current" id="logoPreview">
+                            <div class="mysite-logo-current" id="logoPreview" style="--pv-mono-bg: <?= esc($primary, 'attr') ?>;">
                                 <?php if ($logoUrl !== ''): ?>
                                     <img src="<?= esc($logoUrl, 'attr') ?>" alt="Current logo">
                                 <?php else: ?>

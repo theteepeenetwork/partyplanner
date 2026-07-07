@@ -6,7 +6,9 @@
    Scoped under .ps-storefront to stay inert elsewhere.
    ============================================================ */
 
-.ps-storefront { --sf-primary: var(--green); --sf-accent: var(--gold); }
+/* The header/footer live outside the .ps-storefront wrapper, so the aliases
+   must resolve document-wide. This stylesheet only loads on tenant pages. */
+:root { --sf-primary: var(--green); --sf-accent: var(--gold); }
 
 /* ---- Brand header additions (monogram tile + tagline) ---- */
 .sf-monogram {
