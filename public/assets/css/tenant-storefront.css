@@ -475,6 +475,80 @@ textarea.sf-input { height: auto; padding: 10px 12px; }
 .sf-noreviews { font-size: 13px; color: var(--sf-muted); line-height: 1.6; }
 .sf-noreviews b { color: var(--sf-ink); }
 
+/* ── Landing hero (mode B): full-bleed image + built-in scrim, CTAs ──────── */
+/* The image fills behind an always-on gradient, so white text passes AA over
+   any uploaded photo (legibility never depends on the crop). */
+.sf-hero-lander { position: relative; overflow: hidden; }
+.sf-hero-lander > img { position: absolute; inset: 0; width: 100%; height: 100%; object-fit: cover; }
+.sf-hero-lander .sf-hero-scrim {
+  position: relative; justify-content: flex-end; min-height: 250px;
+  /* Content is bottom-anchored; the dark is weighted to the lower 60% so white
+     body text clears AA even over a pure-white photo crop (worst case). */
+  background: linear-gradient(180deg, rgba(15, 16, 18, 0.35) 0%, rgba(15, 16, 18, 0.62) 45%, rgba(15, 16, 18, 0.85) 100%);
+  padding: 26px 16px 24px;
+}
+@media (min-width: 980px) {
+  .sf-hero-lander .sf-hero-scrim { min-height: 300px; padding: 34px 40px 30px; }
+}
+.sf-hero-lander.noimg .sf-hero-scrim {
+  background: linear-gradient(155deg, var(--sf-primary), var(--sf-primary-deep));
+}
+.sf-hero-tagline { color: rgba(255, 255, 255, 0.92); font-size: 14px; line-height: 1.5; margin: 2px 0 10px; max-width: 62ch; }
+@media (min-width: 980px) { .sf-hero-tagline { font-size: 15px; } }
+.sf-hero-fact { display: inline-flex; align-items: center; gap: 5px; color: rgba(255, 255, 255, 0.9); font-size: 12.5px; font-weight: 600; }
+.sf-hero-fact i { font-size: 11px; opacity: 0.85; }
+.sf-hero-cta { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 16px; }
+.sf-hero-btn {
+  display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+  min-height: 46px; padding: 0 20px; border-radius: 10px; cursor: pointer;
+  font-family: inherit; font-weight: 700; font-size: 14.5px;
+  background: #fff; color: var(--sf-primary); border: 1px solid transparent;
+  transition: transform 0.2s, filter 0.2s, background 0.2s;
+}
+.sf-hero-btn:hover { text-decoration: none; transform: translateY(-1px); filter: brightness(0.96); color: var(--sf-primary); }
+.sf-hero-btn.ghost { background: transparent; color: #fff; border-color: rgba(255, 255, 255, 0.55); font-size: 13.5px; }
+.sf-hero-btn.ghost:hover { background: rgba(255, 255, 255, 0.12); color: #fff; filter: none; }
+
+/* ── Header actions + scroll-revealed compact quote CTA ──────────────────── */
+.sf-head-actions { display: inline-flex; align-items: center; gap: 8px; min-width: 0; }
+.sf-btn-compact { min-height: 36px; padding: 0 14px; font-size: 13px; border-radius: 9px; }
+.sf-head-rating { display: none; align-items: center; gap: 5px; font-size: 12.5px; font-weight: 700; color: var(--sf-ink); white-space: nowrap; }
+.sf-head-rating i { color: var(--sf-star); font-size: 11px; }
+.sf-headcta { display: none; }
+body.sf-scrolled .sf-headcta { display: inline-flex; }
+@media (min-width: 620px) { body.sf-scrolled .sf-head-rating { display: inline-flex; } }
+
+/* ── On-page date field (qualifies the lead before the cards) ────────────── */
+.sf-datebar { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 6px; }
+.sf-datebar .sf-field { flex: 1 1 220px; }
+.sf-datebar .sf-btn { flex: none; }
+.sf-datebar-err { font-size: 12px; color: var(--sf-bad); margin: 4px 0 12px; }
+
+/* ── Normalised "from" price (one partial, three pricing shapes) ─────────── */
+.sf-price { display: inline-flex; align-items: baseline; gap: 4px; line-height: 1.3; }
+.sf-price .lead { font-weight: 400; font-size: 12.5px; color: var(--sf-muted); }
+.sf-price .amt { font-weight: 600; font-size: 15px; color: var(--sf-primary); }
+.sf-price .per { font-weight: 400; font-size: 11.5px; color: var(--sf-muted); }
+
+/* ── Service-card description, footer row + CTA ──────────────────────────── */
+.sf-svc-card .desc {
+  font-size: 12.5px; color: var(--sf-muted); margin: 4px 0 0; line-height: 1.45;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+}
+.sf-svc-card .foot {
+  margin-top: auto; padding-top: 10px; display: flex; align-items: baseline;
+  justify-content: space-between; gap: 8px 12px; flex-wrap: wrap;
+}
+.sf-svc-cta { font-size: 12.5px; font-weight: 700; color: var(--sf-primary); white-space: nowrap; }
+.sf-svc-card:hover .sf-svc-cta { text-decoration: underline; }
+
+/* ── Closing custom-package CTA ──────────────────────────────────────────── */
+.sf-closing {
+  display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap;
+  background: var(--sf-tint-5); border-radius: 14px; padding: 18px 20px;
+}
+.sf-closing .sf-btn-outline { flex: none; }
+
 /* ── Footer (dark, phone appears here once) ─────────────────────────────── */
 .sf-foot { background: var(--sf-dark); color: rgba(255, 255, 255, 0.65); margin-top: 34px; }
 .sf-foot-in {

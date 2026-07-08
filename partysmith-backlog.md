@@ -261,3 +261,17 @@ From re-verifying `VENDOR_ONBOARDING_AUDIT.md` against current code and the UK s
 - [ ] **Structured cancellation policy**: replace the step-6 free-text textarea (currently pre-filled with a `[placeholder]` template) with structured refund tiers; prerequisite for automating refunds in Epic 4.
 - [ ] **Taxonomy top-up** (data-only): add category rows for hot tubs, fireworks/pyrotechnics, bell tents/glamping structures, fairground rides, Santa's grottos, waste management.
 - [ ] **Specific event-type taxonomy** (audit roadmap 4): vendor-selectable wedding/birthday/festival/school/charity types, customer-filterable; today only public/private/corporate buckets.
+
+---
+
+## Storefront redesign — follow-ups (2026-07-08, mode-B lander)
+
+From the `tenant/home.php` redesign (hero CTAs, on-page date field, sticky header, reviews, closing CTA). No schema changes were made; these are the gaps found and deferred:
+
+- [ ] **Dedicated custom-package enquiry mechanism on the storefront.** The new closing "Send an enquiry" CTA points at the vendor phone (`tel:`), or the on-page quote/date field when no phone is set — there is **no enquiry form/route** on a tenant host (`TenantController` has no contact endpoint; the marketplace `contact` route 404s on tenant hosts by design). A lightweight guest enquiry form (name/email/message → vendor) would let "can't see what you need" leads convert without a phone call. Rendered with graceful fallback for now; needs a route + a `vendor_enquiries` store (or reuse `chat_rooms` un-gated for pre-booking enquiries) — flag before build, it borders the messaging system.
+- [ ] **Per-service pricing on the mode-B cards is only as good as `fromPrice()`.** Cards call `TenantBookingFlow::fromPrice()`; services with no pricing config render no price (graceful, by design). Not a defect, but if the launch categories expect a visible "from" on every card, ensure the wizard requires at least one pricing row before publish.
+
+Notes for the Verifier (not defects):
+
+- **Palette:** the hero primary CTA uses a white fill with vendor-primary text (not marketplace coral-vermillion) — deliberate. This is the **white-label storefront**, whose entire design system themes on the vendor's `--sf-primary`/`--sf-accent`; trust elements stay neutral and no PartySmith branding appears. Hardcoding coral would break the tenant theming contract. The "accent" role maps to the vendor CTA treatment here.
+- **Coverage** in the hero meta row reads `services.service_location` (exists in prod schema + `database_update.sql`); the SQLite tenant-test `services` table was missing it, so `service_location` was added to the test migration to exercise the pill.

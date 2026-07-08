@@ -76,6 +76,8 @@ class TenantController extends BaseController
             'services'     => $services,
             'trust'        => $this->vendorTrust($tenant->vendorId()),
             'aboutLine'    => $this->aboutLine($tenant, $services),
+            'coverage'     => $this->coverageArea($services),
+            'reviews'      => $this->recentReviews($tenant->vendorId(), 3),
             'mostBookedId' => $mostBookedId,
             'heroImage'    => $this->firstImageUrl($services),
         ]);
@@ -742,6 +744,23 @@ class TenantController extends BaseController
         $since  = ! empty($vendor['created_at']) ? date('Y', strtotime($vendor['created_at'])) : date('Y');
 
         return ($category !== '' ? $category : 'Event services') . ' covering ' . $area . ', on PartySmith since ' . $since . '.';
+    }
+
+    /**
+     * Coverage area for the hero meta row — the first service's stated
+     * service_location. Returns null when no service carries one, so the view
+     * omits the coverage pill rather than showing an empty location.
+     */
+    private function coverageArea(array $services): ?string
+    {
+        foreach ($services as $service) {
+            $area = trim((string) ($service['service_location'] ?? ''));
+            if ($area !== '') {
+                return $area;
+            }
+        }
+
+        return null;
     }
 
     private function activeServiceCount(int $vendorId): int

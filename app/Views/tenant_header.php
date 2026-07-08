@@ -80,6 +80,26 @@ if (! function_exists('tenant_hex_color')) {
     }
 }
 
+if (! function_exists('sf_rating_line')) {
+    /**
+     * Shared rating line for hero, header and cards. Verified-booking count is
+     * only shown once it is meaningful (>= threshold); below that the vendor is
+     * "Verified" without a number, so an almost-empty vendor never advertises
+     * "1 verified booking". Single source of this rule for every surface.
+     */
+    function sf_rating_line(?float $rating, int $bookings, int $threshold = 10): string
+    {
+        if ($rating === null) {
+            return '';
+        }
+        $line = number_format($rating, 1) . ' · ';
+
+        return $line . ($bookings >= $threshold
+            ? $bookings . ' verified booking' . ($bookings === 1 ? '' : 's')
+            : 'Verified vendor');
+    }
+}
+
 $rawPrimary   = tenant_hex_color($site['primary_color'] ?? null);
 $primary      = $rawPrimary !== null ? tenant_contrast_safe($rawPrimary) : null;
 $accent       = tenant_hex_color($site['secondary_color'] ?? null);
@@ -167,11 +187,22 @@ $headSub = trim((string) ($headerSubline ?? ''));
                 </span>
             </a>
 
-            <?php if ($phone !== ''): ?>
-                <a class="sf-phonebtn" href="<?= esc($phoneHref, 'attr') ?>" aria-label="Call <?= esc($businessName, 'attr') ?> on <?= esc($phone, 'attr') ?>">
-                    <i class="fas fa-phone" aria-hidden="true"></i><span class="num"><?= esc($phone) ?></span>
-                </a>
-            <?php endif; ?>
+            <div class="sf-head-actions">
+                <?php // Revealed by JS (body.sf-scrolled) once the hero is scrolled past — same
+                      // target as the hero's "Get an instant quote" CTA (frame 1n sticky bar). ?>
+                <?php if (! empty($stickyQuote['href'])): ?>
+                    <?php $stickyRating = sf_rating_line($stickyQuote['rating'] ?? null, (int) ($stickyQuote['bookings'] ?? 0)); ?>
+                    <?php if ($stickyRating !== ''): ?>
+                        <span class="sf-head-rating"><i class="fas fa-star" aria-hidden="true"></i><?= esc($stickyRating) ?></span>
+                    <?php endif; ?>
+                    <a class="sf-btn sf-btn-compact sf-headcta" href="<?= esc($stickyQuote['href'], 'attr') ?>">Get an instant quote</a>
+                <?php endif; ?>
+                <?php if ($phone !== ''): ?>
+                    <a class="sf-phonebtn" href="<?= esc($phoneHref, 'attr') ?>" aria-label="Call <?= esc($businessName, 'attr') ?> on <?= esc($phone, 'attr') ?>">
+                        <i class="fas fa-phone" aria-hidden="true"></i><span class="num"><?= esc($phone) ?></span>
+                    </a>
+                <?php endif; ?>
+            </div>
         </div>
     </header>
 

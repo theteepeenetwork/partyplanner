@@ -43,6 +43,7 @@ class CreateTestTenantTables extends Migration
                 'title'             => ['type' => 'VARCHAR', 'constraint' => 255],
                 'short_description' => ['type' => 'TEXT', 'null' => true],
                 'description'       => ['type' => 'TEXT', 'null' => true],
+                'service_location'  => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
                 'price'             => ['type' => 'DECIMAL', 'constraint' => '10,2', 'null' => true],
                 'status'            => ['type' => 'VARCHAR', 'constraint' => 20, 'default' => 'active'],
                 'deleted_at'        => ['type' => 'DATETIME', 'null' => true],
@@ -61,6 +62,7 @@ class CreateTestTenantTables extends Migration
             foreach ([
                 'short_description' => ['type' => 'TEXT', 'null' => true],
                 'description'       => ['type' => 'TEXT', 'null' => true],
+                'service_location'  => ['type' => 'VARCHAR', 'constraint' => 255, 'null' => true],
                 'price'             => ['type' => 'DECIMAL', 'constraint' => '10,2', 'null' => true],
                 'status'            => ['type' => 'VARCHAR', 'constraint' => 20, 'null' => true],
                 'deleted_at'        => ['type' => 'DATETIME', 'null' => true],
