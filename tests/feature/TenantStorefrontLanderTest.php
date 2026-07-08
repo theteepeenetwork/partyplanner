@@ -34,6 +34,7 @@ final class TenantStorefrontLanderTest extends CIUnitTestCase
 
     protected $namespace;
     private int $vendorId;
+    private int $marqueeId;
 
     protected function setUp(): void
     {
@@ -46,7 +47,7 @@ final class TenantStorefrontLanderTest extends CIUnitTestCase
         $this->vendorId = $this->seedVendor();
 
         // Two active, non-deleted services → mode B (card lander).
-        $this->seedService('Marquee Hire', 'Elegant frame marquees for garden weddings', 'Durham & Teesside');
+        $this->marqueeId = $this->seedService('Marquee Hire', 'Elegant frame marquees for garden weddings', 'Durham & Teesside');
         $this->seedService('Rustic Bar Hire', 'Mobile bar staffed for the evening', 'Durham & Teesside');
 
         $this->db->table('vendor_sites')->insert([
@@ -107,6 +108,37 @@ final class TenantStorefrontLanderTest extends CIUnitTestCase
         service('routes')->resetRoutes();
     }
 
+    private function seedBooking(int $serviceId, string $date, ?string $start = null, ?string $end = null): void
+    {
+        $this->db->table('events')->insert(['user_id' => 1, 'title' => 'E', 'date' => $date]);
+        $eventId = (int) $this->db->insertID();
+        $this->db->table('bookings')->insert(['user_id' => 1, 'event_id' => $eventId, 'status' => 'confirmed']);
+        $bookingId = (int) $this->db->insertID();
+        $this->db->table('booking_items')->insert([
+            'booking_id' => $bookingId,
+            'service_id' => $serviceId,
+            'status'     => 'accepted',
+            'start_time' => $start,
+            'end_time'   => $end,
+        ]);
+    }
+
+    private function makeTimeBased(int $serviceId, int $hours): void
+    {
+        $this->db->table('services_private_event_pricing')->insert([
+            'service_id'   => $serviceId,
+            'pricing_type' => 'custom_duration_pricing',
+        ]);
+        $pid = (int) $this->db->insertID();
+        $this->db->table('services_custom_duration_pricing')->insert([
+            'service_id'               => $serviceId,
+            'private_event_pricing_id' => $pid,
+            'duration_type'            => 'hour',
+            'duration'                 => $hours,
+            'price'                    => 250,
+        ]);
+    }
+
     public function testLanderRendersHeroTaglineAndSingleQuoteLabel(): void
     {
         $this->onHost('vendorone.' . self::BASE_DOMAIN);
@@ -157,6 +189,39 @@ final class TenantStorefrontLanderTest extends CIUnitTestCase
         $result->assertSee('sf-headcta');             // scroll-revealed compact CTA
         $result->assertSee("Can't see what you need?");
         $result->assertSee('Send an enquiry');
+    }
+
+    public function testNoGreyOutWithoutADate(): void
+    {
+        $this->seedBooking($this->marqueeId, '2027-06-05'); // whole-day booking
+        $this->onHost('vendorone.' . self::BASE_DOMAIN);
+
+        $this->get('/')->assertDontSee('is-unavailable');
+    }
+
+    public function testWholeDayGreyOutForNonTimeBasedService(): void
+    {
+        $this->seedBooking($this->marqueeId, '2027-06-05'); // no times → whole day
+        $this->onHost('vendorone.' . self::BASE_DOMAIN);
+        $result = $this->get('/?date=2027-06-05');
+
+        $result->assertSee('is-unavailable');
+        $result->assertSee('Booked on this date');
+        $result->assertSee('Rustic Bar Hire'); // the un-booked service still lists
+    }
+
+    public function testTimeBasedGreyOutRespectsChosenTime(): void
+    {
+        // Make the marquee a 3-hour time-based service booked 10:00–12:00.
+        $this->makeTimeBased($this->marqueeId, 3);
+        $this->seedBooking($this->marqueeId, '2027-06-05', '10:00:00', '12:00:00');
+        $this->onHost('vendorone.' . self::BASE_DOMAIN);
+
+        // Starting 11:00 collides with the existing slot → greyed.
+        $this->get('/?date=2027-06-05&time=11:00')->assertSee('is-unavailable');
+
+        // Starting 15:00 is clear → not greyed.
+        $this->get('/?date=2027-06-05&time=15:00')->assertDontSee('is-unavailable');
     }
 
     public function testReviewsEmptyStateWhenNoneExist(): void

@@ -94,7 +94,10 @@ class EventQuoteBuilder
         $availErrors = $availability->check(
             $serviceId,
             (int) ($service['vendor_id'] ?? 0),
-            $event['date'] ?? null
+            $event['date'] ?? null,
+            // Time-based services book a slot; null times keep whole-date checks.
+            $event['start_time'] ?? null,
+            $event['end_time'] ?? null
         );
 
         $calc = new EventBookingQuote();

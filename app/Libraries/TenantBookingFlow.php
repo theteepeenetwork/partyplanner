@@ -38,11 +38,12 @@ class TenantBookingFlow
         $pid     = (int) ($private['id'] ?? 0);
 
         $out = [
-            'type'          => $type,
-            'options'       => [],
-            'needsGuests'   => $type === 'guest_based_pricing',
-            'needsQuantity' => $type === 'quantity_based_pricing',
-            'minQuantity'   => 1,
+            'type'           => $type,
+            'options'        => [],
+            'needsGuests'    => $type === 'guest_based_pricing',
+            'needsQuantity'  => $type === 'quantity_based_pricing',
+            'needsStartTime' => false,
+            'minQuantity'    => 1,
         ];
 
         $db = Database::connect();
@@ -50,6 +51,8 @@ class TenantBookingFlow
         if ($type === 'custom_duration_pricing' && $pid > 0) {
             $blocks = (new ServiceTimeBlockModel())->getByServiceId($serviceId);
             if ($blocks !== []) {
+                // Fixed time blocks already carry their own clock window — the
+                // customer picks the block, not a start time.
                 foreach ($blocks as $b) {
                     $out['options'][] = [
                         'token' => 'timeblock_' . (int) $b['id'],
@@ -65,6 +68,12 @@ class TenantBookingFlow
                 foreach ($tiers as $t) {
                     $unit             = ($t['duration_type'] ?? '') === 'day' ? 'day' : 'hour';
                     $n                = (int) ($t['duration'] ?? 0);
+                    // An hours-based tier needs a start time to become a
+                    // bookable slot; day tiers stay whole-date (multi-day is a
+                    // separate backlog item).
+                    if ($unit === 'hour') {
+                        $out['needsStartTime'] = true;
+                    }
                     $out['options'][] = [
                         'token' => 'duration_' . (int) $t['id'],
                         'label' => $n . ' ' . $unit . ($n === 1 ? '' : 's'),
@@ -108,6 +117,81 @@ class TenantBookingFlow
     public function extrasForForm(int $serviceId): array
     {
         return (new ServiceOptionalExtrasModel())->where('service_id', $serviceId)->findAll();
+    }
+
+    /**
+     * Resolve the booked clock window from the chosen pricing option:
+     *  - a fixed time block carries its own start/end;
+     *  - an hours-duration tier runs from the customer's chosen start for that
+     *    many hours (needsStart until a start is supplied);
+     *  - everything else (guest/quantity/package/day) has no intra-day window
+     *    and books whole-date.
+     *
+     * @return array{start: ?string, end: ?string, needsStart: bool}
+     */
+    public function resolveWindow(int $serviceId, ?string $pricingOption, ?string $startTime): array
+    {
+        $none = ['start' => null, 'end' => null, 'needsStart' => false];
+        if ($pricingOption === null || $pricingOption === '') {
+            return $none;
+        }
+
+        $db = Database::connect();
+
+        if (preg_match('/^timeblock_(\d+)$/', $pricingOption, $m)) {
+            $block = $db->table('service_time_blocks')
+                ->where('id', (int) $m[1])->where('service_id', $serviceId)
+                ->get()->getRowArray();
+            if ($block && ! empty($block['start_time']) && ! empty($block['end_time'])) {
+                return ['start' => (string) $block['start_time'], 'end' => (string) $block['end_time'], 'needsStart' => false];
+            }
+
+            return $none;
+        }
+
+        if (preg_match('/^duration_(\d+)$/', $pricingOption, $m)) {
+            $tier = $db->table('services_custom_duration_pricing')
+                ->where('id', (int) $m[1])->where('service_id', $serviceId)
+                ->get()->getRowArray();
+            if ($tier === null || ($tier['duration_type'] ?? '') === 'day') {
+                return $none; // day tiers book whole-date
+            }
+
+            $hours = (int) ($tier['duration'] ?? 0);
+            $start = self::normaliseTime($startTime);
+            if ($start === null || $hours < 1) {
+                return ['start' => null, 'end' => null, 'needsStart' => true];
+            }
+
+            [$h, $min]  = array_map('intval', explode(':', $start));
+            $endMinutes = min(24 * 60, $h * 60 + $min + $hours * 60);
+
+            return [
+                'start'      => $start,
+                'end'        => sprintf('%02d:%02d:00', intdiv($endMinutes, 60), $endMinutes % 60),
+                'needsStart' => false,
+            ];
+        }
+
+        return $none;
+    }
+
+    /**
+     * 'H:MM'/'HH:MM'(:SS) → canonical 'HH:MM:SS', or null if not a valid time.
+     */
+    private static function normaliseTime(?string $time): ?string
+    {
+        $time = trim((string) $time);
+        if (! preg_match('/^(\d{1,2}):(\d{2})(?::\d{2})?$/', $time, $m)) {
+            return null;
+        }
+        $h   = (int) $m[1];
+        $min = (int) $m[2];
+        if ($h > 23 || $min > 59) {
+            return null;
+        }
+
+        return sprintf('%02d:%02d:00', $h, $min);
     }
 
     /**
@@ -228,11 +312,18 @@ class TenantBookingFlow
         $total   = round((float) $quote['total'], 2);
         $deposit = DepositCalculator::forTotal($total);
 
+        // Booked clock window (time-based services) — persisted so future
+        // availability checks can see the slot this booking occupies.
+        $startTime = $quote['start_time'] ?? null;
+        $endTime   = $quote['end_time'] ?? null;
+
         $bookingModel = new BookingModel();
         $bookingModel->insert([
             'user_id'           => $userId,
             'event_id'          => $eventId,
             'status'            => 'pending',
+            'start_time'        => $startTime,
+            'end_time'          => $endTime,
             'payment_intent_id' => $paymentIntentId ?: null,
             'balance_due'       => max(0, round($total - $deposit, 2)),
             'payment_plan'      => 'single',
@@ -255,6 +346,8 @@ class TenantBookingFlow
             'guest_count'     => $quote['event']['guest_count'] ?? null,
             'price'           => $total,
             'status'          => 'pending',
+            'start_time'      => $startTime,
+            'end_time'        => $endTime,
             'quote_breakdown' => json_encode($breakdown, JSON_UNESCAPED_UNICODE),
             'quote_warnings'  => json_encode($breakdown['warnings'], JSON_UNESCAPED_UNICODE),
             'extras_snapshot' => json_encode($quote['extras'] ?? []),

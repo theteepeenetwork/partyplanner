@@ -21,6 +21,8 @@ $coverage = trim((string) ($coverage ?? ''));
 $phone    = trim((string) ($site['phone'] ?? ''));
 $phoneHref = $phone !== '' ? 'tel:' . preg_replace('/[^0-9+]/', '', $phone) : '';
 $today    = date('Y-m-d');
+$ctxDate  = trim((string) ($ctxDate ?? ''));
+$ctxTime  = trim((string) ($ctxTime ?? ''));
 
 // Opt the shared header into its compact, scroll-revealed quote CTA + rating.
 // Included views only see the shared view data, so merge it in explicitly.
@@ -79,26 +81,40 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
         <h2 class="sf-sec-h">What we offer</h2>
         <p class="sf-sec-sub">Pick a service — you'll get an instant quote for your date.</p>
 
-        <?php // On-page date capture: qualifies the lead, then threads the date onto
-              // every service link so the quote page opens pre-filled. ?>
-        <form class="sf-datebar" id="sf-quote" novalidate>
+        <?php // On-page date + start time: submitting reloads with ?date=&time= so the
+              // server greys out any service already booked across that slot, and
+              // threads the date/time onto each available card's quote link. ?>
+        <form class="sf-datebar" id="sf-quote" method="get" action="/" novalidate>
             <div class="sf-field" style="margin: 0;">
                 <label class="sf-sr-only" for="sf-date">Your event date</label>
-                <input class="sf-input" type="date" id="sf-date" name="date" min="<?= esc($today, 'attr') ?>" placeholder="Your event date">
+                <input class="sf-input" type="date" id="sf-date" name="date" min="<?= esc($today, 'attr') ?>" value="<?= esc($ctxDate, 'attr') ?>" placeholder="Your event date">
+            </div>
+            <div class="sf-field" style="margin: 0;">
+                <label class="sf-sr-only" for="sf-time">Start time (optional)</label>
+                <input class="sf-input" type="time" id="sf-time" name="time" step="900" value="<?= esc($ctxTime, 'attr') ?>" placeholder="Start time">
             </div>
             <button class="sf-btn" type="submit">Get an instant quote</button>
         </form>
         <p class="sf-datebar-err" id="sf-date-err" role="alert" hidden>Pick today or a date in the future.</p>
+        <?php if ($ctxDate !== ''): ?>
+            <p class="sf-datebar-note">Showing availability for <?= esc(date('D j M', strtotime($ctxDate))) ?><?= $ctxTime !== '' ? ' from ' . esc($ctxTime) : '' ?>. Booked services are greyed out.</p>
+        <?php endif; ?>
 
+        <?php $ctxQs = $ctxDate === '' ? '' : '?' . http_build_query(array_filter(['date' => $ctxDate, 'time' => $ctxTime])); ?>
         <div class="sf-svc-list">
             <?php foreach ($services as $service):
                 $img  = ! empty($service['images']) ? '/' . ltrim((string) ($service['images'][0]['thumbnail_path'] ?? $service['images'][0]['image_path'] ?? ''), '/') : '';
                 $from = $service['from'] ?? ['amount' => 0, 'per' => ''];
                 $desc = trim((string) ($service['short_description'] ?? ''));
-                $href = '/service/' . (int) $service['id'];
+                $base = '/service/' . (int) $service['id'];
+                $href = $base . $ctxQs;
+                $unavailable = ($service['available'] ?? null) === false;
+                $tag  = $unavailable ? 'div' : 'a';
             ?>
-                <a class="sf-svc-card" href="<?= esc($href, 'attr') ?>" data-sf-svc data-href="<?= esc($href, 'attr') ?>">
-                    <?php if (! empty($mostBookedId) && (int) $service['id'] === (int) $mostBookedId && count($services) > 1): ?>
+                <<?= $tag ?> class="sf-svc-card<?= $unavailable ? ' is-unavailable' : '' ?>"<?= $unavailable ? '' : ' href="' . esc($href, 'attr') . '"' ?> data-sf-svc data-href="<?= esc($base, 'attr') ?>"<?= $unavailable ? ' aria-disabled="true"' : '' ?>>
+                    <?php if ($unavailable): ?>
+                        <span class="sf-badge-booked">Booked</span>
+                    <?php elseif (! empty($mostBookedId) && (int) $service['id'] === (int) $mostBookedId && count($services) > 1): ?>
                         <span class="sf-badge-most">Most booked</span>
                     <?php endif; ?>
                     <span class="img">
@@ -120,10 +136,14 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
                         <?php endif; ?>
                         <span class="foot">
                             <?= $this->include('tenant/_price', ['from' => $from]) ?>
-                            <span class="sf-svc-cta">Get an instant quote <span aria-hidden="true">→</span></span>
+                            <?php if ($unavailable): ?>
+                                <span class="sf-svc-cta muted">Booked on this date</span>
+                            <?php else: ?>
+                                <span class="sf-svc-cta">Get an instant quote <span aria-hidden="true">→</span></span>
+                            <?php endif; ?>
                         </span>
                     </span>
-                </a>
+                </<?= $tag ?>>
             <?php endforeach; ?>
         </div>
     </section>
@@ -155,57 +175,35 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
 </div>
 
 <script>
-/* Storefront home: (1) date field validates client-side and threads the chosen
-   date onto every service link (the quote page accepts ?date=), (2) smooth
-   in-page scroll for the quote CTAs, (3) reveal the sticky-header CTA once the
-   hero is scrolled past. Vanilla JS, no libraries. */
+/* Storefront home: (1) date field validates client-side (today-or-later) before
+   the GET reload that greys out booked services and threads date+time onto each
+   card link, (2) smooth in-page scroll for the quote CTAs, (3) reveal the
+   sticky-header CTA once the hero is scrolled past. Vanilla JS, no libraries. */
 (function () {
     var dateInput = document.getElementById('sf-date');
     var dateForm  = document.getElementById('sf-quote');
     var dateErr   = document.getElementById('sf-date-err');
-    var cards     = Array.prototype.slice.call(document.querySelectorAll('[data-sf-svc]'));
     var today     = <?= json_encode($today) ?>;
 
-    function isValidDate(v) { return !!v && v >= today; }
-
-    function applyDate(v) {
-        cards.forEach(function (card) {
-            var base = card.getAttribute('data-href');
-            card.setAttribute('href', isValidDate(v) ? base + '?date=' + encodeURIComponent(v) : base);
-        });
-    }
+    function isValidDate(v) { return !v || v >= today; }
 
     if (dateInput) {
         dateInput.addEventListener('change', function () {
-            if (dateInput.value && !isValidDate(dateInput.value)) {
-                dateInput.classList.add('is-invalid');
-                if (dateErr) dateErr.hidden = false;
-            } else {
-                dateInput.classList.remove('is-invalid');
-                if (dateErr) dateErr.hidden = true;
-                applyDate(dateInput.value);
-            }
+            var bad = !isValidDate(dateInput.value);
+            dateInput.classList.toggle('is-invalid', bad);
+            if (dateErr) dateErr.hidden = !bad;
         });
     }
 
     if (dateForm) {
         dateForm.addEventListener('submit', function (e) {
-            e.preventDefault();
-            var v = dateInput ? dateInput.value : '';
-            if (v && !isValidDate(v)) {
+            // Block a past date; otherwise let the GET reload run (server greys
+            // out booked services for the chosen date/time).
+            if (dateInput && !isValidDate(dateInput.value)) {
+                e.preventDefault();
                 dateInput.classList.add('is-invalid');
                 if (dateErr) dateErr.hidden = false;
                 dateInput.focus();
-                return;
-            }
-            applyDate(v);
-            // No single service to quote here — send the qualified lead to the
-            // service cards to choose, with their date already carried through.
-            var list = document.querySelector('.sf-svc-list');
-            if (list) {
-                list.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                var first = list.querySelector('[data-sf-svc]');
-                if (first) first.focus({ preventScroll: true });
             }
         });
     }

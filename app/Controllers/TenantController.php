@@ -60,10 +60,22 @@ class TenantController extends BaseController
         $imageModel    = new ServiceImageModel();
         $categoryModel = new CategoryModel();
 
+        // Optional date (+ start time) from the on-page picker: grey out any
+        // service already committed across that slot.
+        $date = trim((string) $this->request->getGet('date'));
+        if ($date !== '' && (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || $date < date('Y-m-d'))) {
+            $date = '';
+        }
+        $time = trim((string) $this->request->getGet('time'));
+        if (! preg_match('/^\d{1,2}:\d{2}$/', $time)) {
+            $time = '';
+        }
+
         foreach ($services as &$service) {
             $service['images']        = $imageModel->where(['service_id' => $service['id'], 'is_primary' => 1])->findAll();
             $service['category_name'] = $categoryModel->getServiceCategoryLabel($service);
             $service['from']          = $flow->fromPrice($service);
+            $service['available']     = $date === '' ? null : $this->serviceAvailableForSlot($flow, (int) $service['id'], $tenant->vendorId(), $date, $time);
         }
         unset($service);
 
@@ -80,6 +92,8 @@ class TenantController extends BaseController
             'reviews'      => $this->recentReviews($tenant->vendorId(), 3),
             'mostBookedId' => $mostBookedId,
             'heroImage'    => $this->firstImageUrl($services),
+            'ctxDate'      => $date,
+            'ctxTime'      => $time,
         ]);
     }
 
@@ -136,10 +150,19 @@ class TenantController extends BaseController
             $postcode = '';
         }
         $guests = max(0, (int) $this->request->getGet('guests'));
+        $time   = trim((string) $this->request->getGet('time'));
+        if (! preg_match('/^\d{1,2}:\d{2}$/', $time)) {
+            $time = '';
+        }
 
+        $pricing = $flow->pricingContext((int) $service['id']);
+
+        // Whole-date availability chip. Slot-based (time) services can be free
+        // for a later slot even when earlier in the day is taken, so their
+        // verdict is deferred to the time-aware quote rather than shown here.
         $available    = null;
         $nearestDates = [];
-        if ($date !== '') {
+        if ($date !== '' && ! $pricing['needsStartTime']) {
             $available = (new ServiceAvailabilityChecker())->check((int) $service['id'], $tenant->vendorId(), $date) === [];
             if (! $available) {
                 $nearestDates = $flow->nearestFreeDates((int) $service['id'], $tenant->vendorId(), $date);
@@ -152,7 +175,7 @@ class TenantController extends BaseController
             'service'        => $service,
             'categoryName'   => (new CategoryModel())->getServiceCategoryLabel($service),
             'extras'         => $flow->extrasForForm((int) $service['id']),
-            'pricing'        => $flow->pricingContext((int) $service['id']),
+            'pricing'        => $pricing,
             'trust'          => $this->vendorTrust($tenant->vendorId(), (int) $service['id']),
             'reviews'        => $this->recentReviews($tenant->vendorId(), 2),
             'photos'         => $this->photoContext($service),
@@ -160,6 +183,7 @@ class TenantController extends BaseController
             'ctxDate'        => $date,
             'ctxPostcode'    => $postcode,
             'ctxGuests'      => $guests,
+            'ctxTime'        => $time,
             'available'      => $available,
             'nearestDates'   => $nearestDates,
             'isMultiService' => $this->activeServiceCount($tenant->vendorId()) > 1,
@@ -263,6 +287,8 @@ class TenantController extends BaseController
             'pricing_option' => $parsed['pricingOption'],
             'pricing_label'  => $quote['lines'][0]['label'] ?? null,
             'order_quantity' => $parsed['orderQuantity'],
+            'start_time'     => $parsed['startTime'],
+            'end_time'       => $parsed['endTime'],
             'extras'         => $parsed['extras'],
             'extra_qty'      => $parsed['extraQty'],
             'lines'          => $quote['lines'],
@@ -497,6 +523,15 @@ class TenantController extends BaseController
             $pricingOption = null;
         }
 
+        // Time-based services book a slot: resolve the clock window from the
+        // chosen option + submitted start time. Fixed blocks carry their own
+        // window; an hours-duration tier needs a start time from the customer.
+        $startTime = trim((string) $in('start_time'));
+        $window    = (new TenantBookingFlow())->resolveWindow((int) $service['id'], $pricingOption, $startTime);
+        if ($window['needsStart']) {
+            return ['error' => 'What time would you like it to start?', 'backTo' => $backTo];
+        }
+
         $extras = [];
 
         foreach ((array) $in('extras') as $x) {
@@ -531,6 +566,8 @@ class TenantController extends BaseController
             'event_type'    => 'Private party',
             'event_setting' => 'private',
             'date'          => $date,
+            'start_time'    => $window['start'],
+            'end_time'      => $window['end'],
             'guest_count'   => $guestCount > 0 ? $guestCount : null,
             'latitude'      => $geo['latitude'] ?? null,
             'longitude'     => $geo['longitude'] ?? null,
@@ -546,6 +583,8 @@ class TenantController extends BaseController
             'orderQuantity' => $orderQuantity,
             'extras'        => $extras,
             'extraQty'      => $extraQty,
+            'startTime'     => $window['start'],
+            'endTime'       => $window['end'],
             'quote'         => (new EventQuoteBuilder())->build($service, $event, $pricingOption, $extras, $extraQty, $orderQuantity),
         ];
     }
@@ -744,6 +783,30 @@ class TenantController extends BaseController
         $since  = ! empty($vendor['created_at']) ? date('Y', strtotime($vendor['created_at'])) : date('Y');
 
         return ($category !== '' ? $category : 'Event services') . ' covering ' . $area . ', on PartySmith since ' . $since . '.';
+    }
+
+    /**
+     * Lander grey-out verdict for one service on the chosen date (+ time):
+     *  - time-based services (needs a start time) with a chosen time probe a
+     *    nominal slot from that start and clash on time-window overlap;
+     *  - everything else (and time-based with only a date) uses the whole-date
+     *    check. Returns true when the service is bookable.
+     */
+    private function serviceAvailableForSlot(TenantBookingFlow $flow, int $serviceId, int $vendorId, string $date, string $time): bool
+    {
+        $checker = new ServiceAvailabilityChecker();
+
+        if ($time !== '' && $flow->pricingContext($serviceId)['needsStartTime']) {
+            // Probe a minimal slot from the chosen start so an existing booking
+            // straddling that time (plus setup/breakdown) greys the card.
+            [$h, $min] = array_map('intval', explode(':', $time));
+            $endMin    = min(24 * 60, $h * 60 + $min + 30);
+            $end       = sprintf('%02d:%02d', intdiv($endMin, 60), $endMin % 60);
+
+            return $checker->check($serviceId, $vendorId, $date, $time, $end) === [];
+        }
+
+        return $checker->check($serviceId, $vendorId, $date) === [];
     }
 
     /**
