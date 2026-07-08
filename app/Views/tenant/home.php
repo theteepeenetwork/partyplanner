@@ -1,67 +1,105 @@
 <?php
 /**
- * Landing mode B — multi-service vendor (frames 1d/1e).
+ * Landing mode B — 3D hybrid (booking-first + gallery), themed by the vendor's
+ * chosen colour theme (body.sf-theme-*, applied by the header).
  *
- * Hero (cover image + built-in bottom scrim, so legibility never depends on the
- * uploaded photo) carries the vendor name, tagline, a trust meta row and the
- * primary "Get an instant quote" CTA. Trust pills sit directly under the hero,
- * then an on-page date field qualifies the lead, the "What we offer" cards, a
- * reviews section and a closing custom-package CTA.
- *
- * The quote action uses ONE label — "Get an instant quote" — on the hero, each
- * card, the date field and the sticky header. All routes hand off to the
- * existing quote flow: the service page (`/service/{id}?date=`) already accepts
- * and validates a pre-filled date.
+ * Booking-first hero with a live instant-quote ESTIMATOR (service + date +
+ * guests → ballpark total & 10% deposit) → gallery proof band → trust strip →
+ * services grid → reviews. The estimator is a client-side ballpark; "Reserve"
+ * and each card hand off to the real quote flow on the service page
+ * (/service/{id}?date=&guests=), which produces the exact itemised quote.
  */
-$bn      = $site['business_name'] ?? 'Storefront';
-$rating  = $trust['rating'] ?? null;
-$bookCnt = (int) ($trust['bookings'] ?? 0);
-$tagline = trim((string) ($aboutLine ?? ''));
-$coverage = trim((string) ($coverage ?? ''));
-$phone    = trim((string) ($site['phone'] ?? ''));
+$bn        = $site['business_name'] ?? 'Storefront';
+$rating    = $trust['rating'] ?? null;
+$bookCnt   = (int) ($trust['bookings'] ?? 0);
+$coverage  = trim((string) ($coverage ?? ''));
+$phone     = trim((string) ($site['phone'] ?? ''));
 $phoneHref = $phone !== '' ? 'tel:' . preg_replace('/[^0-9+]/', '', $phone) : '';
-$today    = date('Y-m-d');
-$ctxDate  = trim((string) ($ctxDate ?? ''));
-$ctxTime  = trim((string) ($ctxTime ?? ''));
+$today     = date('Y-m-d');
+$ctxDate   = trim((string) ($ctxDate ?? ''));
+$ctxTime   = trim((string) ($ctxTime ?? ''));
+$depositPct = (int) \App\Libraries\DepositCalculator::percentDisplay();
 
-// Opt the shared header into its compact, scroll-revealed quote CTA + rating.
-// Included views only see the shared view data, so merge it in explicitly.
+$perLabel = static fn (string $per): string => match ($per) {
+    'guest' => '/guest', 'hour' => '/hr', 'day' => '/day', default => '',
+};
+
+// Up to three photos across the vendor's services for the gallery proof band.
+$galleryImgs = [];
+foreach ($services as $s) {
+    foreach ((array) ($s['images'] ?? []) as $img) {
+        $p = trim((string) ($img['image_path'] ?? $img['thumbnail_path'] ?? ''));
+        if ($p !== '' && count($galleryImgs) < 3) {
+            $galleryImgs[] = '/' . ltrim($p, '/');
+        }
+    }
+}
+
 $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'bookings' => $bookCnt]], 'raw');
 ?>
 <?= $this->include('tenant_header') ?>
-<?php // sf_rating_line() is defined by the header include above. ?>
 <?php $ratingLine = sf_rating_line($rating, $bookCnt); ?>
 
-<header class="sf-hero sf-hero-lander<?= $heroImage === '' ? ' noimg' : '' ?>">
-    <?php if ($heroImage !== ''): ?>
-        <img src="<?= esc($heroImage, 'attr') ?>" alt="<?= esc($bn, 'attr') ?> — event services">
-    <?php endif; ?>
-    <div class="sf-hero-scrim">
-        <div class="sf-shell" style="width: 100%;">
-            <h1 class="sf-hero-h"><?= esc($bn) ?></h1>
-            <?php if ($tagline !== ''): ?>
-                <p class="sf-hero-tagline"><?= esc($tagline) ?></p>
+<section class="sf-lhero">
+    <div class="sf-shell sf-lhero-in">
+        <div>
+            <?php if ($ratingLine !== '' || $coverage !== ''): ?>
+                <span class="sf-lhero-pill">
+                    <?php if ($ratingLine !== ''): ?><span class="star">★</span><?php endif; ?>
+                    <?= $ratingLine !== '' ? esc($ratingLine) : 'Verified vendor' ?><?= $coverage !== '' ? ' · ' . esc($coverage) : '' ?>
+                </span>
             <?php endif; ?>
-            <div class="sf-hero-meta">
-                <?php if ($ratingLine !== ''): ?>
-                    <span class="sf-rating-chip"><i class="fas fa-star" aria-hidden="true"></i><?= esc($ratingLine) ?></span>
-                <?php endif; ?>
-                <?php if ($coverage !== ''): ?>
-                    <span class="sf-hero-fact"><i class="fas fa-location-dot" aria-hidden="true"></i><?= esc($coverage) ?></span>
-                <?php endif; ?>
-                <span class="sf-hero-fact"><i class="fas fa-bolt" aria-hidden="true"></i>Instant quotes</span>
-            </div>
-            <div class="sf-hero-cta">
-                <a class="sf-hero-btn" href="#sf-quote" data-sf-scroll>Get an instant quote</a>
+            <h1>Book your event in three clicks.</h1>
+            <p class="sf-lhero-sub">Pick a service, choose your date and reserve online with a <?= $depositPct ?>% deposit. No back-and-forth.</p>
+            <div class="sf-lhero-btns">
+                <a class="sf-lhero-ghost" href="#sf-services" data-sf-scroll-to="sf-services">Browse services</a>
                 <?php if ($phone !== ''): ?>
-                    <a class="sf-hero-btn ghost" href="<?= esc($phoneHref, 'attr') ?>">
-                        <i class="fas fa-phone" aria-hidden="true"></i><?= esc($phone) ?>
-                    </a>
+                    <a class="sf-lhero-ghost" href="<?= esc($phoneHref, 'attr') ?>"><i class="fas fa-phone" aria-hidden="true"></i>Call the team</a>
                 <?php endif; ?>
+            </div>
+            <div class="sf-lhero-ticks">
+                <span><i class="fas fa-check" aria-hidden="true"></i><?= $depositPct ?>% deposit holds your date</span>
+                <span><i class="fas fa-check" aria-hidden="true"></i>Free 14-day cancellation</span>
             </div>
         </div>
+
+        <?php // Client-side estimator → real quote flow on submit. ?>
+        <div class="sf-estimator" id="sf-quote">
+            <p class="eyebrow">Instant quote</p>
+            <label class="sf-est-field">Service
+                <select id="est-svc">
+                    <?php foreach ($services as $s):
+                        $from = $s['from'] ?? ['amount' => 0, 'per' => ''];
+                        $isGuest = ($from['per'] ?? '') === 'guest';
+                        $base    = $isGuest ? 0 : (float) $from['amount'];
+                        $perG    = $isGuest ? (float) $from['amount'] : 0;
+                    ?>
+                        <option value="<?= (int) $s['id'] ?>" data-base="<?= esc((string) $base, 'attr') ?>" data-perguest="<?= esc((string) $perG, 'attr') ?>">
+                            <?= esc($s['title']) ?><?php if ($from['amount'] > 0): ?> — from £<?= esc(number_format((float) $from['amount'], (float) $from['amount'] == (int) $from['amount'] ? 0 : 2)) ?><?= esc($perLabel($from['per'] ?? '')) ?><?php endif; ?>
+                        </option>
+                    <?php endforeach; ?>
+                </select>
+            </label>
+            <div class="sf-est-row">
+                <label class="sf-est-field">Event date
+                    <input type="date" id="est-date" min="<?= esc($today, 'attr') ?>" value="<?= esc($ctxDate, 'attr') ?>">
+                </label>
+                <label class="sf-est-field">Guests · <span class="sf-est-guests" id="est-guests-n">120</span>
+                    <input type="range" id="est-guests" min="20" max="300" step="5" value="120">
+                </label>
+            </div>
+            <div class="sf-est-total">
+                <div>
+                    <div class="lbl">Estimated total</div>
+                    <div class="amt" id="est-total">£0</div>
+                </div>
+                <div class="dep">Deposit today<b id="est-deposit">£0</b></div>
+            </div>
+            <a class="sf-btn" id="est-reserve" href="#">Reserve your date <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+            <p class="sf-est-note">A ballpark — you'll get the exact itemised quote on the next step.</p>
+        </div>
     </div>
-</header>
+</section>
 
 <div class="sf-shell">
     <?php if (session()->getFlashdata('error')): ?>
@@ -71,37 +109,35 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
         <div class="sf-flash info"><?= esc(session()->getFlashdata('info')) ?></div>
     <?php endif; ?>
 
-    <div class="sf-chips">
-        <span class="sf-chip"><i class="fas fa-shield-halved" aria-hidden="true"></i><?= (int) \App\Libraries\DepositCalculator::percentDisplay() ?>% deposit holds your date</span>
+    <?php if ($galleryImgs !== []): ?>
+        <section class="sf-gallery3">
+            <div class="sf-gallery3-head">
+                <h2>Recent events</h2>
+            </div>
+            <div class="sf-gallery3-grid">
+                <?php foreach ($galleryImgs as $g): ?>
+                    <div class="cell"><img src="<?= esc($g, 'attr') ?>" alt="" loading="lazy"></div>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
+    <div class="sf-chips" style="margin-top: 22px;">
+        <span class="sf-chip"><i class="fas fa-shield-halved" aria-hidden="true"></i><?= $depositPct ?>% deposit holds your date</span>
         <span class="sf-chip"><i class="fas fa-lock" aria-hidden="true"></i>Secure card payment</span>
         <span class="sf-chip"><i class="fas fa-rotate-left" aria-hidden="true"></i>Free 14-day cancellation</span>
     </div>
 
-    <section class="sf-sec">
-        <h2 class="sf-sec-h">What we offer</h2>
-        <p class="sf-sec-sub">Pick a service — you'll get an instant quote for your date.</p>
+    <?php if ($ctxDate !== ''): ?>
+        <p class="sf-datebar-note">Showing availability for <?= esc(date('D j M', strtotime($ctxDate))) ?><?= $ctxTime !== '' ? ' from ' . esc($ctxTime) : '' ?>. Booked services are greyed out.</p>
+    <?php endif; ?>
+    <?php $ctxQs = $ctxDate === '' ? '' : '?' . http_build_query(array_filter(['date' => $ctxDate, 'time' => $ctxTime])); ?>
 
-        <?php // On-page date + start time: submitting reloads with ?date=&time= so the
-              // server greys out any service already booked across that slot, and
-              // threads the date/time onto each available card's quote link. ?>
-        <form class="sf-datebar" id="sf-quote" method="get" action="/" novalidate>
-            <div class="sf-field" style="margin: 0;">
-                <label class="sf-sr-only" for="sf-date">Your event date</label>
-                <input class="sf-input" type="date" id="sf-date" name="date" min="<?= esc($today, 'attr') ?>" value="<?= esc($ctxDate, 'attr') ?>" placeholder="Your event date">
-            </div>
-            <div class="sf-field" style="margin: 0;">
-                <label class="sf-sr-only" for="sf-time">Start time (optional)</label>
-                <input class="sf-input" type="time" id="sf-time" name="time" step="900" value="<?= esc($ctxTime, 'attr') ?>" placeholder="Start time">
-            </div>
-            <button class="sf-btn" type="submit">Get an instant quote</button>
-        </form>
-        <p class="sf-datebar-err" id="sf-date-err" role="alert" hidden>Pick today or a date in the future.</p>
-        <?php if ($ctxDate !== ''): ?>
-            <p class="sf-datebar-note">Showing availability for <?= esc(date('D j M', strtotime($ctxDate))) ?><?= $ctxTime !== '' ? ' from ' . esc($ctxTime) : '' ?>. Booked services are greyed out.</p>
-        <?php endif; ?>
-
-        <?php $ctxQs = $ctxDate === '' ? '' : '?' . http_build_query(array_filter(['date' => $ctxDate, 'time' => $ctxTime])); ?>
-        <div class="sf-svc-list">
+    <section class="sf-lsec" id="sf-services">
+        <div class="sf-lsec-head">
+            <h2>Our services</h2>
+        </div>
+        <div class="sf-lcards">
             <?php foreach ($services as $service):
                 $img  = ! empty($service['images']) ? '/' . ltrim((string) ($service['images'][0]['thumbnail_path'] ?? $service['images'][0]['image_path'] ?? ''), '/') : '';
                 $from = $service['from'] ?? ['amount' => 0, 'per' => ''];
@@ -111,36 +147,32 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
                 $unavailable = ($service['available'] ?? null) === false;
                 $tag  = $unavailable ? 'div' : 'a';
             ?>
-                <<?= $tag ?> class="sf-svc-card<?= $unavailable ? ' is-unavailable' : '' ?>"<?= $unavailable ? '' : ' href="' . esc($href, 'attr') . '"' ?> data-sf-svc data-href="<?= esc($base, 'attr') ?>"<?= $unavailable ? ' aria-disabled="true"' : '' ?>>
+                <<?= $tag ?> class="sf-lcard<?= $unavailable ? ' is-unavailable' : '' ?>"<?= $unavailable ? '' : ' href="' . esc($href, 'attr') . '"' ?> data-sf-svc data-href="<?= esc($base, 'attr') ?>"<?= $unavailable ? ' aria-disabled="true"' : '' ?>>
                     <?php if ($unavailable): ?>
                         <span class="sf-badge-booked">Booked</span>
                     <?php elseif (! empty($mostBookedId) && (int) $service['id'] === (int) $mostBookedId && count($services) > 1): ?>
                         <span class="sf-badge-most">Most booked</span>
                     <?php endif; ?>
                     <span class="img">
-                        <?php // Decorative: the card is one link whose text already names the
-                              // service, so alt here would double-announce (WCAG H67). ?>
                         <?php if ($img !== ''): ?>
                             <img src="<?= esc($img, 'attr') ?>" alt="" loading="lazy">
-                        <?php else: ?>
-                            <span style="display: block; width: 100%; height: 100%; min-height: 96px; background: var(--sf-tint-12);"></span>
                         <?php endif; ?>
                     </span>
                     <span class="body">
                         <?php if (! empty($service['category_name'])): ?>
-                            <span class="sf-eyebrow"><?= esc(trim(explode('·', $service['category_name'])[0])) ?></span>
+                            <span class="badge"><?= esc(trim(explode('·', $service['category_name'])[0])) ?></span>
                         <?php endif; ?>
                         <h3 class="t"><?= esc($service['title']) ?></h3>
                         <?php if ($desc !== ''): ?>
-                            <span class="desc"><?= esc($desc) ?></span>
+                            <p class="desc"><?= esc($desc) ?></p>
                         <?php endif; ?>
                         <span class="foot">
-                            <?= $this->include('tenant/_price', ['from' => $from]) ?>
-                            <?php if ($unavailable): ?>
-                                <span class="sf-svc-cta muted">Booked on this date</span>
+                            <?php if ($from['amount'] > 0): ?>
+                                <span class="p">from <b>£<?= esc(number_format((float) $from['amount'], (float) $from['amount'] == (int) $from['amount'] ? 0 : 2)) ?></b> <?= esc($perLabel($from['per'] ?? '')) ?></span>
                             <?php else: ?>
-                                <span class="sf-svc-cta">Get an instant quote <span aria-hidden="true">→</span></span>
+                                <span class="p">Priced on request</span>
                             <?php endif; ?>
+                            <span class="cta"><?= $unavailable ? 'Booked' : 'Book' ?> <span aria-hidden="true">→</span></span>
                         </span>
                     </span>
                 </<?= $tag ?>>
@@ -148,79 +180,82 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
         </div>
     </section>
 
-    <section class="sf-sec">
-        <h2 class="sf-sec-h">Reviews</h2>
+    <section class="sf-lsec">
+        <div class="sf-lsec-head"><h2>Reviews</h2></div>
         <?php if (! empty($reviews)): ?>
-            <?php foreach ($reviews as $r): ?>
-                <div class="sf-card sf-review" style="margin-bottom: 10px;">
-                    <span class="sf-stars"><?php for ($i = 1; $i <= 5; $i++): ?><i class="fas fa-star<?= $i > (int) $r['rating'] ? ' off' : '' ?>" aria-hidden="true"></i><?php endfor; ?></span>
-                    <span class="ctx"><?= ! empty($r['created_at']) ? esc(date('M Y', strtotime($r['created_at']))) : '' ?></span>
-                    <blockquote>&ldquo;<?= esc($r['comment'] ?? $r['title'] ?? '') ?>&rdquo; — <?= esc($r['reviewer'] ?? 'Verified customer') ?></blockquote>
-                </div>
-            <?php endforeach; ?>
+            <div class="sf-lreviews-grid">
+                <?php foreach ($reviews as $r):
+                    $who = trim((string) ($r['reviewer'] ?? 'Verified customer'));
+                    $ini = '';
+                    foreach (preg_split('/\s+/', $who) as $w) {
+                        if ($w !== '' && strlen($ini) < 2) { $ini .= strtoupper(mb_substr($w, 0, 1)); }
+                    }
+                ?>
+                    <div class="sf-lreview">
+                        <div class="sf-lreview-head">
+                            <span class="avatar"><?= esc($ini !== '' ? $ini : 'V') ?></span>
+                            <div>
+                                <div class="who"><?= esc($who) ?></div>
+                                <span class="stars" aria-label="<?= (int) $r['rating'] ?> out of 5"><?= str_repeat('★', max(0, min(5, (int) $r['rating']))) ?></span>
+                            </div>
+                            <?php if (! empty($r['created_at'])): ?><span class="date"><?= esc(date('M Y', strtotime($r['created_at']))) ?></span><?php endif; ?>
+                        </div>
+                        <p>&ldquo;<?= esc($r['comment'] ?? $r['title'] ?? '') ?>&rdquo;</p>
+                    </div>
+                <?php endforeach; ?>
+            </div>
         <?php else: ?>
             <p class="sf-noreviews">No written reviews yet. <b>Star ratings come only from customers who have booked and had their event</b> — never seeded.</p>
         <?php endif; ?>
     </section>
-
-    <section class="sf-sec">
-        <div class="sf-closing">
-            <div>
-                <h2 class="sf-sec-h">Can't see what you need?</h2>
-                <p class="sf-sec-sub" style="margin: 0;">Ask about a custom package for your event.</p>
-            </div>
-            <a class="sf-btn-outline" href="<?= $phone !== '' ? esc($phoneHref, 'attr') : '#sf-quote' ?>"<?= $phone === '' ? ' data-sf-scroll' : '' ?>>Send an enquiry</a>
-        </div>
-    </section>
 </div>
 
 <script>
-/* Storefront home: (1) date field validates client-side (today-or-later) before
-   the GET reload that greys out booked services and threads date+time onto each
-   card link, (2) smooth in-page scroll for the quote CTAs, (3) reveal the
-   sticky-header CTA once the hero is scrolled past. Vanilla JS, no libraries. */
+/* 3D hybrid landing: (1) live estimator (service base + per-guest × guests →
+   total & 10% deposit) whose "Reserve" hands off to the real quote flow on the
+   service page; (2) smooth-scroll helpers; (3) reveal the sticky-header CTA. */
 (function () {
-    var dateInput = document.getElementById('sf-date');
-    var dateForm  = document.getElementById('sf-quote');
-    var dateErr   = document.getElementById('sf-date-err');
-    var today     = <?= json_encode($today) ?>;
+    var svc     = document.getElementById('est-svc');
+    var dateEl  = document.getElementById('est-date');
+    var guests  = document.getElementById('est-guests');
+    var guestsN = document.getElementById('est-guests-n');
+    var totalEl = document.getElementById('est-total');
+    var depEl   = document.getElementById('est-deposit');
+    var reserve = document.getElementById('est-reserve');
+    var depositRate = <?= json_encode(\App\Libraries\DepositCalculator::PERCENT) ?>;
+    var fmt = function (n) { return '£' + Math.round(n).toLocaleString('en-GB'); };
 
-    function isValidDate(v) { return !v || v >= today; }
-
-    if (dateInput) {
-        dateInput.addEventListener('change', function () {
-            var bad = !isValidDate(dateInput.value);
-            dateInput.classList.toggle('is-invalid', bad);
-            if (dateErr) dateErr.hidden = !bad;
-        });
+    function update() {
+        if (!svc) return;
+        var opt = svc.options[svc.selectedIndex];
+        var base = parseFloat(opt.getAttribute('data-base')) || 0;
+        var perG = parseFloat(opt.getAttribute('data-perguest')) || 0;
+        var g = parseInt(guests.value, 10) || 0;
+        var total = base + perG * g;
+        if (guestsN) guestsN.textContent = g;
+        if (totalEl) totalEl.textContent = total > 0 ? fmt(total) : 'On request';
+        if (depEl) depEl.textContent = total > 0 ? fmt(total * depositRate) : '—';
+        // Hand off to the real quote flow with the chosen context pre-filled.
+        var qs = [];
+        if (dateEl && dateEl.value) qs.push('date=' + encodeURIComponent(dateEl.value));
+        if (g) qs.push('guests=' + g);
+        if (reserve) reserve.setAttribute('href', '/service/' + opt.value + (qs.length ? '?' + qs.join('&') : ''));
     }
+    [svc, dateEl, guests].forEach(function (el) {
+        if (el) { el.addEventListener('input', update); el.addEventListener('change', update); }
+    });
+    update();
 
-    if (dateForm) {
-        dateForm.addEventListener('submit', function (e) {
-            // Block a past date; otherwise let the GET reload run (server greys
-            // out booked services for the chosen date/time).
-            if (dateInput && !isValidDate(dateInput.value)) {
-                e.preventDefault();
-                dateInput.classList.add('is-invalid');
-                if (dateErr) dateErr.hidden = false;
-                dateInput.focus();
-            }
-        });
-    }
-
-    // Smooth-scroll the hero / closing CTAs to the date field and focus it.
-    document.querySelectorAll('[data-sf-scroll]').forEach(function (link) {
+    // Smooth-scroll "Browse services" / any [data-sf-scroll-to].
+    document.querySelectorAll('[data-sf-scroll-to]').forEach(function (link) {
         link.addEventListener('click', function (e) {
-            var target = document.getElementById('sf-quote');
-            if (!target) return;
-            e.preventDefault();
-            target.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            if (dateInput) dateInput.focus({ preventScroll: true });
+            var t = document.getElementById(link.getAttribute('data-sf-scroll-to'));
+            if (t) { e.preventDefault(); t.scrollIntoView({ behavior: 'smooth', block: 'start' }); }
         });
     });
 
     // Reveal the sticky-header compact CTA once the hero leaves the viewport.
-    var hero = document.querySelector('.sf-hero-lander');
+    var hero = document.querySelector('.sf-lhero');
     if (hero && 'IntersectionObserver' in window) {
         var io = new IntersectionObserver(function (entries) {
             document.body.classList.toggle('sf-scrolled', !entries[0].isIntersecting);

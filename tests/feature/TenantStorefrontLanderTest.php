@@ -139,26 +139,21 @@ final class TenantStorefrontLanderTest extends CIUnitTestCase
         ]);
     }
 
-    public function testLanderRendersHeroTaglineAndSingleQuoteLabel(): void
+    public function testLanderRendersBookingFirstHeroAndEstimator(): void
     {
         $this->onHost('vendorone.' . self::BASE_DOMAIN);
         $result = $this->get('/');
 
         $result->assertStatus(200);
         $result->assertSee('Vendor One Events');
-        $result->assertSee('Family-run events team covering the North East'); // tagline in hero
-        $result->assertSee('Instant quotes');
-        $result->assertSee('Durham &amp; Teesside'); // coverage in the hero meta row
-        $result->assertSee('sf-hero-lander');
-
-        // One action, one label — everywhere, and the old copy is gone.
-        $result->assertSee('Get an instant quote');
-        $result->assertDontSee('See prices');
-        $result->assertDontSee('Get exact price');
-        $result->assertDontSee('Get quote');
+        $result->assertSee('Book your event in three clicks.'); // 3D hybrid hero
+        $result->assertSee('sf-lhero');
+        $result->assertSee('sf-estimator');               // live instant-quote estimator
+        $result->assertSee('Reserve your date');
+        $result->assertSee('Durham &amp; Teesside');      // coverage in the hero pill
     }
 
-    public function testLanderShowsTrustPillsWithDepositPercentAndDateField(): void
+    public function testLanderShowsTrustStripWithDepositPercent(): void
     {
         $this->onHost('vendorone.' . self::BASE_DOMAIN);
         $result = $this->get('/');
@@ -166,29 +161,26 @@ final class TenantStorefrontLanderTest extends CIUnitTestCase
         $result->assertSee('deposit holds your date');
         $result->assertSee((string) \App\Libraries\DepositCalculator::percentDisplay() . '%');
         $result->assertSee('Secure card payment');
-        $result->assertSee('sf-datebar');                 // on-page date field
-        $result->assertSee('instant quote for your date'); // updated section copy
     }
 
-    public function testLanderCardsShowDescriptionAndCta(): void
+    public function testLanderServicesGridShowsDescriptionAndBookCta(): void
     {
         $this->onHost('vendorone.' . self::BASE_DOMAIN);
         $result = $this->get('/');
 
+        $result->assertSee('Our services');
+        $result->assertSee('sf-lcard');
         $result->assertSee('Marquee Hire');
         $result->assertSee('Elegant frame marquees for garden weddings'); // short_description
         $result->assertSee('Rustic Bar Hire');
-        $result->assertSee('sf-svc-cta');
     }
 
-    public function testLanderHasStickyHeaderCtaAndClosingEnquiry(): void
+    public function testLanderHasStickyHeaderCta(): void
     {
         $this->onHost('vendorone.' . self::BASE_DOMAIN);
         $result = $this->get('/');
 
-        $result->assertSee('sf-headcta');             // scroll-revealed compact CTA
-        $result->assertSee("Can't see what you need?");
-        $result->assertSee('Send an enquiry');
+        $result->assertSee('sf-headcta'); // scroll-revealed compact CTA in the header
     }
 
     public function testNoGreyOutWithoutADate(): void
@@ -206,7 +198,7 @@ final class TenantStorefrontLanderTest extends CIUnitTestCase
         $result = $this->get('/?date=2027-06-05');
 
         $result->assertSee('is-unavailable');
-        $result->assertSee('Booked on this date');
+        $result->assertSee('sf-badge-booked');
         $result->assertSee('Rustic Bar Hire'); // the un-booked service still lists
     }
 

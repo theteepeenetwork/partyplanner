@@ -282,6 +282,16 @@ Deliberate follow-ups (not done in this PR):
 - [ ] **Marketplace booking path doesn't capture a start time.** Only the storefront flow (`TenantController`) sets the window today; `EventController` bookings still store null times (treated as whole-day by the checker — fail-closed, safe). If the marketplace should also slot-book, mirror the capture there.
 - [ ] **Multi-day (day-duration) still books whole-date** — tracked separately under the multi-day events backlog item.
 
+## Storefront 3D hybrid landing (2026-07-08, shipped — mode-B home)
+
+The multi-service storefront landing (`tenant/home.php`) is rebuilt to the "3D hybrid" design (booking-first hero + gallery): a booking-first hero with a **live instant-quote estimator** (service + date + guests → ballpark total & deposit) beside marketing copy, a "Recent events" gallery band (up to 3 service photos), a trust strip, a services grid, and 2-up reviews. The estimator is a client-side ballpark; **Reserve** and each card hand off to the real quote flow on the service page (`/service/{id}?date=&guests=`) which produces the exact itemised quote. Fully theme-driven via the `.sf-theme-*` vars, so all 6 colour themes apply. Typography switched to the design's fonts — **Hanken Grotesk** (body) + **Space Grotesk** (display), loaded in the shared header, so the whole storefront/checkout reads consistently.
+
+Follow-ups / notes:
+
+- [x] **Dead CSS from the prior lander pruned** (2026-07-08): removed the now-unused `.sf-hero-lander*`, `.sf-hero-tagline/-fact/-cta/-btn`, `.sf-datebar` (form) + `.sf-datebar-err`, `.sf-svc-list/-card*`, `.sf-svc-cta`, and `.sf-closing`. Kept the shared `.sf-hero*` base (reused by `home_single.php`/`service.php`), `.sf-headcta`, `.sf-datebar-note`, `.sf-badge-most/-booked`, and `.sf-price`. The `tenant/_price.php` partial is currently un-included on the landing but kept (small, tested, reusable).
+- [ ] **On-page date grey-out is now secondary.** The 3D hybrid has no date-form reload; the server still greys booked services when the URL carries `?date=&time=` (e.g. back-navigation), and it's still tested, but the estimator is the primary path. Consider wiring the estimator's date to the availability grey-out if that signal proves useful on the landing.
+- [ ] **Estimator is a from-price ballpark.** Per-guest services scale with the guests slider; flat/duration services show their "from" figure (slider inert). The exact quote is always the service page. Fine as a lead-qualifier; revisit if vendors want the slider to reflect duration too.
+
 ## Selectable storefront colour themes (2026-07-08, shipped — storefront + checkout)
 
 Vendors pick one of **6 curated colour themes** (clean, warm, porcelain, graphite, teal, indigo) on `/profile/my-site`; the choice themes the whole white-label journey — storefront **and** every checkout page. Registry: `App\Libraries\StorefrontThemes` (keys/labels/preview colours = single source of truth); full palettes live as `.sf-theme-*` classes in `tenant-storefront.css`; the shared tenant header applies `body.sf-theme-{key}`, so one switch flows through every tenant page. New nullable `vendor_sites.theme` column (migration `AddThemeToVendorSites`; null → resolves to default `clean`). The editor now shows a theme picker with a live preview instead of raw hex pickers (per decision: **presets only, full palette**).
