@@ -78,6 +78,8 @@ final class MySiteEditorTest extends CIUnitTestCase
         $result->assertOK();
         $result->assertSee('Publish changes');
         $result->assertSee('Live preview');
+        $result->assertSee('Colour theme');
+        $result->assertSee('Warm editorial'); // a preset theme option renders
         $result->assertSee('editor' . $vendorId . '.partysmith.co.uk');
     }
 
@@ -93,7 +95,7 @@ final class MySiteEditorTest extends CIUnitTestCase
         $result->assertDontSee('Publish changes');
     }
 
-    public function testPostPersistsAppearanceFields(): void
+    public function testPostPersistsThemeAndFields(): void
     {
         $vendorId = $this->seedVendor();
         $siteId   = $this->seedSite($vendorId);
@@ -102,38 +104,36 @@ final class MySiteEditorTest extends CIUnitTestCase
         $request = service('request');
         $request->setMethod('POST');
         $request->setGlobal('post', [
-            'primary_color'   => '#2E5FD7',
-            'secondary_color' => '#fb0', // shorthand — should normalise to #ffbb00
-            'about_text'      => 'Two brothers, one van.',
-            'phone'           => '07700 900123',
+            'theme'      => 'teal',
+            'about_text' => 'Two brothers, one van.',
+            'phone'      => '07700 900123',
         ]);
 
         $result = $this->withRequest($request)->controller(Profile::class)->execute('mySite');
         $result->assertRedirectTo('/profile/my-site');
 
         $row = $this->db->table('vendor_sites')->where('id', $siteId)->get()->getRowArray();
-        $this->assertSame('#2e5fd7', $row['primary_color']);
-        $this->assertSame('#ffbb00', $row['secondary_color']);
+        $this->assertSame('teal', $row['theme']);
         $this->assertSame('Two brothers, one van.', $row['about_text']);
         $this->assertSame('07700 900123', $row['phone']);
     }
 
-    public function testInvalidHexIsRejectedWithoutWriting(): void
+    public function testInvalidThemeIsRejectedWithoutWriting(): void
     {
         $vendorId = $this->seedVendor();
-        $siteId   = $this->seedSite($vendorId, ['primary_color' => '#1c4a36']);
+        $siteId   = $this->seedSite($vendorId, ['theme' => 'warm']);
         $this->loginAs($vendorId);
 
         $request = service('request');
         $request->setMethod('POST');
-        $request->setGlobal('post', ['primary_color' => 'not-a-colour']);
+        $request->setGlobal('post', ['theme' => 'neon-disco']);
 
         $result = $this->withRequest($request)->controller(Profile::class)->execute('mySite');
         $result->assertRedirectTo('/profile/my-site');
         $this->assertNotNull(session()->getFlashdata('error'));
 
         $row = $this->db->table('vendor_sites')->where('id', $siteId)->get()->getRowArray();
-        $this->assertSame('#1c4a36', $row['primary_color']); // unchanged
+        $this->assertSame('warm', $row['theme']); // unchanged
     }
 
     public function testSubdomainAndStatusAreNotWritable(): void
@@ -145,10 +145,10 @@ final class MySiteEditorTest extends CIUnitTestCase
         $request = service('request');
         $request->setMethod('POST');
         $request->setGlobal('post', [
-            'primary_color' => '#123456',
-            'subdomain'     => 'hijacked',
-            'status'        => 'suspended',
-            'vendor_id'     => 999999,
+            'theme'     => 'graphite',
+            'subdomain' => 'hijacked',
+            'status'    => 'suspended',
+            'vendor_id' => 999999,
         ]);
 
         $this->withRequest($request)->controller(Profile::class)->execute('mySite');

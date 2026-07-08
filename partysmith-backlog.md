@@ -282,6 +282,29 @@ Deliberate follow-ups (not done in this PR):
 - [ ] **Marketplace booking path doesn't capture a start time.** Only the storefront flow (`TenantController`) sets the window today; `EventController` bookings still store null times (treated as whole-day by the checker — fail-closed, safe). If the marketplace should also slot-book, mirror the capture there.
 - [ ] **Multi-day (day-duration) still books whole-date** — tracked separately under the multi-day events backlog item.
 
+## Selectable storefront colour themes (2026-07-08, shipped — storefront + checkout)
+
+Vendors pick one of **6 curated colour themes** (clean, warm, porcelain, graphite, teal, indigo) on `/profile/my-site`; the choice themes the whole white-label journey — storefront **and** every checkout page. Registry: `App\Libraries\StorefrontThemes` (keys/labels/preview colours = single source of truth); full palettes live as `.sf-theme-*` classes in `tenant-storefront.css`; the shared tenant header applies `body.sf-theme-{key}`, so one switch flows through every tenant page. New nullable `vendor_sites.theme` column (migration `AddThemeToVendorSites`; null → resolves to default `clean`). The editor now shows a theme picker with a live preview instead of raw hex pickers (per decision: **presets only, full palette**).
+
+Notes / follow-ups (not defects):
+
+- [ ] **`vendor_sites.primary_color` / `secondary_color` are now unused** (presets replaced free hex). Columns kept so no data is destroyed; a later migration could drop them. The old inline hex injection + `tenant_hex_color`/`tenant_darken_hex`/`tenant_contrast_safe` helpers and `Profile::normaliseHexColour` were removed.
+- [ ] **Existing vendors default to `clean`** (theme is null until they pick). If a closer auto-mapping from their old hue is wanted, that's a one-off data migration.
+- [ ] **Themes use `oklch()`** (as authored in the design). Support is effectively universal on current browsers; pre-2023 browsers would fall back to unstyled colours. Add hex fallbacks only if analytics show meaningful legacy traffic.
+- Layout unchanged — this is the theming layer on the current storefront/checkout, not the zip's alternate ModernStorefront layout.
+
+## Booking confirmation redesign — account funnel (2026-07-08, shipped — storefront)
+
+Reworked the tenant confirmation page (`tenant/booked.php`) per the "Booking Confirmation Redesign" design, **frame 1a (manage-first split)**: celebratory hero → horizontal 3-step "what happens next" → two columns (account-creation form as the wide primary column + booking summary aside). Replaces the old one-line "Create →" nudge.
+
+Every guest checkout already auto-creates a customer account (`findOrCreateCustomer`), so "create an account" = **claim that account by setting a password**. New tenant route `POST /account/create` → `TenantController::createAccount()`. **Security spine:** password-setting is gated to an account THIS session created (`tenant_claimable_user`, set at checkout only when the account was new) — a session that merely owns a booking linked to a *pre-existing* account cannot reset that account's password (takeover guard, regression-tested). Plus session-owns-booking + field validation (8+ chars, match, terms).
+
+Follow-ups / notes (not defects):
+
+- [ ] **No logged-in area on the tenant host by design.** After claiming, the user signs in on the **main marketplace** (`/login`) to manage/pay/message — the tenant host stays guest-only. If a tenant-hosted "my booking" area is ever wanted, it's a larger auth piece.
+- [ ] **Design offered two layouts** (1a split — implemented; 1b linear funnel — not built). Swap is a view-only change if 1b is later preferred.
+- Terms/Privacy links follow the existing marketplace convention (`register.php` points them at `/contact`, since no dedicated `/terms` or `/privacy` route exists).
+
 Notes for the Verifier (not defects):
 
 - **Palette:** the hero primary CTA uses a white fill with vendor-primary text (not marketplace coral-vermillion) — deliberate. This is the **white-label storefront**, whose entire design system themes on the vendor's `--sf-primary`/`--sf-accent`; trust elements stay neutral and no PartySmith branding appears. Hardcoding coral would break the tenant theming contract. The "accent" role maps to the vendor CTA treatment here.

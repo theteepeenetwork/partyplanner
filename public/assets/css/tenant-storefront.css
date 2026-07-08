@@ -49,6 +49,48 @@
   --sf-font: 'Instrument Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
 }
 
+/* ── Selectable colour themes (vendor picks on /profile/my-site) ─────────────
+   Each theme overrides the full palette on <body class="sf-theme-*">. Tints,
+   shadows and semantic colours (good/bad/star) stay universal; the tints derive
+   from --sf-primary via color-mix above, so they follow each theme's accent.
+   Applied by the tenant header, so it flows through storefront AND checkout. */
+body.sf-theme-clean {
+  --sf-page: oklch(0.99 0.002 255); --sf-surface: #ffffff;
+  --sf-ink: oklch(0.21 0.02 265); --sf-muted: oklch(0.50 0.02 265); --sf-faint: oklch(0.62 0.02 265);
+  --sf-border: oklch(0.90 0.006 265); --sf-border-input: oklch(0.84 0.008 265);
+  --sf-primary: oklch(0.52 0.17 266); --sf-primary-deep: oklch(0.44 0.17 266); --sf-accent: oklch(0.52 0.17 266);
+}
+body.sf-theme-warm {
+  --sf-page: oklch(0.955 0.014 75); --sf-surface: oklch(0.99 0.006 80);
+  --sf-ink: oklch(0.26 0.02 55); --sf-muted: oklch(0.47 0.02 60); --sf-faint: oklch(0.59 0.02 60);
+  --sf-border: oklch(0.87 0.014 75); --sf-border-input: oklch(0.81 0.016 75);
+  --sf-primary: oklch(0.58 0.12 45); --sf-primary-deep: oklch(0.50 0.12 45); --sf-accent: oklch(0.58 0.12 45);
+}
+body.sf-theme-porcelain {
+  --sf-page: oklch(0.975 0.004 250); --sf-surface: #ffffff;
+  --sf-ink: oklch(0.22 0.015 260); --sf-muted: oklch(0.50 0.015 262); --sf-faint: oklch(0.62 0.015 262);
+  --sf-border: oklch(0.91 0.005 255); --sf-border-input: oklch(0.85 0.007 255);
+  --sf-primary: oklch(0.31 0.05 258); --sf-primary-deep: oklch(0.25 0.05 258); --sf-accent: oklch(0.31 0.05 258);
+}
+body.sf-theme-graphite {
+  --sf-page: oklch(0.968 0.001 260); --sf-surface: #ffffff;
+  --sf-ink: oklch(0.24 0.004 260); --sf-muted: oklch(0.52 0.004 260); --sf-faint: oklch(0.63 0.004 260);
+  --sf-border: oklch(0.90 0.002 260); --sf-border-input: oklch(0.84 0.003 260);
+  --sf-primary: oklch(0.34 0.006 260); --sf-primary-deep: oklch(0.27 0.006 260); --sf-accent: oklch(0.34 0.006 260);
+}
+body.sf-theme-teal {
+  --sf-page: oklch(0.975 0.004 250); --sf-surface: #ffffff;
+  --sf-ink: oklch(0.22 0.015 240); --sf-muted: oklch(0.50 0.015 240); --sf-faint: oklch(0.62 0.015 240);
+  --sf-border: oklch(0.91 0.006 220); --sf-border-input: oklch(0.85 0.008 220);
+  --sf-primary: oklch(0.52 0.09 215); --sf-primary-deep: oklch(0.44 0.09 215); --sf-accent: oklch(0.52 0.09 215);
+}
+body.sf-theme-indigo {
+  --sf-page: oklch(0.975 0.004 255); --sf-surface: #ffffff;
+  --sf-ink: oklch(0.22 0.015 265); --sf-muted: oklch(0.50 0.015 265); --sf-faint: oklch(0.62 0.015 265);
+  --sf-border: oklch(0.91 0.006 265); --sf-border-input: oklch(0.85 0.008 265);
+  --sf-primary: oklch(0.52 0.17 266); --sf-primary-deep: oklch(0.44 0.17 266); --sf-accent: oklch(0.52 0.17 266);
+}
+
 /* ── Base ────────────────────────────────────────────────────────────────── */
 body.sf-body {
   margin: 0;
@@ -456,6 +498,65 @@ textarea.sf-input { height: auto; padding: 10px 12px; }
 }
 .sf-timeline li:first-child .disc { background: var(--sf-primary); color: #fff; }
 .sf-timeline b { color: var(--sf-ink); }
+
+/* ── Confirmation redesign (account funnel, frame 1a) ───────────────────── */
+.sf-confirm { max-width: 1060px; }
+.sf-confirm-hero { text-align: center; padding-top: 34px; }
+.sf-confirm-hero .sf-tick { width: 60px; height: 60px; font-size: 26px; margin: 0 auto 16px; box-shadow: 0 8px 22px rgba(29, 122, 70, 0.28); }
+.sf-confirm-hero .sf-confirm-h { font-size: 26px; }
+@media (min-width: 980px) { .sf-confirm-hero .sf-confirm-h { font-size: 27px; } }
+.sf-confirm-hero .sf-confirm-sub { margin: 0; }
+
+/* Horizontal "what happens next" */
+.sf-nextcard { margin-top: 26px; }
+.sf-next-steps { list-style: none; margin: 14px 0 0; padding: 0; display: grid; grid-template-columns: repeat(3, 1fr); }
+.sf-step { position: relative; text-align: center; padding: 0 18px; }
+.sf-step:not(:last-child)::after { content: ''; position: absolute; top: 16px; left: 50%; width: 100%; height: 2px; background: var(--sf-tint-18); z-index: 0; }
+.sf-step .disc { position: relative; z-index: 1; width: 34px; height: 34px; border-radius: 50%; margin: 0 auto 12px; background: var(--sf-tint-12); color: var(--sf-primary); display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 14px; }
+.sf-step.is-now .disc { background: var(--sf-primary); color: #fff; box-shadow: 0 0 0 5px var(--sf-tint-8); }
+.sf-step b { display: block; font-size: 14px; color: var(--sf-ink); margin-bottom: 3px; }
+.sf-step p { font-size: 12.5px; color: var(--sf-muted); margin: 0; line-height: 1.5; }
+.sf-step .when { display: block; font-size: 10px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: var(--sf-faint); margin-bottom: 5px; }
+@media (max-width: 620px) {
+  .sf-next-steps { grid-template-columns: 1fr; gap: 18px; }
+  .sf-step { text-align: left; padding: 0 0 0 46px; }
+  .sf-step:not(:last-child)::after { display: none; }
+  .sf-step .disc { position: absolute; left: 0; top: 0; margin: 0; }
+}
+
+/* Two-column split: account primary + summary aside */
+.sf-confirm-cols { display: grid; grid-template-columns: 1.42fr 1fr; gap: 22px; align-items: start; margin-top: 22px; }
+@media (max-width: 900px) { .sf-confirm-cols { grid-template-columns: 1fr; } }
+
+.sf-account { position: relative; border: 1.5px solid var(--sf-tint-18); box-shadow: var(--sf-sh-panel); overflow: hidden; }
+.sf-account::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 4px; background: var(--sf-primary); }
+.sf-account-h { font-size: 21px; font-weight: 700; letter-spacing: -0.01em; margin: 6px 0 6px; }
+.sf-account-sub { font-size: 13.5px; color: var(--sf-muted); margin: 0 0 18px; max-width: 46ch; }
+
+.sf-benefits { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 20px; margin: 0 0 18px; }
+@media (max-width: 620px) { .sf-benefits { grid-template-columns: 1fr; } }
+.sf-benefit { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; color: var(--sf-ink); }
+.sf-benefit .ck { width: 19px; height: 19px; border-radius: 50%; background: var(--sf-tint-12); color: var(--sf-primary); display: flex; align-items: center; justify-content: center; font-size: 9px; flex: none; margin-top: 1px; }
+
+.sf-formhead { border-top: 1px solid var(--sf-border); padding-top: 16px; }
+.sf-form-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0 14px; }
+@media (max-width: 620px) { .sf-form-2 { grid-template-columns: 1fr; } }
+.sf-inputwrap { position: relative; }
+.sf-inputwrap .reveal { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); background: none; border: none; padding: 0; font: inherit; font-size: 12px; font-weight: 600; color: var(--sf-muted); cursor: pointer; }
+.sf-inputwrap .reveal:hover { color: var(--sf-primary); }
+.sf-prefill { position: relative; display: block; }
+.sf-prefill .tag { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--sf-good); }
+.sf-agree { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; color: var(--sf-muted); margin: 6px 0 16px; cursor: pointer; }
+.sf-agree input { margin: 3px 0 0; accent-color: var(--sf-primary); width: 16px; height: 16px; flex: none; }
+.sf-signin { font-size: 12.5px; color: var(--sf-muted); text-align: center; margin: 12px 0 0; }
+
+/* Summary aside */
+.sf-svc { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
+.sf-thumb { width: 56px; height: 50px; border-radius: 9px; flex: none; overflow: hidden; border: 1px solid var(--sf-border); background: var(--sf-tint-8); display: flex; align-items: center; justify-content: center; color: var(--sf-faint); }
+.sf-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.sf-svc-t { font-size: 13.5px; font-weight: 700; margin: 0; }
+.sf-svc-s { font-size: 12px; color: var(--sf-muted); margin: 1px 0 0; }
+.sf-aside-h { font-size: 11px; font-weight: 700; letter-spacing: 0.09em; text-transform: uppercase; color: var(--sf-muted); margin: 0 0 10px; }
 
 /* ── Weak-input fallbacks ───────────────────────────────────────────────── */
 .sf-framed-hero {

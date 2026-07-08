@@ -21,6 +21,8 @@ if (\App\Libraries\TenantHost::current() !== null) {
         // Book this date → 10% deposit checkout → confirmation (guest)
         $routes->post('quote', 'TenantController::quote');
         $routes->match(['GET', 'POST'], 'checkout', 'TenantController::checkout');
+        // Confirmation-page account funnel: claim the guest account by password
+        $routes->post('account/create', 'TenantController::createAccount');
         $routes->get('booked/(:num)', 'TenantController::booked/$1');
         $routes->get('booked/(:num)/calendar.ics', 'TenantController::calendarIcs/$1');
     });

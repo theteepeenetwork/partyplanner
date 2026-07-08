@@ -28,10 +28,11 @@
             if ($w !== '' && strlen($mono) < 2) { $mono .= strtoupper(mb_substr($w, 0, 1)); }
         }
         if ($mono === '') { $mono = 'P'; }
-        $primary   = $site['primary_color'] ?: '#1C4A36';
-        $secondary = $site['secondary_color'] ?: '#B98C2A';
-        $logoUrl   = ! empty($site['logo_path']) ? '/' . ltrim((string) $site['logo_path'], '/') : '';
-        $siteUrl   = esc($site['subdomain']) . '.partysmith.co.uk';
+        $themes       = \App\Libraries\StorefrontThemes::all();
+        $currentTheme = \App\Libraries\StorefrontThemes::resolve($site['theme'] ?? null);
+        $cur          = $themes[$currentTheme];
+        $logoUrl      = ! empty($site['logo_path']) ? '/' . ltrim((string) $site['logo_path'], '/') : '';
+        $siteUrl      = esc($site['subdomain']) . '.partysmith.co.uk';
     ?>
         <div class="fye-page">
             <div class="fye-page-head">
@@ -54,25 +55,26 @@
                             <h2><i class="fa-solid fa-wand-magic-sparkles"></i> Appearance</h2>
                         </div>
 
-                        <label class="mysite-label">Main colour</label>
-                        <p class="mysite-hint">Buttons, prices and links on your site.</p>
-                        <div class="mysite-colour">
-                            <input type="color" id="pcColour" value="<?= esc($primary, 'attr') ?>" aria-label="Main colour picker">
-                            <input type="text" name="primary_color" id="pcHex" value="<?= esc($primary, 'attr') ?>"
-                                class="mysite-hex" pattern="#?[0-9A-Fa-f]{6}" maxlength="7" aria-label="Main colour hex">
-                        </div>
-
-                        <label class="mysite-label" style="margin-top:18px;">Accent colour</label>
-                        <p class="mysite-hint">Eyebrows, stars and small highlights.</p>
-                        <div class="mysite-colour">
-                            <input type="color" id="scColour" value="<?= esc($secondary, 'attr') ?>" aria-label="Accent colour picker">
-                            <input type="text" name="secondary_color" id="scHex" value="<?= esc($secondary, 'attr') ?>"
-                                class="mysite-hex" pattern="#?[0-9A-Fa-f]{6}" maxlength="7" aria-label="Accent colour hex">
+                        <label class="mysite-label">Colour theme</label>
+                        <p class="mysite-hint">A curated palette for your whole site — storefront through checkout.</p>
+                        <div class="mysite-themes" role="radiogroup" aria-label="Colour theme">
+                            <?php foreach ($themes as $key => $t): ?>
+                                <label class="mysite-theme<?= $key === $currentTheme ? ' is-active' : '' ?>"
+                                    data-accent="<?= esc($t['accent'], 'attr') ?>" data-bg="<?= esc($t['bg'], 'attr') ?>" data-ink="<?= esc($t['ink'], 'attr') ?>" data-border="<?= esc($t['border'], 'attr') ?>">
+                                    <input type="radio" name="theme" value="<?= esc($key, 'attr') ?>" <?= $key === $currentTheme ? 'checked' : '' ?>>
+                                    <span class="sw" aria-hidden="true">
+                                        <span style="background: <?= esc($t['bg'], 'attr') ?>;"></span>
+                                        <span style="background: <?= esc($t['accent'], 'attr') ?>;"></span>
+                                        <span style="background: <?= esc($t['ink'], 'attr') ?>;"></span>
+                                    </span>
+                                    <span class="nm"><?= esc($t['label']) ?></span>
+                                </label>
+                            <?php endforeach; ?>
                         </div>
 
                         <label class="mysite-label" style="margin-top:22px;">Logo</label>
                         <div class="mysite-logo-row">
-                            <div class="mysite-logo-current" id="logoPreview" style="--pv-mono-bg: <?= esc($primary, 'attr') ?>;">
+                            <div class="mysite-logo-current" id="logoPreview" style="--pv-mono-bg: <?= esc($cur['accent'], 'attr') ?>;">
                                 <?php if ($logoUrl !== ''): ?>
                                     <img src="<?= esc($logoUrl, 'attr') ?>" alt="Current logo">
                                 <?php else: ?>
@@ -106,7 +108,7 @@
                                 <span class="fye-pill" style="background:var(--fye-slate-tint);color:var(--fye-slate);">Updates instantly</span>
                             </div>
                             <div class="mysite-preview" id="sitePreview"
-                                style="--pv-primary: <?= esc($primary, 'attr') ?>; --pv-accent: <?= esc($secondary, 'attr') ?>;">
+                                style="--pv-primary: <?= esc($cur['accent'], 'attr') ?>; --pv-accent: <?= esc($cur['accent'], 'attr') ?>; --pv-bg: <?= esc($cur['bg'], 'attr') ?>; --pv-ink: <?= esc($cur['ink'], 'attr') ?>; --pv-border: <?= esc($cur['border'], 'attr') ?>;">
                                 <div class="pv-topbar">
                                     <span class="pv-mono" id="pvMono"><?= esc($mono) ?></span>
                                     <span>
@@ -141,8 +143,15 @@
             @media (min-width: 900px) { .mysite-grid { grid-template-columns: 1.05fr 0.95fr; align-items: start; } }
             .mysite-label { display: block; font-weight: 700; font-size: 14px; color: var(--fye-ink); }
             .mysite-hint { color: var(--fye-ink-2); font-size: 12.5px; margin: 2px 0 8px; }
-            .mysite-colour { display: flex; align-items: center; gap: 10px; }
-            .mysite-colour input[type=color] { width: 46px; height: 40px; border: 1px solid var(--fye-line-2); border-radius: var(--fye-r-sm); background: none; cursor: pointer; padding: 3px; }
+            .mysite-themes { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+            @media (min-width: 560px) { .mysite-themes { grid-template-columns: 1fr 1fr 1fr; } }
+            .mysite-theme { display: flex; align-items: center; gap: 10px; padding: 10px 12px; border: 1.5px solid var(--fye-line-2); border-radius: var(--fye-r-sm); background: #fff; cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+            .mysite-theme:hover { border-color: var(--fye-ink-3); }
+            .mysite-theme.is-active { border-color: var(--fye-terra); box-shadow: 0 0 0 3px var(--fye-terra-tint, rgba(190,110,60,.14)); }
+            .mysite-theme input { position: absolute; opacity: 0; pointer-events: none; }
+            .mysite-theme .sw { display: inline-flex; border-radius: 50%; overflow: hidden; width: 22px; height: 22px; flex: none; box-shadow: inset 0 0 0 1px rgba(0,0,0,.08); }
+            .mysite-theme .sw span { display: block; width: 33.34%; height: 100%; }
+            .mysite-theme .nm { font-weight: 700; font-size: 12.5px; color: var(--fye-ink); line-height: 1.2; }
             .mysite-hex, .mysite-input, .mysite-textarea {
                 font: inherit; padding: 10px 12px; border: 1px solid var(--fye-line-2);
                 border-radius: var(--fye-r-sm); background: #fff; color: var(--fye-ink); width: 100%;
@@ -159,22 +168,22 @@
             /* Live preview */
             .mysite-preview-wrap { position: sticky; top: 90px; }
             .mysite-preview-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; font-weight: 700; font-size: 13px; color: var(--fye-ink-2); }
-            .mysite-preview { border: 1px solid var(--fye-line-2); border-radius: 20px; overflow: hidden; background: #fff; box-shadow: var(--fye-shadow); max-width: 380px; margin: 0 auto; }
-            .pv-topbar { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--fye-line); }
+            .mysite-preview { border: 1px solid var(--fye-line-2); border-radius: 20px; overflow: hidden; background: var(--pv-bg, #fff); box-shadow: var(--fye-shadow); max-width: 380px; margin: 0 auto; transition: background .2s; }
+            .pv-topbar { display: flex; align-items: center; gap: 10px; padding: 14px 16px; border-bottom: 1px solid var(--pv-border, var(--fye-line)); }
             .pv-mono { width: 34px; height: 34px; border-radius: 10px; background: var(--pv-primary); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px; flex: none; }
-            .pv-name { display: block; font-weight: 700; font-size: 14px; color: var(--fye-ink); }
+            .pv-name { display: block; font-weight: 700; font-size: 14px; color: var(--pv-ink, var(--fye-ink)); }
             .pv-phone { display: block; font-size: 12px; color: var(--fye-ink-2); }
             .pv-body { padding: 18px 16px 8px; }
             .pv-eyebrow { font-size: 10px; font-weight: 800; letter-spacing: 0.12em; text-transform: uppercase; color: var(--pv-accent); margin: 0 0 6px; }
-            .pv-headline { font-family: 'Newsreader', Georgia, serif; font-weight: 500; font-size: 22px; line-height: 1.1; margin: 0 0 8px; color: var(--fye-ink); }
+            .pv-headline { font-weight: 700; font-size: 22px; line-height: 1.1; letter-spacing: -0.01em; margin: 0 0 8px; color: var(--pv-ink, var(--fye-ink)); }
             .pv-rating { font-size: 12.5px; color: var(--fye-ink-2); margin: 0 0 14px; }
             .pv-stars { color: var(--pv-accent); letter-spacing: 1px; }
             .pv-cta { background: var(--pv-primary); color: #fff; text-align: center; font-weight: 800; font-size: 13px; padding: 12px; border-radius: 100px; }
-            .pv-card { display: flex; gap: 10px; align-items: center; margin: 16px 0 4px; border: 1px solid var(--fye-line); border-radius: 12px; padding: 8px; }
+            .pv-card { display: flex; gap: 10px; align-items: center; margin: 16px 0 4px; border: 1px solid var(--pv-border, var(--fye-line)); border-radius: 12px; padding: 8px; }
             .pv-card-img { width: 52px; height: 52px; border-radius: 8px; background: linear-gradient(135deg, var(--pv-primary), var(--pv-accent)); flex: none; opacity: 0.85; }
-            .pv-card-name { display: block; font-weight: 700; font-size: 13px; color: var(--fye-ink); }
+            .pv-card-name { display: block; font-weight: 700; font-size: 13px; color: var(--pv-ink, var(--fye-ink)); }
             .pv-card-price { display: block; font-weight: 800; font-size: 13px; color: var(--pv-primary); }
-            .pv-foot { text-align: center; font-size: 11px; color: var(--fye-ink-3); padding: 12px; border-top: 1px solid var(--fye-line); }
+            .pv-foot { text-align: center; font-size: 11px; color: var(--fye-ink-3); padding: 12px; border-top: 1px solid var(--pv-border, var(--fye-line)); }
         </style>
 
         <script>
@@ -182,20 +191,23 @@
                 var form = document.getElementById('mySiteForm');
                 if (!form) return;
                 var preview = document.getElementById('sitePreview');
-                var hexRe = /^#?[0-9a-fA-F]{6}$/;
-                function norm(v) { v = v.trim(); if (v[0] !== '#') v = '#' + v; return v.toLowerCase(); }
+                var logoTile = document.getElementById('logoPreview');
 
-                function bindColour(colourId, hexId, cssVar) {
-                    var colour = document.getElementById(colourId);
-                    var hex = document.getElementById(hexId);
-                    function apply(val) { preview.style.setProperty(cssVar, val); }
-                    colour.addEventListener('input', function () { hex.value = colour.value; apply(colour.value); });
-                    hex.addEventListener('input', function () {
-                        if (hexRe.test(hex.value)) { var v = norm(hex.value); colour.value = v; apply(v); }
-                    });
+                // Theme selection drives the live preview + swatch highlight.
+                function applyTheme(card) {
+                    document.querySelectorAll('.mysite-theme').forEach(function (c) { c.classList.toggle('is-active', c === card); });
+                    var input = card.querySelector('input[type=radio]');
+                    if (input) input.checked = true;
+                    preview.style.setProperty('--pv-primary', card.dataset.accent);
+                    preview.style.setProperty('--pv-accent', card.dataset.accent);
+                    preview.style.setProperty('--pv-bg', card.dataset.bg);
+                    preview.style.setProperty('--pv-ink', card.dataset.ink);
+                    preview.style.setProperty('--pv-border', card.dataset.border);
+                    if (logoTile) logoTile.style.setProperty('--pv-mono-bg', card.dataset.accent);
                 }
-                bindColour('pcColour', 'pcHex', '--pv-primary');
-                bindColour('scColour', 'scHex', '--pv-accent');
+                document.querySelectorAll('.mysite-theme').forEach(function (card) {
+                    card.addEventListener('click', function () { applyTheme(card); });
+                });
 
                 // Live-preview the business phone and an uploaded logo.
                 var phoneInput = document.getElementById('phoneInput');

@@ -25,6 +25,15 @@ use Config\Database;
 class TenantBookingFlow
 {
     /**
+     * Set by findOrCreateCustomer(): true when the last guest checkout created
+     * a brand-new customer account (vs reusing one already registered to the
+     * email). Only a freshly-created account is safe to "claim" with a password
+     * on the confirmation page — reusing someone's existing account there would
+     * be a takeover.
+     */
+    private bool $lastCustomerCreated = false;
+
+    /**
      * Option-picker context for a service's instant-quote form: which pricing
      * model applies, the selectable options (duration/package/time block) as
      * pricing_option tokens, and which inputs the model needs.
@@ -295,7 +304,7 @@ class TenantBookingFlow
      * @param array<string,mixed>                               $quote   session quote payload (see TenantController::quote)
      * @param array{name: string, email: string, phone: string} $guest
      *
-     * @return array{bookingId: int, userId: int}
+     * @return array{bookingId: int, userId: int, newAccount: bool}
      */
     public function createGuestBooking(
         array $site,
@@ -406,7 +415,7 @@ class TenantBookingFlow
             (new BookingConfirmation())->confirmBooking($bookingId);
         }
 
-        return ['bookingId' => $bookingId, 'userId' => $userId];
+        return ['bookingId' => $bookingId, 'userId' => $userId, 'newAccount' => $this->lastCustomerCreated];
     }
 
     /**
@@ -419,10 +428,14 @@ class TenantBookingFlow
         $userModel = new UserModel();
         $email     = strtolower(trim((string) $guest['email']));
 
+        $this->lastCustomerCreated = false;
+
         $existing = $userModel->where('email', $email)->first();
         if ($existing) {
             return (int) $existing['id'];
         }
+
+        $this->lastCustomerCreated = true;
 
         $base     = preg_replace('/[^a-z0-9]/', '', strstr($email, '@', true) ?: 'guest') ?: 'guest';
         $username = $base;

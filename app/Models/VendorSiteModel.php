@@ -18,6 +18,7 @@ class VendorSiteModel extends Model
         'logo_path',
         'primary_color',
         'secondary_color',
+        'theme',
         'about_text',
         'phone',
         'status',

@@ -26,60 +26,6 @@ $headTitle    = isset($pageTitle) && trim((string) $pageTitle) !== ''
     ? trim((string) $pageTitle) . ' — ' . $businessName
     : $businessName;
 
-if (! function_exists('tenant_hex_color')) {
-    /**
-     * Only well-formed #RGB/#RRGGBB values may reach the inline <style>.
-     */
-    function tenant_hex_color(?string $value): ?string
-    {
-        $value = trim((string) $value);
-
-        return preg_match('/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value) === 1 ? $value : null;
-    }
-
-    /**
-     * Darken a hex colour by $amount (0–1).
-     */
-    function tenant_darken_hex(string $hex, float $amount): string
-    {
-        $hex = ltrim($hex, '#');
-        if (strlen($hex) === 3) {
-            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
-        }
-
-        $out = '#';
-
-        foreach (str_split($hex, 2) as $channel) {
-            $out .= str_pad(dechex((int) round(hexdec($channel) * (1 - $amount))), 2, '0', STR_PAD_LEFT);
-        }
-
-        return $out;
-    }
-
-    /**
-     * Handoff contrast rule: the primary must carry white CTA text. If its
-     * YIQ luminance is too high, fall back to a darkened form (repeatedly,
-     * for pathological near-white picks).
-     */
-    function tenant_contrast_safe(string $hex): string
-    {
-        for ($i = 0; $i < 4; $i++) {
-            $h = ltrim($hex, '#');
-            if (strlen($h) === 3) {
-                $h = $h[0] . $h[0] . $h[1] . $h[1] . $h[2] . $h[2];
-            }
-            [$r, $g, $b] = [hexdec(substr($h, 0, 2)), hexdec(substr($h, 2, 2)), hexdec(substr($h, 4, 2))];
-            $yiq          = ($r * 299 + $g * 587 + $b * 114) / 1000;
-            if ($yiq <= 170) {
-                return $hex;
-            }
-            $hex = tenant_darken_hex($hex, 0.25);
-        }
-
-        return $hex;
-    }
-}
-
 if (! function_exists('sf_rating_line')) {
     /**
      * Shared rating line for hero, header and cards. Verified-booking count is
@@ -99,10 +45,6 @@ if (! function_exists('sf_rating_line')) {
             : 'Verified vendor');
     }
 }
-
-$rawPrimary   = tenant_hex_color($site['primary_color'] ?? null);
-$primary      = $rawPrimary !== null ? tenant_contrast_safe($rawPrimary) : null;
-$accent       = tenant_hex_color($site['secondary_color'] ?? null);
 
 $phone     = trim((string) ($site['phone'] ?? ''));
 $phoneHref = $phone !== '' ? 'tel:' . preg_replace('/[^0-9+]/', '', $phone) : '';
@@ -151,23 +93,14 @@ $headSub = trim((string) ($headerSubline ?? ''));
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 
     <link rel="stylesheet" href="/assets/css/tenant-storefront.css">
-
-    <?php if ($primary !== null || $accent !== null): ?>
-    <style>
-        :root {
-            <?php if ($primary !== null): ?>
-            --sf-primary: <?= $primary ?>;
-            --sf-primary-deep: <?= tenant_darken_hex($primary, 0.18) ?>;
-            <?php endif; ?>
-            <?php if ($accent !== null): ?>
-            --sf-accent: <?= $accent ?>;
-            <?php endif; ?>
-        }
-    </style>
-    <?php endif; ?>
 </head>
 
-<body class="sf-body<?= ! empty($hasStickyBar) ? ' sf-has-stickybar' : '' ?>">
+<?php // Selected colour theme → full palette via a body class (see the
+      // .sf-theme-* rules in the stylesheet). One switch themes the storefront
+      // and every checkout page, since they all include this header.
+$themeClass = 'sf-theme-' . \App\Libraries\StorefrontThemes::resolve($site['theme'] ?? null);
+?>
+<body class="sf-body <?= $themeClass ?><?= ! empty($hasStickyBar) ? ' sf-has-stickybar' : '' ?>">
 
     <a href="#sf-main" class="sf-skip">Skip to main content</a>
 

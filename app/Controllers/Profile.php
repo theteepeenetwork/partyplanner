@@ -694,13 +694,11 @@ class Profile extends BaseController
     {
         $back = redirect()->to('/profile/my-site');
 
-        $primary   = $this->normaliseHexColour($this->request->getPost('primary_color'));
-        $secondary = $this->normaliseHexColour($this->request->getPost('secondary_color'));
-        if ($this->request->getPost('primary_color') !== null && $this->request->getPost('primary_color') !== '' && $primary === null) {
-            return $back->with('error', 'Main colour must be a hex value like #2E5FD7.');
-        }
-        if ($this->request->getPost('secondary_color') !== null && $this->request->getPost('secondary_color') !== '' && $secondary === null) {
-            return $back->with('error', 'Accent colour must be a hex value like #FFB300.');
+        // Appearance is a curated colour theme (presets only — see
+        // App\Libraries\StorefrontThemes). Reject anything not on the list.
+        $theme = trim((string) $this->request->getPost('theme'));
+        if ($theme !== '' && ! \App\Libraries\StorefrontThemes::isValid($theme)) {
+            return $back->with('error', 'Please choose one of the available colour themes.');
         }
 
         $about = trim((string) $this->request->getPost('about_text'));
@@ -713,10 +711,9 @@ class Profile extends BaseController
         }
 
         $update = [
-            'primary_color'   => $primary,
-            'secondary_color' => $secondary,
-            'about_text'      => $about !== '' ? $about : null,
-            'phone'           => $phone !== '' ? $phone : null,
+            'theme'      => $theme !== '' ? $theme : null,
+            'about_text' => $about !== '' ? $about : null,
+            'phone'      => $phone !== '' ? $phone : null,
         ];
 
         $logo = $this->request->getFile('logo');
@@ -736,26 +733,6 @@ class Profile extends BaseController
         $siteModel->update((int) $site['id'], $update);
 
         return $back->with('success', 'Your site has been updated — changes are live.');
-    }
-
-    /**
-     * Accept a #RGB or #RRGGBB colour and normalise to lowercase #rrggbb,
-     * or null if blank/invalid. Mirrors the tenant layout's hex guard so the
-     * stored value is always safe to inject into CSS.
-     *
-     * @param mixed $value
-     */
-    private function normaliseHexColour($value): ?string
-    {
-        $value = strtolower(trim((string) $value));
-        if ($value === '') {
-            return null;
-        }
-        if (preg_match('/^#([0-9a-f]{3})$/', $value, $m)) {
-            return '#' . $m[1][0] . $m[1][0] . $m[1][1] . $m[1][1] . $m[1][2] . $m[1][2];
-        }
-
-        return preg_match('/^#[0-9a-f]{6}$/', $value) === 1 ? $value : null;
     }
 
     public function calendarData()
