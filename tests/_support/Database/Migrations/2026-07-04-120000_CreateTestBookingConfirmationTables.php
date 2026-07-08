@@ -31,6 +31,14 @@ class CreateTestBookingConfirmationTables extends Migration
                     'constraint' => 20,
                     'null' => true,
                 ],
+                'start_time' => [
+                    'type' => 'TIME',
+                    'null' => true,
+                ],
+                'end_time' => [
+                    'type' => 'TIME',
+                    'null' => true,
+                ],
             ];
             foreach ($fields as $name => $def) {
                 if (!$this->db->fieldExists($name, 'bookings')) {
@@ -47,6 +55,14 @@ class CreateTestBookingConfirmationTables extends Migration
                 ],
                 'quote_warnings' => [
                     'type' => 'TEXT',
+                    'null' => true,
+                ],
+                'start_time' => [
+                    'type' => 'TIME',
+                    'null' => true,
+                ],
+                'end_time' => [
+                    'type' => 'TIME',
                     'null' => true,
                 ],
             ];

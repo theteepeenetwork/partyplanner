@@ -261,3 +261,51 @@ From re-verifying `VENDOR_ONBOARDING_AUDIT.md` against current code and the UK s
 - [ ] **Structured cancellation policy**: replace the step-6 free-text textarea (currently pre-filled with a `[placeholder]` template) with structured refund tiers; prerequisite for automating refunds in Epic 4.
 - [ ] **Taxonomy top-up** (data-only): add category rows for hot tubs, fireworks/pyrotechnics, bell tents/glamping structures, fairground rides, Santa's grottos, waste management.
 - [ ] **Specific event-type taxonomy** (audit roadmap 4): vendor-selectable wedding/birthday/festival/school/charity types, customer-filterable; today only public/private/corporate buckets.
+
+---
+
+## Storefront redesign — follow-ups (2026-07-08, mode-B lander)
+
+From the `tenant/home.php` redesign (hero CTAs, on-page date field, sticky header, reviews, closing CTA). No schema changes were made; these are the gaps found and deferred:
+
+- [ ] **Dedicated custom-package enquiry mechanism on the storefront.** The new closing "Send an enquiry" CTA points at the vendor phone (`tel:`), or the on-page quote/date field when no phone is set — there is **no enquiry form/route** on a tenant host (`TenantController` has no contact endpoint; the marketplace `contact` route 404s on tenant hosts by design). A lightweight guest enquiry form (name/email/message → vendor) would let "can't see what you need" leads convert without a phone call. Rendered with graceful fallback for now; needs a route + a `vendor_enquiries` store (or reuse `chat_rooms` un-gated for pre-booking enquiries) — flag before build, it borders the messaging system.
+- [ ] **Per-service pricing on the mode-B cards is only as good as `fromPrice()`.** Cards call `TenantBookingFlow::fromPrice()`; services with no pricing config render no price (graceful, by design). Not a defect, but if the launch categories expect a visible "from" on every card, ensure the wizard requires at least one pricing row before publish.
+
+## Time-slot booking (2026-07-08, shipped — storefront)
+
+Time-based (hours-duration) storefront services now book a **slot**, not a whole day: the customer picks a **start time** (required), the window becomes `start → start+duration`, and availability clashes only on time overlap padded by the service's **setup/breakdown minutes** (already vendor-set in wizard step 4 — no schema or wizard change needed). Persisted on `bookings`/`booking_items.start_time/end_time`. The multi-service lander greys out services already booked across the chosen date (+ time). Engine: `ServiceAvailabilityChecker` (time-aware), `TenantBookingFlow::resolveWindow()`; enforced through `EventQuoteBuilder`. Fixed time blocks keep their own window; day-duration + guest/quantity/package stay whole-date. **Human-gated areas touched (approved before build):** quote pipeline (`EventQuoteBuilder` now passes the window to the checker) and booking writes.
+
+Deliberate follow-ups (not done in this PR):
+
+- [ ] **Enforce vendor operating hours as slot bounds.** `service_availability` (per-weekday open/close) is not yet checked — a start time outside opening hours isn't rejected. Wire it into `ServiceAvailabilityChecker` slot mode.
+- [ ] **Lander time probe is coarse.** With a chosen time, time-based cards grey out using a nominal 30-min probe window from the start (the per-service duration isn't known on the lander). Precise greying would need the duration; the exact slot is still enforced at quote time. Consider an AJAX per-card check keyed on the shortest duration tier.
+- [ ] **Marketplace booking path doesn't capture a start time.** Only the storefront flow (`TenantController`) sets the window today; `EventController` bookings still store null times (treated as whole-day by the checker — fail-closed, safe). If the marketplace should also slot-book, mirror the capture there.
+- [ ] **Multi-day (day-duration) still books whole-date** — tracked separately under the multi-day events backlog item.
+
+## Selectable storefront colour themes (2026-07-08, shipped — storefront + checkout)
+
+Vendors pick one of **6 curated colour themes** (clean, warm, porcelain, graphite, teal, indigo) on `/profile/my-site`; the choice themes the whole white-label journey — storefront **and** every checkout page. Registry: `App\Libraries\StorefrontThemes` (keys/labels/preview colours = single source of truth); full palettes live as `.sf-theme-*` classes in `tenant-storefront.css`; the shared tenant header applies `body.sf-theme-{key}`, so one switch flows through every tenant page. New nullable `vendor_sites.theme` column (migration `AddThemeToVendorSites`; null → resolves to default `clean`). The editor now shows a theme picker with a live preview instead of raw hex pickers (per decision: **presets only, full palette**).
+
+Notes / follow-ups (not defects):
+
+- [ ] **`vendor_sites.primary_color` / `secondary_color` are now unused** (presets replaced free hex). Columns kept so no data is destroyed; a later migration could drop them. The old inline hex injection + `tenant_hex_color`/`tenant_darken_hex`/`tenant_contrast_safe` helpers and `Profile::normaliseHexColour` were removed.
+- [ ] **Existing vendors default to `clean`** (theme is null until they pick). If a closer auto-mapping from their old hue is wanted, that's a one-off data migration.
+- [ ] **Themes use `oklch()`** (as authored in the design). Support is effectively universal on current browsers; pre-2023 browsers would fall back to unstyled colours. Add hex fallbacks only if analytics show meaningful legacy traffic.
+- Layout unchanged — this is the theming layer on the current storefront/checkout, not the zip's alternate ModernStorefront layout.
+
+## Booking confirmation redesign — account funnel (2026-07-08, shipped — storefront)
+
+Reworked the tenant confirmation page (`tenant/booked.php`) per the "Booking Confirmation Redesign" design, **frame 1a (manage-first split)**: celebratory hero → horizontal 3-step "what happens next" → two columns (account-creation form as the wide primary column + booking summary aside). Replaces the old one-line "Create →" nudge.
+
+Every guest checkout already auto-creates a customer account (`findOrCreateCustomer`), so "create an account" = **claim that account by setting a password**. New tenant route `POST /account/create` → `TenantController::createAccount()`. **Security spine:** password-setting is gated to an account THIS session created (`tenant_claimable_user`, set at checkout only when the account was new) — a session that merely owns a booking linked to a *pre-existing* account cannot reset that account's password (takeover guard, regression-tested). Plus session-owns-booking + field validation (8+ chars, match, terms).
+
+Follow-ups / notes (not defects):
+
+- [ ] **No logged-in area on the tenant host by design.** After claiming, the user signs in on the **main marketplace** (`/login`) to manage/pay/message — the tenant host stays guest-only. If a tenant-hosted "my booking" area is ever wanted, it's a larger auth piece.
+- [ ] **Design offered two layouts** (1a split — implemented; 1b linear funnel — not built). Swap is a view-only change if 1b is later preferred.
+- Terms/Privacy links follow the existing marketplace convention (`register.php` points them at `/contact`, since no dedicated `/terms` or `/privacy` route exists).
+
+Notes for the Verifier (not defects):
+
+- **Palette:** the hero primary CTA uses a white fill with vendor-primary text (not marketplace coral-vermillion) — deliberate. This is the **white-label storefront**, whose entire design system themes on the vendor's `--sf-primary`/`--sf-accent`; trust elements stay neutral and no PartySmith branding appears. Hardcoding coral would break the tenant theming contract. The "accent" role maps to the vendor CTA treatment here.
+- **Coverage** in the hero meta row reads `services.service_location` (exists in prod schema + `database_update.sql`); the SQLite tenant-test `services` table was missing it, so `service_location` was added to the test migration to exercise the pill.

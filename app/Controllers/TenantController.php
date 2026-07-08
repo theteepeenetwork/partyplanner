@@ -16,6 +16,7 @@ use App\Models\EventModel;
 use App\Models\PaymentsModel;
 use App\Models\ServiceImageModel;
 use App\Models\ServiceModel;
+use App\Models\UserModel;
 use CodeIgniter\Exceptions\PageNotFoundException;
 use Config\Database;
 
@@ -60,10 +61,22 @@ class TenantController extends BaseController
         $imageModel    = new ServiceImageModel();
         $categoryModel = new CategoryModel();
 
+        // Optional date (+ start time) from the on-page picker: grey out any
+        // service already committed across that slot.
+        $date = trim((string) $this->request->getGet('date'));
+        if ($date !== '' && (! preg_match('/^\d{4}-\d{2}-\d{2}$/', $date) || $date < date('Y-m-d'))) {
+            $date = '';
+        }
+        $time = trim((string) $this->request->getGet('time'));
+        if (! preg_match('/^\d{1,2}:\d{2}$/', $time)) {
+            $time = '';
+        }
+
         foreach ($services as &$service) {
             $service['images']        = $imageModel->where(['service_id' => $service['id'], 'is_primary' => 1])->findAll();
             $service['category_name'] = $categoryModel->getServiceCategoryLabel($service);
             $service['from']          = $flow->fromPrice($service);
+            $service['available']     = $date === '' ? null : $this->serviceAvailableForSlot($flow, (int) $service['id'], $tenant->vendorId(), $date, $time);
         }
         unset($service);
 
@@ -76,8 +89,12 @@ class TenantController extends BaseController
             'services'     => $services,
             'trust'        => $this->vendorTrust($tenant->vendorId()),
             'aboutLine'    => $this->aboutLine($tenant, $services),
+            'coverage'     => $this->coverageArea($services),
+            'reviews'      => $this->recentReviews($tenant->vendorId(), 3),
             'mostBookedId' => $mostBookedId,
             'heroImage'    => $this->firstImageUrl($services),
+            'ctxDate'      => $date,
+            'ctxTime'      => $time,
         ]);
     }
 
@@ -134,10 +151,19 @@ class TenantController extends BaseController
             $postcode = '';
         }
         $guests = max(0, (int) $this->request->getGet('guests'));
+        $time   = trim((string) $this->request->getGet('time'));
+        if (! preg_match('/^\d{1,2}:\d{2}$/', $time)) {
+            $time = '';
+        }
 
+        $pricing = $flow->pricingContext((int) $service['id']);
+
+        // Whole-date availability chip. Slot-based (time) services can be free
+        // for a later slot even when earlier in the day is taken, so their
+        // verdict is deferred to the time-aware quote rather than shown here.
         $available    = null;
         $nearestDates = [];
-        if ($date !== '') {
+        if ($date !== '' && ! $pricing['needsStartTime']) {
             $available = (new ServiceAvailabilityChecker())->check((int) $service['id'], $tenant->vendorId(), $date) === [];
             if (! $available) {
                 $nearestDates = $flow->nearestFreeDates((int) $service['id'], $tenant->vendorId(), $date);
@@ -150,7 +176,7 @@ class TenantController extends BaseController
             'service'        => $service,
             'categoryName'   => (new CategoryModel())->getServiceCategoryLabel($service),
             'extras'         => $flow->extrasForForm((int) $service['id']),
-            'pricing'        => $flow->pricingContext((int) $service['id']),
+            'pricing'        => $pricing,
             'trust'          => $this->vendorTrust($tenant->vendorId(), (int) $service['id']),
             'reviews'        => $this->recentReviews($tenant->vendorId(), 2),
             'photos'         => $this->photoContext($service),
@@ -158,6 +184,7 @@ class TenantController extends BaseController
             'ctxDate'        => $date,
             'ctxPostcode'    => $postcode,
             'ctxGuests'      => $guests,
+            'ctxTime'        => $time,
             'available'      => $available,
             'nearestDates'   => $nearestDates,
             'isMultiService' => $this->activeServiceCount($tenant->vendorId()) > 1,
@@ -261,6 +288,8 @@ class TenantController extends BaseController
             'pricing_option' => $parsed['pricingOption'],
             'pricing_label'  => $quote['lines'][0]['label'] ?? null,
             'order_quantity' => $parsed['orderQuantity'],
+            'start_time'     => $parsed['startTime'],
+            'end_time'       => $parsed['endTime'],
             'extras'         => $parsed['extras'],
             'extra_qty'      => $parsed['extraQty'],
             'lines'          => $quote['lines'],
@@ -382,13 +411,20 @@ class TenantController extends BaseController
         session()->set('tenant_guest_email', $email);
         session()->remove('tenant_quote');
 
+        // Only a freshly-created account may be claimed with a password on the
+        // confirmation page — never one already registered to this email.
+        if (! empty($result['newAccount'])) {
+            session()->set('tenant_claimable_user', (int) $result['userId']);
+        }
+
         return redirect()->to($tenant->url('/booked/' . $result['bookingId']));
     }
 
     /**
      * Confirmation (frames 1k/1l): "date held" framing, PS reference,
-     * calendar/contact actions, what-happens-next timeline, optional
-     * account offer.
+     * calendar/contact actions, what-happens-next timeline, and the account-
+     * creation funnel — claim the guest account created at checkout by setting
+     * a password (Booking Confirmation Redesign, frame 1a).
      *
      * @param mixed $bookingId
      */
@@ -397,16 +433,88 @@ class TenantController extends BaseController
         $tenant                              = $this->requireTenant();
         [$booking, $items, $event, $payment] = $this->ownedBooking($tenant, (int) $bookingId);
 
+        // The account form only shows when this session created the booking's
+        // account this checkout (claimable) and hasn't yet set a password.
+        $claimable      = (int) session()->get('tenant_claimable_user') === (int) $booking['user_id'];
+        $accountCreated = (int) session()->get('tenant_account_created') === (int) $booking['id'];
+        $account        = ($claimable && ! $accountCreated) ? (new UserModel())->find((int) $booking['user_id']) : null;
+
         return view('tenant/booked', [
-            'site'       => $tenant->site(),
-            'booking'    => $booking,
-            'items'      => $items,
-            'event'      => $event,
-            'payment'    => $payment,
-            'reference'  => 'PS-' . (int) $booking['id'],
-            'guestEmail' => (string) session()->get('tenant_guest_email'),
-            'pageTitle'  => 'Date held',
+            'site'           => $tenant->site(),
+            'booking'        => $booking,
+            'items'          => $items,
+            'event'          => $event,
+            'payment'        => $payment,
+            'reference'      => 'PS-' . (int) $booking['id'],
+            'guestEmail'     => (string) session()->get('tenant_guest_email'),
+            'canCreateAccount' => $account !== null,
+            'accountCreated' => $accountCreated,
+            'account'        => $account,
+            'mainSiteUrl'    => 'https://www.' . \App\Libraries\TenantHost::baseDomain(),
+            'pageTitle'      => 'Date held',
         ]);
+    }
+
+    /**
+     * Claim the guest account created at checkout by setting a password
+     * (confirmation-page account funnel). Gated three ways: the session must
+     * own the booking, the booking's account must be the one THIS session
+     * just created (session `tenant_claimable_user` — never an account already
+     * registered to the email, which would be a takeover), and standard field
+     * validation. On success the guest can sign in on the main site to manage.
+     */
+    public function createAccount()
+    {
+        $tenant                = $this->requireTenant();
+        $bookingId             = (int) $this->request->getPost('booking_id');
+        [$booking]             = $this->ownedBooking($tenant, $bookingId);
+        $backToBooked          = redirect()->to($tenant->url('/booked/' . $bookingId));
+
+        if ((int) session()->get('tenant_claimable_user') !== (int) $booking['user_id']) {
+            return $backToBooked->with('error', 'This booking is already linked to an account — sign in on the main site to manage it.');
+        }
+
+        $password = (string) $this->request->getPost('password');
+        $confirm  = (string) $this->request->getPost('confirm_password');
+        if (mb_strlen($password) < 8) {
+            return $backToBooked->with('error', 'Choose a password of at least 8 characters.');
+        }
+        if ($password !== $confirm) {
+            return $backToBooked->with('error', 'The passwords don\'t match — please re-enter them.');
+        }
+        if (! $this->request->getPost('agree_terms')) {
+            return $backToBooked->with('error', 'Please accept the Terms of Service and Privacy Policy.');
+        }
+
+        $userModel = new UserModel();
+        $user      = $userModel->find((int) $booking['user_id']);
+        if ($user === null) {
+            return $backToBooked->with('error', 'We couldn\'t find your account — please contact us.');
+        }
+
+        $update = ['password' => password_hash($password, PASSWORD_DEFAULT)];
+
+        $name = trim((string) $this->request->getPost('name'));
+        if ($name !== '' && mb_strlen($name) <= 100) {
+            $update['name'] = $name;
+        }
+
+        // Adopt a chosen username only when it's well-formed and not taken.
+        $username = trim((string) $this->request->getPost('username'));
+        if ($username !== ''
+            && preg_match('/^[a-zA-Z0-9_.]{3,50}$/', $username)
+            && $userModel->where('username', $username)->where('id !=', (int) $user['id'])->countAllResults() === 0
+        ) {
+            $update['username'] = $username;
+        }
+
+        $userModel->update((int) $user['id'], $update);
+
+        // One-time claim: retire the token, mark this booking's account done.
+        session()->remove('tenant_claimable_user');
+        session()->set('tenant_account_created', $bookingId);
+
+        return $backToBooked->with('info', 'Your account is ready — sign in on the main site to manage this booking.');
     }
 
     /**
@@ -495,6 +603,15 @@ class TenantController extends BaseController
             $pricingOption = null;
         }
 
+        // Time-based services book a slot: resolve the clock window from the
+        // chosen option + submitted start time. Fixed blocks carry their own
+        // window; an hours-duration tier needs a start time from the customer.
+        $startTime = trim((string) $in('start_time'));
+        $window    = (new TenantBookingFlow())->resolveWindow((int) $service['id'], $pricingOption, $startTime);
+        if ($window['needsStart']) {
+            return ['error' => 'What time would you like it to start?', 'backTo' => $backTo];
+        }
+
         $extras = [];
 
         foreach ((array) $in('extras') as $x) {
@@ -529,6 +646,8 @@ class TenantController extends BaseController
             'event_type'    => 'Private party',
             'event_setting' => 'private',
             'date'          => $date,
+            'start_time'    => $window['start'],
+            'end_time'      => $window['end'],
             'guest_count'   => $guestCount > 0 ? $guestCount : null,
             'latitude'      => $geo['latitude'] ?? null,
             'longitude'     => $geo['longitude'] ?? null,
@@ -544,6 +663,8 @@ class TenantController extends BaseController
             'orderQuantity' => $orderQuantity,
             'extras'        => $extras,
             'extraQty'      => $extraQty,
+            'startTime'     => $window['start'],
+            'endTime'       => $window['end'],
             'quote'         => (new EventQuoteBuilder())->build($service, $event, $pricingOption, $extras, $extraQty, $orderQuantity),
         ];
     }
@@ -742,6 +863,47 @@ class TenantController extends BaseController
         $since  = ! empty($vendor['created_at']) ? date('Y', strtotime($vendor['created_at'])) : date('Y');
 
         return ($category !== '' ? $category : 'Event services') . ' covering ' . $area . ', on PartySmith since ' . $since . '.';
+    }
+
+    /**
+     * Lander grey-out verdict for one service on the chosen date (+ time):
+     *  - time-based services (needs a start time) with a chosen time probe a
+     *    nominal slot from that start and clash on time-window overlap;
+     *  - everything else (and time-based with only a date) uses the whole-date
+     *    check. Returns true when the service is bookable.
+     */
+    private function serviceAvailableForSlot(TenantBookingFlow $flow, int $serviceId, int $vendorId, string $date, string $time): bool
+    {
+        $checker = new ServiceAvailabilityChecker();
+
+        if ($time !== '' && $flow->pricingContext($serviceId)['needsStartTime']) {
+            // Probe a minimal slot from the chosen start so an existing booking
+            // straddling that time (plus setup/breakdown) greys the card.
+            [$h, $min] = array_map('intval', explode(':', $time));
+            $endMin    = min(24 * 60, $h * 60 + $min + 30);
+            $end       = sprintf('%02d:%02d', intdiv($endMin, 60), $endMin % 60);
+
+            return $checker->check($serviceId, $vendorId, $date, $time, $end) === [];
+        }
+
+        return $checker->check($serviceId, $vendorId, $date) === [];
+    }
+
+    /**
+     * Coverage area for the hero meta row — the first service's stated
+     * service_location. Returns null when no service carries one, so the view
+     * omits the coverage pill rather than showing an empty location.
+     */
+    private function coverageArea(array $services): ?string
+    {
+        foreach ($services as $service) {
+            $area = trim((string) ($service['service_location'] ?? ''));
+            if ($area !== '') {
+                return $area;
+            }
+        }
+
+        return null;
     }
 
     private function activeServiceCount(int $vendorId): int

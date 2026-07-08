@@ -26,63 +26,25 @@ $headTitle    = isset($pageTitle) && trim((string) $pageTitle) !== ''
     ? trim((string) $pageTitle) . ' — ' . $businessName
     : $businessName;
 
-if (! function_exists('tenant_hex_color')) {
+if (! function_exists('sf_rating_line')) {
     /**
-     * Only well-formed #RGB/#RRGGBB values may reach the inline <style>.
+     * Shared rating line for hero, header and cards. Verified-booking count is
+     * only shown once it is meaningful (>= threshold); below that the vendor is
+     * "Verified" without a number, so an almost-empty vendor never advertises
+     * "1 verified booking". Single source of this rule for every surface.
      */
-    function tenant_hex_color(?string $value): ?string
+    function sf_rating_line(?float $rating, int $bookings, int $threshold = 10): string
     {
-        $value = trim((string) $value);
-
-        return preg_match('/^#(?:[0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/', $value) === 1 ? $value : null;
-    }
-
-    /**
-     * Darken a hex colour by $amount (0–1).
-     */
-    function tenant_darken_hex(string $hex, float $amount): string
-    {
-        $hex = ltrim($hex, '#');
-        if (strlen($hex) === 3) {
-            $hex = $hex[0] . $hex[0] . $hex[1] . $hex[1] . $hex[2] . $hex[2];
+        if ($rating === null) {
+            return '';
         }
+        $line = number_format($rating, 1) . ' · ';
 
-        $out = '#';
-
-        foreach (str_split($hex, 2) as $channel) {
-            $out .= str_pad(dechex((int) round(hexdec($channel) * (1 - $amount))), 2, '0', STR_PAD_LEFT);
-        }
-
-        return $out;
-    }
-
-    /**
-     * Handoff contrast rule: the primary must carry white CTA text. If its
-     * YIQ luminance is too high, fall back to a darkened form (repeatedly,
-     * for pathological near-white picks).
-     */
-    function tenant_contrast_safe(string $hex): string
-    {
-        for ($i = 0; $i < 4; $i++) {
-            $h = ltrim($hex, '#');
-            if (strlen($h) === 3) {
-                $h = $h[0] . $h[0] . $h[1] . $h[1] . $h[2] . $h[2];
-            }
-            [$r, $g, $b] = [hexdec(substr($h, 0, 2)), hexdec(substr($h, 2, 2)), hexdec(substr($h, 4, 2))];
-            $yiq          = ($r * 299 + $g * 587 + $b * 114) / 1000;
-            if ($yiq <= 170) {
-                return $hex;
-            }
-            $hex = tenant_darken_hex($hex, 0.25);
-        }
-
-        return $hex;
+        return $line . ($bookings >= $threshold
+            ? $bookings . ' verified booking' . ($bookings === 1 ? '' : 's')
+            : 'Verified vendor');
     }
 }
-
-$rawPrimary   = tenant_hex_color($site['primary_color'] ?? null);
-$primary      = $rawPrimary !== null ? tenant_contrast_safe($rawPrimary) : null;
-$accent       = tenant_hex_color($site['secondary_color'] ?? null);
 
 $phone     = trim((string) ($site['phone'] ?? ''));
 $phoneHref = $phone !== '' ? 'tel:' . preg_replace('/[^0-9+]/', '', $phone) : '';
@@ -131,23 +93,14 @@ $headSub = trim((string) ($headerSubline ?? ''));
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" rel="stylesheet">
 
     <link rel="stylesheet" href="/assets/css/tenant-storefront.css">
-
-    <?php if ($primary !== null || $accent !== null): ?>
-    <style>
-        :root {
-            <?php if ($primary !== null): ?>
-            --sf-primary: <?= $primary ?>;
-            --sf-primary-deep: <?= tenant_darken_hex($primary, 0.18) ?>;
-            <?php endif; ?>
-            <?php if ($accent !== null): ?>
-            --sf-accent: <?= $accent ?>;
-            <?php endif; ?>
-        }
-    </style>
-    <?php endif; ?>
 </head>
 
-<body class="sf-body<?= ! empty($hasStickyBar) ? ' sf-has-stickybar' : '' ?>">
+<?php // Selected colour theme → full palette via a body class (see the
+      // .sf-theme-* rules in the stylesheet). One switch themes the storefront
+      // and every checkout page, since they all include this header.
+$themeClass = 'sf-theme-' . \App\Libraries\StorefrontThemes::resolve($site['theme'] ?? null);
+?>
+<body class="sf-body <?= $themeClass ?><?= ! empty($hasStickyBar) ? ' sf-has-stickybar' : '' ?>">
 
     <a href="#sf-main" class="sf-skip">Skip to main content</a>
 
@@ -167,11 +120,22 @@ $headSub = trim((string) ($headerSubline ?? ''));
                 </span>
             </a>
 
-            <?php if ($phone !== ''): ?>
-                <a class="sf-phonebtn" href="<?= esc($phoneHref, 'attr') ?>" aria-label="Call <?= esc($businessName, 'attr') ?> on <?= esc($phone, 'attr') ?>">
-                    <i class="fas fa-phone" aria-hidden="true"></i><span class="num"><?= esc($phone) ?></span>
-                </a>
-            <?php endif; ?>
+            <div class="sf-head-actions">
+                <?php // Revealed by JS (body.sf-scrolled) once the hero is scrolled past — same
+                      // target as the hero's "Get an instant quote" CTA (frame 1n sticky bar). ?>
+                <?php if (! empty($stickyQuote['href'])): ?>
+                    <?php $stickyRating = sf_rating_line($stickyQuote['rating'] ?? null, (int) ($stickyQuote['bookings'] ?? 0)); ?>
+                    <?php if ($stickyRating !== ''): ?>
+                        <span class="sf-head-rating"><i class="fas fa-star" aria-hidden="true"></i><?= esc($stickyRating) ?></span>
+                    <?php endif; ?>
+                    <a class="sf-btn sf-btn-compact sf-headcta" href="<?= esc($stickyQuote['href'], 'attr') ?>">Get an instant quote</a>
+                <?php endif; ?>
+                <?php if ($phone !== ''): ?>
+                    <a class="sf-phonebtn" href="<?= esc($phoneHref, 'attr') ?>" aria-label="Call <?= esc($businessName, 'attr') ?> on <?= esc($phone, 'attr') ?>">
+                        <i class="fas fa-phone" aria-hidden="true"></i><span class="num"><?= esc($phone) ?></span>
+                    </a>
+                <?php endif; ?>
+            </div>
         </div>
     </header>
 

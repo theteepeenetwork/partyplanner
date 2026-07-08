@@ -148,6 +148,15 @@ $galAlt = static fn (int $i): string => $i === 0
                         </label>
                     </div>
 
+                    <?php // Time-based services book a slot — start time is required; setup and
+                          // pack-down are added around it automatically for availability. ?>
+                    <?php if (! empty($pricing['needsStartTime'])): ?>
+                        <label class="sf-field">
+                            <span>Start time</span>
+                            <input class="sf-input" type="time" name="start_time" required step="900" value="<?= esc($ctxTime ?? '', 'attr') ?>">
+                        </label>
+                    <?php endif; ?>
+
                     <?php if (! empty($pricing['needsGuests'])): ?>
                         <label class="sf-field">
                             <span>Guests</span>
@@ -241,6 +250,7 @@ $galAlt = static fn (int $i): string => $i === 0
         if (fd.get('postcode')) p.set('postcode', fd.get('postcode'));
         if (fd.get('guest_count')) p.set('guest_count', fd.get('guest_count'));
         if (fd.get('order_quantity')) p.set('order_quantity', fd.get('order_quantity'));
+        if (fd.get('start_time')) p.set('start_time', fd.get('start_time'));
         if (fd.get('pricing_option')) p.set('pricing_option', fd.get('pricing_option'));
         fd.getAll('extras[]').forEach(function (id) {
             p.append('extras[]', id);

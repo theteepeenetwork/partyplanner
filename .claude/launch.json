@@ -3,9 +3,9 @@
   "configurations": [
     {
       "name": "tenant-dev",
-      "runtimeExecutable": "php",
-      "runtimeArgs": ["spark", "serve", "--host", "0.0.0.0", "--port", "8088"],
-      "port": 8088
+      "runtimeExecutable": "sh",
+      "runtimeArgs": ["-c", "php spark serve --host 0.0.0.0 --port \"${PORT:-8088}\""],
+      "autoPort": true
     }
   ]
 }
