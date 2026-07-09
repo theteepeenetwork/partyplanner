@@ -24,16 +24,19 @@ $perLabel = static fn (string $per): string => match ($per) {
     'guest' => '/guest', 'hour' => '/hr', 'day' => '/day', default => '',
 };
 
-// Up to three photos across the vendor's services for the gallery proof band.
-$galleryImgs = [];
+// Per-service estimator config (pricing model → live-quote control), keyed by
+// service id for the client-side estimator.
+$estConfigs = [];
 foreach ($services as $s) {
-    foreach ((array) ($s['images'] ?? []) as $img) {
-        $p = trim((string) ($img['image_path'] ?? $img['thumbnail_path'] ?? ''));
-        if ($p !== '' && count($galleryImgs) < 3) {
-            $galleryImgs[] = '/' . ltrim($p, '/');
-        }
-    }
+    $estConfigs[(int) $s['id']] = $s['estimator'] ?? ['model' => 'quote_only', 'exact' => false];
 }
+
+// Dedicated vendor-gallery photos for the "Recent events" band — NEVER the
+// service-card imagery (see $galleryPhotos passed from the controller).
+$galleryImgs = array_values(array_filter(array_map(
+    static fn ($p) => trim((string) $p) !== '' ? '/' . ltrim((string) $p, '/') : null,
+    (array) ($galleryPhotos ?? [])
+)));
 
 $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'bookings' => $bookCnt]], 'raw');
 ?>
@@ -50,50 +53,40 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
                 </span>
             <?php endif; ?>
             <h1>Book your event in three clicks.</h1>
-            <p class="sf-lhero-sub">Pick a service, choose your date and reserve online with a <?= $depositPct ?>% deposit. No back-and-forth.</p>
+            <p class="sf-lhero-sub">Pick a service, choose your date and reserve online with a <?= $depositPct ?>% deposit. No back-and-forth — an instant estimate, then your exact itemised quote.</p>
             <div class="sf-lhero-btns">
                 <a class="sf-lhero-ghost" href="#sf-services" data-sf-scroll-to="sf-services">Browse services</a>
                 <?php if ($phone !== ''): ?>
                     <a class="sf-lhero-ghost" href="<?= esc($phoneHref, 'attr') ?>"><i class="fas fa-phone" aria-hidden="true"></i>Call the team</a>
                 <?php endif; ?>
             </div>
-            <div class="sf-lhero-ticks">
-                <span><i class="fas fa-check" aria-hidden="true"></i><?= $depositPct ?>% deposit holds your date</span>
-                <span><i class="fas fa-check" aria-hidden="true"></i>Free 14-day cancellation</span>
-            </div>
         </div>
 
-        <?php // Client-side estimator → real quote flow on submit. ?>
+        <?php // Live estimator: control + total + concrete deposit are polymorphic
+              // on the service's pricing model (see $estConfigs), computed
+              // client-side. Reserve/Continue hands off to the exact quote flow. ?>
         <div class="sf-estimator" id="sf-quote">
             <p class="eyebrow">Instant quote</p>
             <label class="sf-est-field">Service
                 <select id="est-svc">
-                    <?php foreach ($services as $s):
-                        $from = $s['from'] ?? ['amount' => 0, 'per' => ''];
-                    ?>
-                        <option value="<?= (int) $s['id'] ?>" data-amount="<?= esc((string) (float) $from['amount'], 'attr') ?>" data-per="<?= esc($perLabel($from['per'] ?? ''), 'attr') ?>">
-                            <?= esc($s['title']) ?><?php if ($from['amount'] > 0): ?> — from £<?= esc(number_format((float) $from['amount'], (float) $from['amount'] == (int) $from['amount'] ? 0 : 2)) ?><?= esc($perLabel($from['per'] ?? '')) ?><?php endif; ?>
-                        </option>
+                    <?php foreach ($services as $s): ?>
+                        <option value="<?= (int) $s['id'] ?>"><?= esc($s['title']) ?></option>
                     <?php endforeach; ?>
                 </select>
             </label>
-            <div class="sf-est-row">
-                <label class="sf-est-field">Event date
-                    <input type="date" id="est-date" min="<?= esc($today, 'attr') ?>" value="<?= esc($ctxDate, 'attr') ?>">
-                </label>
-                <label class="sf-est-field">Start time <span style="font-weight: 400; text-transform: none;">(optional)</span>
-                    <input type="time" id="est-time" step="900" value="<?= esc($ctxTime, 'attr') ?>">
-                </label>
-            </div>
+            <label class="sf-est-field">Event date
+                <input type="date" id="est-date" min="<?= esc($today, 'attr') ?>" value="<?= esc($ctxDate, 'attr') ?>">
+            </label>
+            <div id="est-input"></div>
             <div class="sf-est-total">
                 <div>
-                    <div class="lbl">From</div>
+                    <div class="lbl" id="est-total-lbl">Estimated total</div>
                     <div class="amt" id="est-total">£0</div>
                 </div>
-                <div class="dep">Deposit today<b><?= $depositPct ?>%</b></div>
+                <div class="dep" id="est-dep-box">Deposit today<b id="est-deposit">£0</b></div>
             </div>
-            <a class="sf-btn" id="est-reserve" href="#">Reserve your date <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
-            <p class="sf-est-note">A "from" guide — you'll get the exact itemised quote on the next step.</p>
+            <a class="sf-btn" id="est-reserve" href="#"><span id="est-reserve-lbl">Reserve your date &rarr;</span></a>
+            <p class="sf-est-note">An estimate — you'll confirm the exact itemised quote on the next step.</p>
         </div>
     </div>
 </section>
@@ -208,46 +201,101 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
 </div>
 
 <script>
-/* 3D hybrid landing: (1) live estimator (service base + per-guest × guests →
-   total & 10% deposit) whose "Reserve" hands off to the real quote flow on the
-   service page; (2) smooth-scroll helpers; (3) reveal the sticky-header CTA. */
+/* 3D hybrid landing estimator: the input control, live total, concrete deposit
+   and CTA label are all polymorphic on the selected service's pricing model
+   (SF_EST config). Reserve/Continue hands off to the exact quote flow, carrying
+   the entered date (+ guests/option for the selected service). */
 (function () {
-    var svc     = document.getElementById('est-svc');
-    var dateEl  = document.getElementById('est-date');
-    var timeEl  = document.getElementById('est-time');
-    var totalEl = document.getElementById('est-total');
-    var reserve = document.getElementById('est-reserve');
-    var cards   = Array.prototype.slice.call(document.querySelectorAll('[data-sf-svc]'));
-    var fmt = function (n) { return '£' + Math.round(n).toLocaleString('en-GB'); };
+    var CFG = <?= json_encode($estConfigs, JSON_UNESCAPED_SLASHES | JSON_UNESCAPED_UNICODE) ?>;
+    var DEP = <?= json_encode(\App\Libraries\DepositCalculator::PERCENT) ?>;
+    var svc = document.getElementById('est-svc');
+    if (!svc) return;
+    var dateEl     = document.getElementById('est-date');
+    var inputEl    = document.getElementById('est-input');
+    var totalLbl   = document.getElementById('est-total-lbl');
+    var totalEl    = document.getElementById('est-total');
+    var depBox     = document.getElementById('est-dep-box');
+    var depEl      = document.getElementById('est-deposit');
+    var reserve    = document.getElementById('est-reserve');
+    var reserveLbl = document.getElementById('est-reserve-lbl');
+    var cards      = Array.prototype.slice.call(document.querySelectorAll('[data-sf-svc]'));
 
-    // The date + start time entered in the estimator are event context, not
-    // tied to one service — thread them onto EVERY booking link (the Reserve
-    // button AND each service card) so whichever route the customer takes, the
-    // service page pre-fills its booking form with what they typed.
-    function ctxQs() {
-        var qs = [];
+    var state = {};
+    function fmt(n) { return '£' + Math.round(n).toLocaleString('en-GB'); }
+    function esc(s) { var d = document.createElement('div'); d.textContent = String(s); return d.innerHTML; }
+    function cap(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : s; }
+    function cfg() { return CFG[svc.value] || { model: 'quote_only', exact: false }; }
+    function rateFor(bands, q) {
+        for (var i = 0; i < bands.length; i++) { if (q >= bands[i].min && q <= bands[i].max) return bands[i].rate; }
+        return bands[bands.length - 1].rate;
+    }
+
+    function renderInput() {
+        var c = cfg();
+        state = { qty: null, token: null, optIndex: 0 };
+        inputEl.innerHTML = '';
+        if (c.model === 'per_guest' || c.model === 'per_unit') {
+            var s = c.slider; state.qty = s.default;
+            var lbl = c.model === 'per_guest' ? 'Guests' : cap(c.unitLabel || 'Quantity');
+            inputEl.innerHTML = '<label class="sf-est-field">' + lbl + ' &middot; <span class="sf-est-qty" id="est-qty">' + s.default
+                + '</span><input type="range" id="est-range" min="' + s.min + '" max="' + s.max + '" value="' + s.default + '"></label>';
+            document.getElementById('est-range').addEventListener('input', function (e) {
+                state.qty = +e.target.value; document.getElementById('est-qty').textContent = state.qty; compute();
+            });
+        } else if (c.model === 'per_hour' || c.model === 'per_session' || c.model === 'package') {
+            var html = '<div class="sf-est-seg" role="group" aria-label="Choose an option">';
+            c.options.forEach(function (o, i) { html += '<button type="button" class="sf-est-segbtn' + (i === 0 ? ' on' : '') + '" data-i="' + i + '">' + esc(o.label) + '</button>'; });
+            inputEl.innerHTML = html + '</div>';
+            state.token = c.options[0].token;
+            inputEl.querySelectorAll('.sf-est-segbtn').forEach(function (btn) {
+                btn.addEventListener('click', function () {
+                    inputEl.querySelectorAll('.sf-est-segbtn').forEach(function (b) { b.classList.remove('on'); });
+                    btn.classList.add('on'); state.optIndex = +btn.getAttribute('data-i'); state.token = c.options[state.optIndex].token; compute();
+                });
+            });
+        } else if (c.model === 'quote_only') {
+            inputEl.innerHTML = '<p class="sf-est-quoteonly">Tell us about your event and we’ll send a tailored quote.</p>';
+        }
+        compute();
+    }
+
+    function compute() {
+        var c = cfg(), total = null;
+        if (c.model === 'per_guest' || c.model === 'per_unit') { total = state.qty * rateFor(c.slider.bands, state.qty); }
+        else if (c.model === 'per_hour' || c.model === 'per_session' || c.model === 'package') { total = c.options[state.optIndex].price; }
+        else if (c.model === 'fixed') { total = c.fixed; }
+
+        if (c.exact && total !== null && total > 0) {
+            var fixed = c.model === 'fixed';
+            totalLbl.textContent = fixed ? 'Price' : 'Estimated total';
+            totalEl.textContent = fmt(total) + (fixed ? ' · Fixed price' : '');
+            depBox.style.display = '';
+            depEl.textContent = fmt(total * DEP); // always a concrete figure, never a %
+            reserveLbl.textContent = 'Reserve your date →';
+        } else {
+            totalLbl.textContent = 'Tailored quote';
+            totalEl.textContent = 'Priced on request';
+            depBox.style.display = 'none';
+            reserveLbl.textContent = 'Continue to exact quote →';
+        }
+        updateLinks();
+    }
+
+    function updateLinks() {
+        var c = cfg(), qs = [];
         if (dateEl && dateEl.value) qs.push('date=' + encodeURIComponent(dateEl.value));
-        if (timeEl && timeEl.value) qs.push('time=' + encodeURIComponent(timeEl.value));
-        return qs.length ? '?' + qs.join('&') : '';
+        if (c.model === 'per_guest' && state.qty) qs.push('guests=' + state.qty);
+        var svcQ = qs.slice();
+        if (state.token) svcQ.push('pricing_option=' + encodeURIComponent(state.token));
+        reserve.setAttribute('href', '/service/' + svc.value + (svcQ.length ? '?' + svcQ.join('&') : ''));
+        // Cards target their OWN service, so only carry event-level context.
+        var cardQ = qs.length ? '?' + qs.join('&') : '';
+        cards.forEach(function (card) { var b = card.getAttribute('data-href'); if (b) card.setAttribute('href', b + cardQ); });
     }
 
-    function update() {
-        if (!svc) return;
-        var opt = svc.options[svc.selectedIndex];
-        var amount = parseFloat(opt.getAttribute('data-amount')) || 0;
-        var per = opt.getAttribute('data-per') || '';
-        if (totalEl) totalEl.textContent = amount > 0 ? (fmt(amount) + (per ? ' ' + per : '')) : 'On request';
-        var q = ctxQs();
-        if (reserve) reserve.setAttribute('href', '/service/' + opt.value + q);
-        cards.forEach(function (card) {
-            var base = card.getAttribute('data-href');
-            if (base) card.setAttribute('href', base + q);
-        });
-    }
-    [svc, dateEl, timeEl].forEach(function (el) {
-        if (el) { el.addEventListener('input', update); el.addEventListener('change', update); }
-    });
-    update();
+    svc.addEventListener('change', renderInput);
+    if (dateEl) { dateEl.addEventListener('input', updateLinks); dateEl.addEventListener('change', updateLinks); }
+    renderInput();
 
     // Smooth-scroll "Browse services" / any [data-sf-scroll-to].
     document.querySelectorAll('[data-sf-scroll-to]').forEach(function (link) {

@@ -1,7 +1,7 @@
 <?php
 /**
  * Checkout (frames 1i/1j) — the anxiety-peak screen. Deposit only, guest
- * checkout mandatory, refund tiers in plain English, "held by PartySmith"
+ * checkout mandatory, refund tiers in plain English, "held by Partysmith"
  * escrow copy. Payment wiring (Stripe PaymentElement / simulated) unchanged.
  */
 ?>
@@ -87,7 +87,7 @@ $editHref = '/service/' . (int) $service['id'] . '?' . http_build_query(array_fi
                 </button>
                 <p class="sf-microcopy">
                     <?= esc($firstWord) ?> confirms your booking — you get a text.<br>
-                    Deposit held by PartySmith until they do.
+                    Deposit held by Partysmith until they do.
                 </p>
             </form>
         </div>
