@@ -6,7 +6,7 @@ use App\Libraries\TenantHost;
  * White-label tenant layout — footer.
  *
  * Dark neutral ground. The phone's second (and last) appearance, and the one
- * place PartySmith appears on a tenant page — muted "Powered by" line.
+ * place Partysmith appears on a tenant page — muted "Powered by" line.
  */
 $site ??= service('tenant')->site() ?? [];
 
@@ -53,7 +53,7 @@ $poweredByUrl = 'https://www.' . TenantHost::baseDomain();
                 <?php endif; ?>
             </p>
             <p class="powered" style="margin: 0;">
-                <a href="<?= esc($poweredByUrl, 'attr') ?>" rel="nofollow">Powered by PartySmith</a>
+                <a href="<?= esc($poweredByUrl, 'attr') ?>" rel="nofollow">Powered by Partysmith</a>
             </p>
         </div>
     </footer>

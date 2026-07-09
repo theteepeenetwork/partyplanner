@@ -81,7 +81,7 @@ $galAlt = static fn (int $i): string => $i === 0
                 <?php if ($rating !== null): ?>
                     <span class="sf-rating-chip" style="color: var(--sf-ink);"><i class="fas fa-star" aria-hidden="true"></i><?= esc(number_format($rating, 1)) ?> · <?= $bookCnt ?> booking<?= $bookCnt === 1 ? '' : 's' ?></span>
                 <?php elseif (! empty($newVendor['isNew'])): ?>
-                    <span class="sf-newbadge"><i class="fas fa-seedling" aria-hidden="true"></i>New on PartySmith</span>
+                    <span class="sf-newbadge"><i class="fas fa-seedling" aria-hidden="true"></i>New on Partysmith</span>
                 <?php endif; ?>
             </div>
 
@@ -117,7 +117,7 @@ $galAlt = static fn (int $i): string => $i === 0
                   // already carries the badge there; framed/none modes get it from
                   // that block at every width. ?>
             <?php if (! empty($newVendor['isNew']) && $photos['mode'] === 'gallery' && $rating === null): ?>
-                <p class="sf-only-mobile" style="margin: 0 0 14px;"><span class="sf-newbadge"><i class="fas fa-seedling" aria-hidden="true"></i>New on PartySmith</span></p>
+                <p class="sf-only-mobile" style="margin: 0 0 14px;"><span class="sf-newbadge"><i class="fas fa-seedling" aria-hidden="true"></i>New on Partysmith</span></p>
             <?php endif; ?>
 
             <?php if ($included !== []): ?>
@@ -148,7 +148,7 @@ $galAlt = static fn (int $i): string => $i === 0
                 <?php elseif (! empty($newVendor['isNew'])): ?>
                     <div class="sf-card sf-noreviews">
                         <b>No reviews yet</b> — <?= esc(strtok($bn, ' ')) ?> joined in <?= esc($newVendor['joined']) ?>.
-                        Every booking is protected the same way: your deposit is held by PartySmith until they confirm,
+                        Every booking is protected the same way: your deposit is held by Partysmith until they confirm,
                         and cancellation is free for 14 days.
                     </div>
                 <?php endif; ?>

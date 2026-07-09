@@ -149,8 +149,32 @@ final class TenantStorefrontLanderTest extends CIUnitTestCase
         $result->assertSee('Book your event in three clicks.'); // 3D hybrid hero
         $result->assertSee('sf-lhero');
         $result->assertSee('sf-estimator');               // live instant-quote estimator
-        $result->assertSee('Reserve your date');
+        $result->assertSee('est-input');                  // polymorphic control mount
+        $result->assertSee('est-total-lbl');
         $result->assertSee('Durham &amp; Teesside');      // coverage in the hero pill
+        $result->assertDontSee('est-time');               // start time removed from hero card
+        $result->assertDontSee('% deposit</b>');          // deposit is a concrete figure, not a %
+    }
+
+    public function testReserveCtaAlwaysHasALabel(): void
+    {
+        // Task 1 regression: the primary quote-card button must never render
+        // without text (server-rendered fallback label present before JS runs).
+        $this->onHost('vendorone.' . self::BASE_DOMAIN);
+        $body = (string) $this->get('/')->getBody();
+
+        $this->assertMatchesRegularExpression(
+            '/id="est-reserve-lbl">\s*\S+/',
+            $body,
+            'Reserve CTA label span must contain text'
+        );
+        $this->assertStringContainsString('Reserve your date', $body);
+
+        // Root cause of the "empty button": an <a class="sf-btn"> was painted
+        // teal-on-teal because body.sf-body a out-specified .sf-btn. Guard the
+        // stylesheet override so the label can never go invisible again.
+        $css = (string) file_get_contents(FCPATH . 'assets/css/tenant-storefront.css');
+        $this->assertMatchesRegularExpression('/a\.sf-btn[^{]*\{[^}]*color:\s*#fff/i', $css, 'sf-btn anchors must force white label text');
     }
 
     public function testLanderShowsTrustStripWithDepositPercent(): void
@@ -214,6 +238,33 @@ final class TenantStorefrontLanderTest extends CIUnitTestCase
 
         // Starting 15:00 is clear → not greyed.
         $this->get('/?date=2027-06-05&time=15:00')->assertDontSee('is-unavailable');
+    }
+
+    public function testGalleryBandSuppressedAndNeverEchoesServicePhotos(): void
+    {
+        // A service HAS a card photo, but there is no dedicated vendor gallery —
+        // the band must be suppressed entirely (never fall back to service imagery).
+        $this->db->table('service_images')->insert(['service_id' => $this->marqueeId, 'image_path' => 'uploads/service-card.jpg', 'is_primary' => 1]);
+        $this->onHost('vendorone.' . self::BASE_DOMAIN);
+        $result = $this->get('/');
+
+        // The band (heading + grid) is absent entirely — no fall-back to the
+        // service imagery that legitimately shows on the service card itself.
+        $result->assertDontSee('Recent events');
+        $result->assertDontSee('sf-gallery3');
+    }
+
+    public function testGalleryBandRendersDedicatedVendorGalleryOnly(): void
+    {
+        if (! $this->db->tableExists('vendor_site_gallery')) {
+            $this->markTestSkipped('vendor_site_gallery migration not present');
+        }
+        $this->db->table('vendor_site_gallery')->insert(['vendor_id' => $this->vendorId, 'image_path' => 'uploads/vendor_gallery/g1.jpg', 'sort_order' => 0]);
+        $this->onHost('vendorone.' . self::BASE_DOMAIN);
+        $result = $this->get('/');
+
+        $result->assertSee('Recent events');
+        $result->assertSee('uploads/vendor_gallery/g1.jpg');
     }
 
     public function testReviewsEmptyStateWhenNoneExist(): void

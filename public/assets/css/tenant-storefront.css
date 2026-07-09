@@ -166,6 +166,11 @@ body.sf-body.sf-has-stickybar { padding-bottom: calc(74px + env(safe-area-inset-
 .sf-btn:hover { filter: brightness(0.92); transform: translateY(-1px); text-decoration: none; color: #fff; }
 .sf-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; filter: none; }
 .sf-btn.block { width: 100%; }
+/* An <a class="sf-btn"> must keep its white label: `body.sf-body a` (color:
+   primary) otherwise out-specifies `.sf-btn` and paints the text teal-on-teal,
+   hiding it. This rule (0,2,1) beats that (0,1,2). Same for the outline link. */
+.sf-body a.sf-btn, .sf-body a.sf-btn:hover, .sf-body a.sf-btn:visited { color: #fff; }
+.sf-body a.sf-btn-outline, .sf-body a.sf-btn-outline:hover { color: var(--sf-ink); }
 .sf-btn-outline {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   font-family: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer;
@@ -280,6 +285,18 @@ textarea.sf-input { height: auto; padding: 10px 12px; }
 /* ── Two-column laptop layout with sticky right panel ───────────────────── */
 .sf-cols { display: grid; gap: 24px; align-items: start; }
 @media (min-width: 980px) { .sf-cols { grid-template-columns: 1fr 400px; gap: 28px; } }
+/* Service page: reviews sit in the left column under the details on laptop,
+   but stack AFTER the quote form on mobile (DOM order content → aside → reviews,
+   single column) so the price and "Book" stay above the fold. */
+@media (min-width: 980px) {
+  .sf-cols-service {
+    grid-template-columns: 1fr 400px;
+    grid-template-areas: "content aside" "reviews aside";
+  }
+  .sf-cols-service > .sf-col-content { grid-area: content; }
+  .sf-cols-service > aside { grid-area: aside; }
+  .sf-cols-service > .sf-col-reviews { grid-area: reviews; }
+}
 .sf-panel {
   background: var(--sf-surface); border: 1px solid var(--sf-border); border-radius: 16px;
   box-shadow: var(--sf-sh-panel); padding: 20px;
@@ -488,17 +505,23 @@ textarea.sf-input { height: auto; padding: 10px 12px; }
 .sf-lhero-btns { display: flex; gap: 12px; flex-wrap: wrap; margin-bottom: 22px; }
 .sf-lhero-ghost { display: inline-flex; align-items: center; gap: 8px; background: var(--sf-surface); border: 1px solid var(--sf-border); color: var(--sf-ink); font-weight: 600; font-size: 15px; padding: 14px 24px; border-radius: 12px; cursor: pointer; }
 .sf-lhero-ghost:hover { background: var(--sf-tint-8); text-decoration: none; }
-.sf-lhero-ticks { display: flex; gap: 22px; flex-wrap: wrap; font-size: 13px; font-weight: 500; color: var(--sf-muted); }
-.sf-lhero-ticks span { display: inline-flex; align-items: center; gap: 7px; }
-.sf-lhero-ticks i { color: var(--sf-primary); }
 
 .sf-estimator { background: var(--sf-surface); border: 1px solid var(--sf-border); border-radius: 18px; padding: 24px; box-shadow: var(--sf-sh-panel); }
 .sf-estimator .eyebrow { font-weight: 600; font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--sf-muted); margin: 0 0 16px; }
 .sf-est-field { display: flex; flex-direction: column; gap: 7px; font-weight: 600; font-size: 12px; color: var(--sf-muted); margin-bottom: 14px; }
 .sf-est-field select, .sf-est-field input { border: 1px solid var(--sf-border-input); border-radius: 10px; padding: 12px 13px; font: inherit; font-size: 15px; font-weight: 500; color: var(--sf-ink); background: var(--sf-page); }
-.sf-est-row { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
-.sf-est-field input[type=range] { padding: 0; accent-color: var(--sf-primary); height: 36px; }
-.sf-est-guests { color: var(--sf-primary); font-weight: 700; }
+.sf-est-field input[type=range] { border: none; padding: 0; background: none; accent-color: var(--sf-primary); height: 34px; }
+.sf-est-qty { color: var(--sf-primary); font-weight: 700; }
+/* Segmented option buttons (per-hour / per-session / package models) */
+.sf-est-seg { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 14px; }
+.sf-est-segbtn {
+  flex: 1 1 auto; min-width: 64px; border: 1.5px solid var(--sf-border-input); border-radius: 10px;
+  background: var(--sf-surface); color: var(--sf-ink); font: inherit; font-weight: 600; font-size: 14px;
+  padding: 11px 10px; cursor: pointer; transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+.sf-est-segbtn:hover { border-color: var(--sf-primary); }
+.sf-est-segbtn.on { border-color: var(--sf-primary); background: var(--sf-tint-8); color: var(--sf-primary); }
+.sf-est-quoteonly { font-size: 13.5px; line-height: 1.5; color: var(--sf-muted); margin: 0 0 14px; }
 .sf-est-total { margin-top: 18px; padding-top: 18px; border-top: 1px solid var(--sf-border); display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; }
 .sf-est-total .lbl { font-size: 12px; color: var(--sf-muted); margin-bottom: 5px; }
 .sf-est-total .amt { font-family: var(--sf-font-display); font-weight: 700; font-size: 32px; line-height: 1; color: var(--sf-ink); }
@@ -543,8 +566,10 @@ textarea.sf-input { height: auto; padding: 10px 12px; }
 .sf-lcard .cta { font-weight: 600; font-size: 14px; color: var(--sf-primary); white-space: nowrap; }
 .sf-lcard:hover .cta { text-decoration: underline; }
 
-.sf-lreviews-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
-@media (max-width: 620px) { .sf-lreviews-grid { grid-template-columns: 1fr; } }
+/* 3-across so the (capped-at-3) homepage widget is always a single tidy row —
+   no orphan. Collapses straight to one column; a 2-col step would re-orphan. */
+.sf-lreviews-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+@media (max-width: 760px) { .sf-lreviews-grid { grid-template-columns: 1fr; } }
 .sf-lreview { background: var(--sf-surface); border: 1px solid var(--sf-border); border-radius: 16px; padding: 22px 24px; }
 .sf-lreview-head { display: flex; align-items: center; gap: 12px; margin-bottom: 14px; }
 .sf-lreview .avatar { width: 38px; height: 38px; border-radius: 50%; flex: none; background: var(--sf-tint-12); color: var(--sf-primary); display: flex; align-items: center; justify-content: center; font-family: var(--sf-font-display); font-weight: 700; font-size: 14px; }

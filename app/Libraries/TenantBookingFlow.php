@@ -258,6 +258,133 @@ class TenantBookingFlow
     }
 
     /**
+     * Normalised estimator config for the storefront instant-quote card, keyed
+     * off the SAME pricing_type taxonomy the quote pipeline uses (guest / custom
+     * duration / tiered packages / quantity). It is display/estimation only —
+     * the exact charge always comes from EventQuoteBuilder on the service page.
+     *
+     * Returns one of:
+     *  - per_guest / per_unit : slider (min/max/default + tiered rate bands)
+     *  - per_hour / per_session / package : segmented options (exact price each)
+     *  - fixed  : one exact price, no input
+     *  - quote_only : bespoke — no client-side maths (corporate/unconfigured)
+     *
+     * NB there is deliberately no "base + per-guest" model: the schema has no
+     * such combined table, so such services resolve to per_guest or quote_only
+     * rather than inventing a taxonomy.
+     *
+     * @return array{model: string, exact: bool, unitLabel?: string, slider?: array, options?: list<array>, fixed?: float}
+     */
+    public function estimatorModel(int $serviceId): array
+    {
+        $db      = Database::connect();
+        $private = (new ServicePrivatePricingModel())->where('service_id', $serviceId)->first();
+        $type    = (string) ($private['pricing_type'] ?? '');
+        $pid     = (int) ($private['id'] ?? 0);
+        $flat    = (float) ($private['price'] ?? 0);
+
+        if ($type === 'guest_based_pricing' && $pid > 0) {
+            $bands = [];
+
+            foreach ($db->table('services_guest_based_pricing')->where('private_event_pricing_id', $pid)
+                ->orderBy('min_guest', 'ASC')->get()->getResultArray() as $t) {
+                $bands[] = ['min' => max(1, (int) $t['min_guest']), 'max' => max(1, (int) $t['max_guest']), 'rate' => (float) $t['guest_price']];
+            }
+            if ($bands !== []) {
+                return $this->sliderEstimator('per_guest', 'guest', $bands);
+            }
+        }
+
+        if ($type === 'quantity_based_pricing' && $pid > 0) {
+            $rows  = $db->table('services_quantity_pricing')->where('private_event_pricing_id', $pid)
+                ->orderBy('min_quantity', 'ASC')->get()->getResultArray();
+            $bands = [];
+
+            foreach ($rows as $t) {
+                $min     = max(1, (int) $t['min_quantity']);
+                $bands[] = ['min' => $min, 'max' => max($min, (int) ($t['max_quantity'] ?: $min)), 'rate' => (float) $t['unit_price']];
+            }
+            if ($bands !== []) {
+                $label = trim((string) ($rows[0]['unit_label'] ?? ''));
+
+                return $this->sliderEstimator('per_unit', $label !== '' ? $label : 'unit', $bands);
+            }
+        }
+
+        if ($type === 'custom_duration_pricing' && $pid > 0) {
+            $blocks = (new ServiceTimeBlockModel())->getByServiceId($serviceId);
+            if ($blocks !== []) {
+                $opts = [];
+
+                foreach ($blocks as $b) {
+                    $s      = substr((string) ($b['start_time'] ?? ''), 0, 5);
+                    $e      = substr((string) ($b['end_time'] ?? ''), 0, 5);
+                    $opts[] = ['label' => $s !== '' && $e !== '' ? $s . '–' . $e : 'Session', 'price' => (float) ($b['price'] ?? 0), 'token' => 'timeblock_' . (int) $b['id']];
+                }
+
+                return ['model' => 'per_session', 'exact' => true, 'options' => $opts];
+            }
+
+            $opts = [];
+
+            foreach ($db->table('services_custom_duration_pricing')->where('private_event_pricing_id', $pid)
+                ->orderBy('duration', 'ASC')->get()->getResultArray() as $t) {
+                $unit   = ($t['duration_type'] ?? '') === 'day' ? 'day' : 'hr';
+                $n      = (int) $t['duration'];
+                $opts[] = ['label' => $n . ' ' . $unit . ($n === 1 ? '' : 's'), 'price' => (float) $t['price'], 'token' => 'duration_' . (int) $t['id']];
+            }
+            if ($opts !== []) {
+                return ['model' => 'per_hour', 'exact' => true, 'options' => $opts];
+            }
+        }
+
+        if ($type === 'tiered_packages_pricing' && $pid > 0) {
+            $pkgs = $db->table('services_tiered_packages_pricing')->where('private_event_pricing_id', $pid)
+                ->orderBy('package_price', 'ASC')->get()->getResultArray();
+            if (count($pkgs) === 1) {
+                return ['model' => 'fixed', 'exact' => true, 'fixed' => (float) $pkgs[0]['package_price']];
+            }
+            if (count($pkgs) > 1) {
+                $opts = [];
+
+                foreach ($pkgs as $p) {
+                    $opts[] = ['label' => (string) ($p['package_name'] ?? 'Package'), 'price' => (float) $p['package_price'], 'token' => 'package_' . (int) $p['id']];
+                }
+
+                return ['model' => 'package', 'exact' => true, 'options' => $opts];
+            }
+        }
+
+        if ($flat > 0) {
+            return ['model' => 'fixed', 'exact' => true, 'fixed' => $flat];
+        }
+
+        return ['model' => 'quote_only', 'exact' => false];
+    }
+
+    /**
+     * Slider estimator config (per-guest / per-unit): overall min/max, a
+     * sensible default, and the tiered rate bands so the live total is accurate
+     * across bands.
+     *
+     * @param list<array{min: int, max: int, rate: float}> $bands
+     *
+     * @return array{model: string, exact: bool, unitLabel: string, slider: array}
+     */
+    private function sliderEstimator(string $model, string $unitLabel, array $bands): array
+    {
+        $min = min(array_column($bands, 'min'));
+        $max = max(max(array_column($bands, 'max')), $min + 1);
+
+        return [
+            'model'     => $model,
+            'exact'     => true,
+            'unitLabel' => $unitLabel,
+            'slider'    => ['min' => $min, 'max' => $max, 'default' => min($max, max($min, 50)), 'bands' => $bands],
+        ];
+    }
+
+    /**
      * Nearest free dates around an unavailable one (handoff frame 1h): scan
      * outwards day by day, closest first, never in the past, availability
      * decided by the same ServiceAvailabilityChecker a real quote uses.

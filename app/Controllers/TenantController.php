@@ -76,6 +76,7 @@ class TenantController extends BaseController
             $service['images']        = $imageModel->where(['service_id' => $service['id'], 'is_primary' => 1])->findAll();
             $service['category_name'] = $categoryModel->getServiceCategoryLabel($service);
             $service['from']          = $flow->fromPrice($service);
+            $service['estimator']     = $flow->estimatorModel((int) $service['id']);
             $service['available']     = $date === '' ? null : $this->serviceAvailableForSlot($flow, (int) $service['id'], $tenant->vendorId(), $date, $time);
         }
         unset($service);
@@ -93,6 +94,10 @@ class TenantController extends BaseController
             'reviews'      => $this->recentReviews($tenant->vendorId(), 3),
             'mostBookedId' => $mostBookedId,
             'heroImage'    => $this->firstImageUrl($services),
+            'galleryPhotos' => array_map(
+                static fn ($g) => $g['image_path'],
+                (new \App\Models\VendorGalleryModel())->forVendor($tenant->vendorId())
+            ),
             'ctxDate'      => $date,
             'ctxTime'      => $time,
         ]);
@@ -259,18 +264,25 @@ class TenantController extends BaseController
     public function quote()
     {
         $tenant = $this->requireTenant();
+
+        // Preserve the submitted booking-form context on any bounce-back so the
+        // fields (date, postcode, start time, guests) persist for the customer.
+        $ctxQuery = http_build_query(array_filter([
+            'date'     => trim((string) $this->request->getPost('event_date')),
+            'postcode' => trim((string) $this->request->getPost('postcode')),
+            'guests'   => trim((string) $this->request->getPost('guest_count')),
+            'time'     => trim((string) $this->request->getPost('start_time')),
+        ]));
+        $ctxQuery = $ctxQuery !== '' ? '?' . $ctxQuery : '';
+
         $parsed = $this->parseQuoteRequest($tenant, 'post');
         if (isset($parsed['error'])) {
-            return redirect()->to($tenant->url($parsed['backTo'] ?? '/'))->with('error', $parsed['error']);
+            return redirect()->to($tenant->url(($parsed['backTo'] ?? '/') . $ctxQuery))->with('error', $parsed['error']);
         }
 
         $service = $parsed['service'];
         $quote   = $parsed['quote'];
-        $back    = redirect()->to($tenant->url('/service/' . (int) $service['id'] . '?' . http_build_query(array_filter([
-            'date'     => $parsed['event']['date'],
-            'postcode' => $parsed['event']['postcode'],
-            'guests'   => $parsed['event']['guest_count'],
-        ]))));
+        $back    = redirect()->to($tenant->url('/service/' . (int) $service['id'] . $ctxQuery));
 
         if (! empty($quote['errors'])) {
             return $back->with('error', implode(' ', $quote['errors']));
@@ -529,12 +541,12 @@ class TenantController extends BaseController
         [$booking, $items, $event] = $this->ownedBooking($tenant, (int) $bookingId);
 
         $date  = ! empty($event['date']) ? date('Ymd', strtotime($event['date'])) : date('Ymd');
-        $title = ($items[0]['service_title'] ?? 'Booking') . ' — ' . ($tenant->site()['business_name'] ?? 'PartySmith');
+        $title = ($items[0]['service_title'] ?? 'Booking') . ' — ' . ($tenant->site()['business_name'] ?? 'Partysmith');
 
         $ics = implode("\r\n", [
             'BEGIN:VCALENDAR',
             'VERSION:2.0',
-            'PRODID:-//PartySmith//Storefront//EN',
+            'PRODID:-//Partysmith//Storefront//EN',
             'BEGIN:VEVENT',
             'UID:partysmith-booking-' . (int) $booking['id'] . '@' . $tenant->subdomain(),
             'DTSTAMP:' . gmdate('Ymd\THis\Z'),
@@ -827,7 +839,7 @@ class TenantController extends BaseController
     }
 
     /**
-     * "New on PartySmith" context — shown only when the vendor has zero
+     * "New on Partysmith" context — shown only when the vendor has zero
      * reviews. Never fake stars; explain the platform protection instead.
      *
      * @return array{isNew: bool, joined: string}
@@ -843,7 +855,7 @@ class TenantController extends BaseController
 
     /**
      * Auto-generated about line when the vendor hasn't written one (1n):
-     * "<Category> covering <area>, on PartySmith since <year>."
+     * "<Category> covering <area>, on Partysmith since <year>."
      */
     private function aboutLine(TenantContext $tenant, array $services): string
     {
@@ -862,7 +874,7 @@ class TenantController extends BaseController
         $vendor = $tenant->vendor() ?? [];
         $since  = ! empty($vendor['created_at']) ? date('Y', strtotime($vendor['created_at'])) : date('Y');
 
-        return ($category !== '' ? $category : 'Event services') . ' covering ' . $area . ', on PartySmith since ' . $since . '.';
+        return ($category !== '' ? $category : 'Event services') . ' covering ' . $area . ', on Partysmith since ' . $since . '.';
     }
 
     /**

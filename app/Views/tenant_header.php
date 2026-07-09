@@ -4,8 +4,8 @@
  * White-label tenant layout — header (Storefront System handoff, frames 1a–1n).
  *
  * Neutral SaaS chrome: tenant pages load ONLY the storefront stylesheet +
- * Instrument Sans + Font Awesome — no marketplace CSS, no PartySmith branding
- * (the sole PartySmith reference is the muted "Powered by" line in the
+ * Instrument Sans + Font Awesome — no marketplace CSS, no Partysmith branding
+ * (the sole Partysmith reference is the muted "Powered by" line in the
  * footer). Vendor theming = two injected custom properties (--sf-primary,
  * --sf-accent) + tints derived in CSS.
  *

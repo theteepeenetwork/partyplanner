@@ -29,6 +29,9 @@ use DateTime;
 
 class Profile extends BaseController
 {
+    /** Max storefront gallery photos a vendor can hold. */
+    private const GALLERY_MAX = 12;
+
     private function requireLogin()
     {
         if (! session()->has('user_id')) {
@@ -683,6 +686,7 @@ class Profile extends BaseController
         return view('dashboard/vendor_my_site', [
             'user'       => $user,
             'site'       => $site,
+            'gallery'    => (new \App\Models\VendorGalleryModel())->forVendor((int) $user['id']),
             'currentTab' => 'my-site',
         ]);
     }
@@ -732,7 +736,49 @@ class Profile extends BaseController
 
         $siteModel->update((int) $site['id'], $update);
 
+        $this->saveGallery((int) $user['id']);
+
         return $back->with('success', 'Your site has been updated — changes are live.');
+    }
+
+    /**
+     * Storefront "Recent events" gallery: delete the images the vendor ticked,
+     * then append any newly uploaded ones (capped, image-only). Same vendor-auth
+     * gate as the rest of My Site — a vendor only touches their own rows.
+     */
+    private function saveGallery(int $vendorId): void
+    {
+        $model = new \App\Models\VendorGalleryModel();
+
+        foreach ((array) $this->request->getPost('remove_gallery') as $rid) {
+            $row = $model->where('id', (int) $rid)->where('vendor_id', $vendorId)->first();
+            if ($row !== null) {
+                @unlink(ROOTPATH . 'public/' . ltrim((string) $row['image_path'], '/'));
+                $model->delete((int) $rid);
+            }
+        }
+
+        $count = count($model->forVendor($vendorId));
+        $dir   = ROOTPATH . 'public/uploads/vendor_gallery/';
+        if (! is_dir($dir)) {
+            @mkdir($dir, 0o755, true);
+        }
+
+        foreach ((array) $this->request->getFileMultiple('gallery') as $file) {
+            if ($count >= self::GALLERY_MAX) {
+                break;
+            }
+            if ($file === null || ! $file->isValid() || $file->hasMoved()) {
+                continue;
+            }
+            if (! in_array(strtolower($file->getExtension()), ['jpg', 'jpeg', 'png', 'webp'], true) || $file->getSize() > 4 * 1024 * 1024) {
+                continue;
+            }
+            $name = 'g_' . $vendorId . '_' . time() . '_' . bin2hex(random_bytes(3)) . '.' . $file->getExtension();
+            $file->move($dir, $name);
+            $model->insert(['vendor_id' => $vendorId, 'image_path' => 'uploads/vendor_gallery/' . $name, 'sort_order' => $count]);
+            $count++;
+        }
     }
 
     public function calendarData()

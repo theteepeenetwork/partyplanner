@@ -97,6 +97,20 @@
                         <input type="text" name="phone" id="phoneInput" class="mysite-input" maxlength="32"
                             value="<?= esc($site['phone'] ?? '', 'attr') ?>" placeholder="e.g. 07700 900123">
 
+                        <label class="mysite-label" style="margin-top:22px;">Recent events gallery</label>
+                        <p class="mysite-hint">Separate from your service photos — shown in the "Recent events" band on your storefront. The band is hidden entirely until you add at least one photo here.</p>
+                        <?php if (! empty($gallery)): ?>
+                            <div class="mysite-gallery">
+                                <?php foreach ($gallery as $g): ?>
+                                    <div class="mysite-gal-item">
+                                        <img src="/<?= esc(ltrim((string) $g['image_path'], '/'), 'attr') ?>" alt="">
+                                        <label class="rm"><input type="checkbox" name="remove_gallery[]" value="<?= (int) $g['id'] ?>"> Remove</label>
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                        <?php endif; ?>
+                        <input type="file" name="gallery[]" accept="image/png,image/jpeg,image/webp" multiple class="mysite-file">
+
                         <button type="submit" class="fye-btn primary block lg" style="margin-top:24px;">Publish changes</button>
                     </div>
 
@@ -129,7 +143,7 @@
                                         </div>
                                     </div>
                                 </div>
-                                <div class="pv-foot">Powered by PartySmith</div>
+                                <div class="pv-foot">Powered by Partysmith</div>
                             </div>
                             <p class="mysite-hint" style="text-align:center;margin-top:10px;">A sample of how customers see your site.</p>
                         </div>
@@ -164,6 +178,10 @@
             .mysite-logo-current img { width: 100%; height: 100%; object-fit: cover; }
             .mysite-mono { font-weight: 800; font-size: 22px; letter-spacing: -0.02em; color: #fff; width: 100%; height: 100%; display: flex; align-items: center; justify-content: center; background: var(--pv-mono-bg, #1C4A36); }
             .mysite-file { font-size: 13px; color: var(--fye-ink-2); }
+            .mysite-gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(88px, 1fr)); gap: 10px; margin-bottom: 10px; }
+            .mysite-gal-item { display: flex; flex-direction: column; gap: 5px; }
+            .mysite-gal-item img { width: 100%; aspect-ratio: 1; object-fit: cover; border-radius: 8px; border: 1px solid var(--fye-line); }
+            .mysite-gal-item .rm { display: inline-flex; align-items: center; gap: 5px; font-size: 11.5px; color: var(--fye-ink-2); cursor: pointer; }
 
             /* Live preview */
             .mysite-preview-wrap { position: sticky; top: 90px; }
