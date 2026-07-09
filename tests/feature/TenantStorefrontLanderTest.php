@@ -169,6 +169,12 @@ final class TenantStorefrontLanderTest extends CIUnitTestCase
             'Reserve CTA label span must contain text'
         );
         $this->assertStringContainsString('Reserve your date', $body);
+
+        // Root cause of the "empty button": an <a class="sf-btn"> was painted
+        // teal-on-teal because body.sf-body a out-specified .sf-btn. Guard the
+        // stylesheet override so the label can never go invisible again.
+        $css = (string) file_get_contents(FCPATH . 'assets/css/tenant-storefront.css');
+        $this->assertMatchesRegularExpression('/a\.sf-btn[^{]*\{[^}]*color:\s*#fff/i', $css, 'sf-btn anchors must force white label text');
     }
 
     public function testLanderShowsTrustStripWithDepositPercent(): void

@@ -166,6 +166,11 @@ body.sf-body.sf-has-stickybar { padding-bottom: calc(74px + env(safe-area-inset-
 .sf-btn:hover { filter: brightness(0.92); transform: translateY(-1px); text-decoration: none; color: #fff; }
 .sf-btn:disabled { opacity: 0.55; cursor: not-allowed; transform: none; filter: none; }
 .sf-btn.block { width: 100%; }
+/* An <a class="sf-btn"> must keep its white label: `body.sf-body a` (color:
+   primary) otherwise out-specifies `.sf-btn` and paints the text teal-on-teal,
+   hiding it. This rule (0,2,1) beats that (0,1,2). Same for the outline link. */
+.sf-body a.sf-btn, .sf-body a.sf-btn:hover, .sf-body a.sf-btn:visited { color: #fff; }
+.sf-body a.sf-btn-outline, .sf-body a.sf-btn-outline:hover { color: var(--sf-ink); }
 .sf-btn-outline {
   display: inline-flex; align-items: center; justify-content: center; gap: 8px;
   font-family: inherit; font-weight: 600; font-size: 13.5px; cursor: pointer;
