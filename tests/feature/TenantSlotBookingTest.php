@@ -167,6 +167,9 @@ final class TenantSlotBookingTest extends CIUnitTestCase
 
         $result->assertRedirect();
         $this->assertStringContainsString('/service/' . $this->serviceId, $result->getRedirectUrl());
+        // Booking-form context persists on the bounce-back (date + start time).
+        $this->assertStringContainsString('date=' . $this->date, $result->getRedirectUrl());
+        $this->assertStringContainsString('time=', $result->getRedirectUrl());
         $this->assertNull(session('tenant_quote'));
     }
 

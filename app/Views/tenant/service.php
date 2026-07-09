@@ -67,8 +67,8 @@ $galAlt = static fn (int $i): string => $i === 0
 <?php endif; ?>
 
 <div class="sf-shell">
-    <div class="sf-cols" style="margin-top: 14px;">
-        <div>
+    <div class="sf-cols sf-cols-service" style="margin-top: 14px;">
+        <div class="sf-col-content">
             <?php if ($ctxBits !== []): ?><p class="sf-eyebrow"><?= esc(implode(' · ', $ctxBits)) ?></p><?php endif; ?>
             <h1 style="font-size: 19px; font-weight: 700; margin: 0 0 6px; letter-spacing: -0.01em;"><?= esc($service['title']) ?></h1>
             <p style="margin: 0 0 12px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
@@ -95,7 +95,7 @@ $galAlt = static fn (int $i): string => $i === 0
                     <p>Sorry — that one's gone. Nearest free dates:</p>
                     <div class="sf-altdates">
                         <?php foreach ($nearestDates as $alt): ?>
-                            <a class="sf-altdate" href="/service/<?= (int) $service['id'] ?>?<?= esc(http_build_query(array_filter(['date' => $alt['date'], 'postcode' => $ctxPostcode, 'guests' => $ctxGuests])), 'attr') ?>">
+                            <a class="sf-altdate" href="/service/<?= (int) $service['id'] ?>?<?= esc(http_build_query(array_filter(['date' => $alt['date'], 'postcode' => $ctxPostcode, 'guests' => $ctxGuests, 'time' => $ctxTime ?? ''])), 'attr') ?>">
                                 <span><?= esc($alt['label']) ?></span><span class="pick">Pick &rarr;</span>
                             </a>
                         <?php endforeach; ?>
@@ -108,19 +108,6 @@ $galAlt = static fn (int $i): string => $i === 0
 
             <?php if (! empty($service['description'])): ?>
                 <p style="font-size: 13.5px; color: var(--sf-muted); max-width: 60ch; margin: 0 0 16px;"><?= esc($service['description']) ?></p>
-            <?php endif; ?>
-
-            <?php if ($reviews !== []): ?>
-                <section class="sf-sec" style="padding-top: 4px;">
-                    <h2 class="sf-sec-h">Reviews</h2>
-                    <?php foreach ($reviews as $r): ?>
-                        <div class="sf-card sf-review" style="margin-bottom: 10px;">
-                            <span class="sf-stars"><?php for ($i = 1; $i <= 5; $i++): ?><i class="fas fa-star<?= $i > (int) $r['rating'] ? ' off' : '' ?>" aria-hidden="true"></i><?php endfor; ?></span>
-                            <span class="ctx"><?= ! empty($r['created_at']) ? esc(date('M Y', strtotime($r['created_at']))) : '' ?></span>
-                            <blockquote>&ldquo;<?= esc($r['comment'] ?? $r['title'] ?? '') ?>&rdquo; — <?= esc($r['reviewer'] ?? 'Verified customer') ?></blockquote>
-                        </div>
-                    <?php endforeach; ?>
-                </section>
             <?php endif; ?>
         </div>
 
@@ -215,6 +202,22 @@ $galAlt = static fn (int $i): string => $i === 0
                 </form>
             </div>
         </aside>
+
+        <?php // Reviews: left column under the details on laptop; on mobile they
+              // stack AFTER the quote form (grid areas below) so the price/CTA
+              // stay above the fold. ?>
+        <?php if ($reviews !== []): ?>
+            <section class="sf-col-reviews sf-sec" style="padding-top: 4px;">
+                <h2 class="sf-sec-h">Reviews</h2>
+                <?php foreach ($reviews as $r): ?>
+                    <div class="sf-card sf-review" style="margin-bottom: 10px;">
+                        <span class="sf-stars"><?php for ($i = 1; $i <= 5; $i++): ?><i class="fas fa-star<?= $i > (int) $r['rating'] ? ' off' : '' ?>" aria-hidden="true"></i><?php endfor; ?></span>
+                        <span class="ctx"><?= ! empty($r['created_at']) ? esc(date('M Y', strtotime($r['created_at']))) : '' ?></span>
+                        <blockquote>&ldquo;<?= esc($r['comment'] ?? $r['title'] ?? '') ?>&rdquo; — <?= esc($r['reviewer'] ?? 'Verified customer') ?></blockquote>
+                    </div>
+                <?php endforeach; ?>
+            </section>
+        <?php endif; ?>
     </div>
 </div>
 

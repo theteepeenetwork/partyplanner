@@ -259,18 +259,25 @@ class TenantController extends BaseController
     public function quote()
     {
         $tenant = $this->requireTenant();
+
+        // Preserve the submitted booking-form context on any bounce-back so the
+        // fields (date, postcode, start time, guests) persist for the customer.
+        $ctxQuery = http_build_query(array_filter([
+            'date'     => trim((string) $this->request->getPost('event_date')),
+            'postcode' => trim((string) $this->request->getPost('postcode')),
+            'guests'   => trim((string) $this->request->getPost('guest_count')),
+            'time'     => trim((string) $this->request->getPost('start_time')),
+        ]));
+        $ctxQuery = $ctxQuery !== '' ? '?' . $ctxQuery : '';
+
         $parsed = $this->parseQuoteRequest($tenant, 'post');
         if (isset($parsed['error'])) {
-            return redirect()->to($tenant->url($parsed['backTo'] ?? '/'))->with('error', $parsed['error']);
+            return redirect()->to($tenant->url(($parsed['backTo'] ?? '/') . $ctxQuery))->with('error', $parsed['error']);
         }
 
         $service = $parsed['service'];
         $quote   = $parsed['quote'];
-        $back    = redirect()->to($tenant->url('/service/' . (int) $service['id'] . '?' . http_build_query(array_filter([
-            'date'     => $parsed['event']['date'],
-            'postcode' => $parsed['event']['postcode'],
-            'guests'   => $parsed['event']['guest_count'],
-        ]))));
+        $back    = redirect()->to($tenant->url('/service/' . (int) $service['id'] . $ctxQuery));
 
         if (! empty($quote['errors'])) {
             return $back->with('error', implode(' ', $quote['errors']));

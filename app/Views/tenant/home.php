@@ -70,11 +70,8 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
                 <select id="est-svc">
                     <?php foreach ($services as $s):
                         $from = $s['from'] ?? ['amount' => 0, 'per' => ''];
-                        $isGuest = ($from['per'] ?? '') === 'guest';
-                        $base    = $isGuest ? 0 : (float) $from['amount'];
-                        $perG    = $isGuest ? (float) $from['amount'] : 0;
                     ?>
-                        <option value="<?= (int) $s['id'] ?>" data-base="<?= esc((string) $base, 'attr') ?>" data-perguest="<?= esc((string) $perG, 'attr') ?>">
+                        <option value="<?= (int) $s['id'] ?>" data-amount="<?= esc((string) (float) $from['amount'], 'attr') ?>" data-per="<?= esc($perLabel($from['per'] ?? ''), 'attr') ?>">
                             <?= esc($s['title']) ?><?php if ($from['amount'] > 0): ?> — from £<?= esc(number_format((float) $from['amount'], (float) $from['amount'] == (int) $from['amount'] ? 0 : 2)) ?><?= esc($perLabel($from['per'] ?? '')) ?><?php endif; ?>
                         </option>
                     <?php endforeach; ?>
@@ -84,19 +81,19 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
                 <label class="sf-est-field">Event date
                     <input type="date" id="est-date" min="<?= esc($today, 'attr') ?>" value="<?= esc($ctxDate, 'attr') ?>">
                 </label>
-                <label class="sf-est-field">Guests · <span class="sf-est-guests" id="est-guests-n">120</span>
-                    <input type="range" id="est-guests" min="20" max="300" step="5" value="120">
+                <label class="sf-est-field">Start time <span style="font-weight: 400; text-transform: none;">(optional)</span>
+                    <input type="time" id="est-time" step="900" value="<?= esc($ctxTime, 'attr') ?>">
                 </label>
             </div>
             <div class="sf-est-total">
                 <div>
-                    <div class="lbl">Estimated total</div>
+                    <div class="lbl">From</div>
                     <div class="amt" id="est-total">£0</div>
                 </div>
-                <div class="dep">Deposit today<b id="est-deposit">£0</b></div>
+                <div class="dep">Deposit today<b><?= $depositPct ?>%</b></div>
             </div>
             <a class="sf-btn" id="est-reserve" href="#">Reserve your date <i class="fas fa-arrow-right" aria-hidden="true"></i></a>
-            <p class="sf-est-note">A ballpark — you'll get the exact itemised quote on the next step.</p>
+            <p class="sf-est-note">A "from" guide — you'll get the exact itemised quote on the next step.</p>
         </div>
     </div>
 </section>
@@ -107,19 +104,6 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
     <?php endif; ?>
     <?php if (session()->getFlashdata('info')): ?>
         <div class="sf-flash info"><?= esc(session()->getFlashdata('info')) ?></div>
-    <?php endif; ?>
-
-    <?php if ($galleryImgs !== []): ?>
-        <section class="sf-gallery3">
-            <div class="sf-gallery3-head">
-                <h2>Recent events</h2>
-            </div>
-            <div class="sf-gallery3-grid">
-                <?php foreach ($galleryImgs as $g): ?>
-                    <div class="cell"><img src="<?= esc($g, 'attr') ?>" alt="" loading="lazy"></div>
-                <?php endforeach; ?>
-            </div>
-        </section>
     <?php endif; ?>
 
     <div class="sf-chips" style="margin-top: 22px;">
@@ -180,6 +164,19 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
         </div>
     </section>
 
+    <?php if ($galleryImgs !== []): ?>
+        <section class="sf-gallery3 sf-lsec">
+            <div class="sf-gallery3-head">
+                <h2>Recent events</h2>
+            </div>
+            <div class="sf-gallery3-grid">
+                <?php foreach ($galleryImgs as $g): ?>
+                    <div class="cell"><img src="<?= esc($g, 'attr') ?>" alt="" loading="lazy"></div>
+                <?php endforeach; ?>
+            </div>
+        </section>
+    <?php endif; ?>
+
     <section class="sf-lsec">
         <div class="sf-lsec-head"><h2>Reviews</h2></div>
         <?php if (! empty($reviews)): ?>
@@ -217,31 +214,25 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
 (function () {
     var svc     = document.getElementById('est-svc');
     var dateEl  = document.getElementById('est-date');
-    var guests  = document.getElementById('est-guests');
-    var guestsN = document.getElementById('est-guests-n');
+    var timeEl  = document.getElementById('est-time');
     var totalEl = document.getElementById('est-total');
-    var depEl   = document.getElementById('est-deposit');
     var reserve = document.getElementById('est-reserve');
-    var depositRate = <?= json_encode(\App\Libraries\DepositCalculator::PERCENT) ?>;
     var fmt = function (n) { return '£' + Math.round(n).toLocaleString('en-GB'); };
 
     function update() {
         if (!svc) return;
         var opt = svc.options[svc.selectedIndex];
-        var base = parseFloat(opt.getAttribute('data-base')) || 0;
-        var perG = parseFloat(opt.getAttribute('data-perguest')) || 0;
-        var g = parseInt(guests.value, 10) || 0;
-        var total = base + perG * g;
-        if (guestsN) guestsN.textContent = g;
-        if (totalEl) totalEl.textContent = total > 0 ? fmt(total) : 'On request';
-        if (depEl) depEl.textContent = total > 0 ? fmt(total * depositRate) : '—';
-        // Hand off to the real quote flow with the chosen context pre-filled.
+        var amount = parseFloat(opt.getAttribute('data-amount')) || 0;
+        var per = opt.getAttribute('data-per') || '';
+        if (totalEl) totalEl.textContent = amount > 0 ? (fmt(amount) + (per ? ' ' + per : '')) : 'On request';
+        // Hand off to the real quote flow with the chosen date + start time
+        // pre-filled — the service page persists them on its booking form.
         var qs = [];
         if (dateEl && dateEl.value) qs.push('date=' + encodeURIComponent(dateEl.value));
-        if (g) qs.push('guests=' + g);
+        if (timeEl && timeEl.value) qs.push('time=' + encodeURIComponent(timeEl.value));
         if (reserve) reserve.setAttribute('href', '/service/' + opt.value + (qs.length ? '?' + qs.join('&') : ''));
     }
-    [svc, dateEl, guests].forEach(function (el) {
+    [svc, dateEl, timeEl].forEach(function (el) {
         if (el) { el.addEventListener('input', update); el.addEventListener('change', update); }
     });
     update();

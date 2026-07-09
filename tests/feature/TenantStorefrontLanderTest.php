@@ -151,6 +151,9 @@ final class TenantStorefrontLanderTest extends CIUnitTestCase
         $result->assertSee('sf-estimator');               // live instant-quote estimator
         $result->assertSee('Reserve your date');
         $result->assertSee('Durham &amp; Teesside');      // coverage in the hero pill
+        $result->assertSee('est-time');                   // optional start time
+        $result->assertSee('Start time');
+        $result->assertDontSee('est-guests');             // guests slider removed
     }
 
     public function testLanderShowsTrustStripWithDepositPercent(): void
