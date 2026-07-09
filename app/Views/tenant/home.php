@@ -217,7 +217,19 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
     var timeEl  = document.getElementById('est-time');
     var totalEl = document.getElementById('est-total');
     var reserve = document.getElementById('est-reserve');
+    var cards   = Array.prototype.slice.call(document.querySelectorAll('[data-sf-svc]'));
     var fmt = function (n) { return '£' + Math.round(n).toLocaleString('en-GB'); };
+
+    // The date + start time entered in the estimator are event context, not
+    // tied to one service — thread them onto EVERY booking link (the Reserve
+    // button AND each service card) so whichever route the customer takes, the
+    // service page pre-fills its booking form with what they typed.
+    function ctxQs() {
+        var qs = [];
+        if (dateEl && dateEl.value) qs.push('date=' + encodeURIComponent(dateEl.value));
+        if (timeEl && timeEl.value) qs.push('time=' + encodeURIComponent(timeEl.value));
+        return qs.length ? '?' + qs.join('&') : '';
+    }
 
     function update() {
         if (!svc) return;
@@ -225,12 +237,12 @@ $this->setData(['stickyQuote' => ['href' => '#sf-quote', 'rating' => $rating, 'b
         var amount = parseFloat(opt.getAttribute('data-amount')) || 0;
         var per = opt.getAttribute('data-per') || '';
         if (totalEl) totalEl.textContent = amount > 0 ? (fmt(amount) + (per ? ' ' + per : '')) : 'On request';
-        // Hand off to the real quote flow with the chosen date + start time
-        // pre-filled — the service page persists them on its booking form.
-        var qs = [];
-        if (dateEl && dateEl.value) qs.push('date=' + encodeURIComponent(dateEl.value));
-        if (timeEl && timeEl.value) qs.push('time=' + encodeURIComponent(timeEl.value));
-        if (reserve) reserve.setAttribute('href', '/service/' + opt.value + (qs.length ? '?' + qs.join('&') : ''));
+        var q = ctxQs();
+        if (reserve) reserve.setAttribute('href', '/service/' + opt.value + q);
+        cards.forEach(function (card) {
+            var base = card.getAttribute('data-href');
+            if (base) card.setAttribute('href', base + q);
+        });
     }
     [svc, dateEl, timeEl].forEach(function (el) {
         if (el) { el.addEventListener('input', update); el.addEventListener('change', update); }
